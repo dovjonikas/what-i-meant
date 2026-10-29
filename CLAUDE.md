@@ -9,6 +9,9 @@ Notes for coding agents working in this repo.
 - Code: someone new must find their way without help. Each folder has a short README, each file
   starts with a comment on what it is for, comments explain why, names are plain, files stay small.
 - Commits: English, imperative, one change each.
+- Writing: follow the last three sections of `docs/reports/Why AI writing sounds like AI.md`: the
+  rules for story text, the review checklist with its pattern scan, and the plain-writing rules for
+  commits, comments and docs. Run the scan on any text before it is committed.
 
 ## Context
 The author's private notes live outside this repo (read-only):
