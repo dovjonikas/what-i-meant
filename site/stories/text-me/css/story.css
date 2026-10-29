@@ -820,30 +820,6 @@ body:not(.is-gate) .gate {
   line-height: 1.45;
 }
 
-.gate-about {
-  font-size: 14px;
-  color: var(--dim);
-}
-
-.gate-about summary {
-  width: fit-content;
-  padding: 6px 0;
-  cursor: pointer;
-  list-style: none;
-  text-decoration: underline;
-  text-decoration-color: rgb(243 238 229 / 0.3);
-  text-underline-offset: 4px;
-}
-
-.gate-about summary::-webkit-details-marker {
-  display: none;
-}
-
-.gate-about p {
-  margin: 4px 0 6px;
-  line-height: 1.45;
-}
-
 .gate-actions {
   display: flex;
   gap: 10px;
