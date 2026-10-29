@@ -2,9 +2,12 @@
 //
 // One short melody, the "home" theme, runs through the whole life. It is a music box in
 // childhood, a piano later, only its first bar on the lonely night (left unfinished), and
-// in full, slowly, with strings under it, when the last text arrives. Each part of life is
-// an act with its own chords, speed, brightness and instruments; a new act starts on the
-// next chord, so a change of music always lands on a chord change.
+// in full, slowly, with strings under it, when the last text arrives, and once more at the
+// very end, on the music box alone, finished for the first time, when you text Mom home.
+// Each part of life is an act with its own chords, speed, brightness and instruments; a new
+// act starts on the next chord, so a change of music always lands on a chord change (a
+// loss does not wait for the bar). Fading the music fades what goes into the room, never
+// the room itself, so a cut leaves its echo ringing.
 
 const LOOKAHEAD = 1.5;
 const TICK_MS = 200;
@@ -50,8 +53,11 @@ const ACTS = {
   evening: { chords: ['Bms', 'Gs', 'Ds', 'As'], sec: 6.5, bright: 1100, pad: 0.75, bass: 0.7, keys: 0.14, voice: 'piano', theme: { voice: 'piano', every: 3, bars: 2 } },
   lonely: { chords: ['Bms', 'Em', 'Bms', 'Fs'], sec: 8.5, bright: 520, pad: 0.55, bass: 0.45, keys: 0, voice: 'piano', theme: { voice: 'piano', every: 2, bars: 1 } },
   goose: { chords: ['Em9', 'A11', 'Dm7', 'Bm7'], sec: 5.5, bright: 900, pad: 0.5, bass: 0.85, keys: 0.22, voice: 'ep' },
-  dawn: { chords: ['Gs', 'Ar', 'Bmr', 'Dr'], sec: 5.5, bright: 1900, pad: 0.7, bass: 0.8, keys: 0.12, voice: 'piano', strings: 0.5, theme: { voice: 'piano', every: 2 } },
-  grief: { chords: ['Bms', 'Gs', 'Em', 'Gs'], sec: 9, bright: 450, pad: 0.5, bass: 0.4, keys: 0, voice: 'piano' },
+  dawn: { chords: ['Dr', 'Gs', 'Ar', 'Bmr'], sec: 5.5, bright: 1900, pad: 0.7, bass: 0.8, keys: 0.12, voice: 'piano', strings: 0.5, theme: { voice: 'piano', every: 2 } },
+  grief: { chords: ['Bms', 'Gs', 'Em', 'Gs'], sec: 9, bright: 450, pad: 0.5, bass: 0.4, keys: 0, voice: 'piano', urgent: true },
+  // The last wait, from "Read" to the reply: one suspended chord that will not settle until
+  // the reply does.
+  wait: { chords: ['As', 'As'], sec: 7, bright: 600, pad: 0.55, bass: 0.5, keys: 0, voice: 'piano', urgent: true },
   afternoon: { chords: ['Ds', 'Fsm', 'Gm7', 'As'], sec: 6.5, bright: 1400, pad: 0.65, bass: 0.75, keys: 0.14, voice: 'piano', theme: { voice: 'piano', every: 3 } },
   end: { chords: ['D', 'G', 'Bm', 'A'], sec: 8, bright: 800, pad: 0.55, bass: 0.55, keys: 0.1, voice: 'box' },
 };
@@ -71,7 +77,7 @@ export function createScore(ctx, out) {
     g.gain.value = v;
     return g;
   };
-  const master = gain(0);
+  const master = gain(1);
   master.connect(out);
   const reverbIn = gain(1);
   const reverb = ctx.createConvolver();
@@ -87,7 +93,7 @@ export function createScore(ctx, out) {
   echoTone.connect(gain(0.3)).connect(echo);
   echoTone.connect(master);
   const bus = (dry, wet, delayed = 0) => {
-    const input = gain(1);
+    const input = gain(0);
     input.connect(gain(dry)).connect(master);
     input.connect(gain(wet)).connect(reverbIn);
     if (delayed) input.connect(gain(delayed)).connect(echoIn);
@@ -96,6 +102,8 @@ export function createScore(ctx, out) {
   const padBus = bus(0.7, 0.55);
   const keyBus = bus(0.75, 0.6, 0.2);
   const bassBus = bus(1, 0.12);
+  const feeds = [padBus, keyBus, bassBus];
+  const fade = (value, seconds) => feeds.forEach((f) => ramp(f, value, seconds));
 
   let act = null;
   let pending = null;
@@ -103,24 +111,27 @@ export function createScore(ctx, out) {
   let index = 0;
   let rounds = 0;
   let timer = 0;
-  let finale = false;
+  let ending = 0;
 
   function play(name) {
-    if (name === 'silence') {
+    clearTimeout(ending);
+    // 'silence' lets the music go over a breath; 'cut' stops it mid-phrase (Dad's last
+    // "home"), and the echo carries on alone.
+    if (name === 'silence' || name === 'cut') {
       act = null;
       pending = null;
-      ramp(master, 0, 1.6);
+      fade(0, name === 'cut' ? 0.12 : 1.6);
       return;
     }
     if (name === 'home') return home();
+    if (name === 'remember') return remember();
     if (!ACTS[name]) return;
-    if (finale) return;
     if (!act) {
       act = ACTS[name];
       index = 0;
       rounds = 0;
       next = ctx.currentTime + 0.1;
-      ramp(master, 0.85, 3);
+      fade(0.85, 3);
     } else {
       pending = ACTS[name];
     }
@@ -131,7 +142,7 @@ export function createScore(ctx, out) {
   function schedule(horizon = ctx.currentTime + LOOKAHEAD) {
     if (!act) return;
     while (next < horizon) {
-      if (pending && index % 2 === 0) {
+      if (pending && (index % 2 === 0 || pending.urgent)) {
         act = pending;
         pending = null;
         index = 0;
@@ -151,17 +162,33 @@ export function createScore(ctx, out) {
 
   // The last text lands: the theme in full, slower, with strings, over D Bm G D, then quiet.
   function home() {
-    finale = true;
     pending = null;
     act = null;
     const t0 = ctx.currentTime + 0.3;
     const sec = 5;
-    ramp(master, 0.95, 1.5);
+    fade(0.95, 1.5);
     const run = { sec, bright: 1500, pad: 0.75, bass: 0.7, strings: 0.8 };
     ['D', 'Bm', 'G', 'D'].forEach((n, i) => chord(C[n], t0 + i * sec, sec, run));
     chord(C.D, t0 + 4 * sec, sec * 1.6, run);
     theme('piano', t0, sec / 4, 4);
-    setTimeout(() => ramp(master, 0, 6), (4 * sec + 5) * 1000);
+    ending = setTimeout(() => fade(0, 6), (4 * sec + 5) * 1000);
+  }
+
+  // Texting Mom home: the theme on the music box alone, over one soft D, slowing like a box
+  // winding down, finished for the first time: the E falls to the D.
+  function remember() {
+    pending = null;
+    act = null;
+    const t0 = ctx.currentTime + 0.4;
+    fade(0.9, 1);
+    chord(C.D, t0, 14, { bright: 700, pad: 0.4, bass: 0.35 });
+    let at = t0;
+    THEME.forEach((bar, b) => {
+      const beat = 0.62 + b * 0.09;
+      for (const [n, on] of bar) note('box', n, at + on * beat, 0.55);
+      at += 4 * beat;
+    });
+    ending = setTimeout(() => fade(0, 7), (at - ctx.currentTime + 3) * 1000);
   }
 
   function chord([bassNote, pad], t, dur, a) {

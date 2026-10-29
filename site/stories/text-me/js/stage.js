@@ -119,8 +119,10 @@ export class Stage {
   push(scale, ms, at = performance.now()) {
     if (!this.current || still()) return;
     this.pushed = { scale, ms, at };
+    // A symmetric ease, so the move starts and settles as gently as it travels (the plain
+    // CSS ease front-loads it, which reads as a jolt on a slow push).
     const move = this.current.el.animate([{ transform: 'scale(1)' }, { transform: `scale(${scale})` }], {
-      duration: ms, easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)', fill: 'forwards',
+      duration: ms, easing: 'cubic-bezier(0.45, 0, 0.55, 1)', fill: 'forwards',
     });
     move.currentTime = Math.min(ms, performance.now() - at);
   }

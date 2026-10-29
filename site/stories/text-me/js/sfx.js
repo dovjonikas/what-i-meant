@@ -162,6 +162,18 @@ export function createSfx(ctx, out) {
         tone('triangle', n % 2 ? 1900 : 1500, t, env(t, 0.018, 0.002, 0.05), 0.07);
       }, 1000);
     },
+    /** A kettle put on: a hiss that slowly rises, then settles. */
+    kettle() {
+      const t = ctx.currentTime;
+      const f = burst(t, 7, 'bandpass', 400, 0.025, 1.5);
+      f.frequency.exponentialRampToValueAtTime(2400, t + 6.5);
+    },
+    /** A light switch: a small click and the room going a little quieter. */
+    lightSwitch() {
+      const t = ctx.currentTime;
+      burst(t, 0.012, 'highpass', 2500, 0.09);
+      tone('sine', 220, t, env(t, 0.03, 0.002, 0.05), 0.06);
+    },
     /** One key of a reply typing itself. */
     tick() {
       burst(ctx.currentTime, 0.015, 'highpass', 3000, 0.025);

@@ -321,10 +321,28 @@ export class Lines {
 
     const ageY = h * 0.17;
     const ageFill = readable(hexToRgb(PAPER), this.skyAt(ageY - 10));
-    ctx.fillStyle = rgbToCss(ageFill, 0.92);
     ctx.font = '300 30px Recursive, system-ui, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`age ${Math.floor(this.age + 1e-6)}`, w / 2, ageY);
+    // The age rolls over like a counter: the old number slides up and out, the new one in.
+    const year = Math.floor(this.age + 1e-6);
+    if (year !== this.year) {
+      this.prevYear = this.year;
+      this.year = year;
+      this.yearAt = ms;
+    }
+    const roll = this.prevYear === undefined ? 1 : clamp01((ms - this.yearAt) / 320);
+    const eased = 1 - (1 - roll) ** 3;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, ageY - 34, w, 46);
+    ctx.clip();
+    if (roll < 1) {
+      ctx.fillStyle = rgbToCss(ageFill, 0.92 * (1 - eased));
+      ctx.fillText(`age ${this.prevYear}`, w / 2, ageY - 24 * eased);
+    }
+    ctx.fillStyle = rgbToCss(ageFill, 0.92 * eased);
+    ctx.fillText(`age ${year}`, w / 2, ageY + 24 * (1 - eased));
+    ctx.restore();
     this.ageLayout = { fill: ageFill, back: this.skyAt(ageY - 10) };
 
     const edge = ctx.createLinearGradient(X(0), 0, X(1), 0);
@@ -433,7 +451,7 @@ export class Lines {
     const layout = [];
     const lineH = 15;
     const span = (p, x) => {
-      ctx.font = `${p.me ? 560 : 440} 14px Recursive, system-ui, sans-serif`;
+      ctx.font = `${p.me ? 600 : 520} 14px Recursive, system-ui, sans-serif`;
       const half = ctx.measureText(p.label).width / 2 + 5;
       const lx = Math.min(this.colX + this.colW - half, Math.max(this.colX + half, x));
       return [lx - half, lx + half, lx];
@@ -510,8 +528,14 @@ export class Lines {
       const ly = now - 17 - label[1] * lineH;
       const back = this.skyAt(ly);
       const fill = readable(mix(rgb, hexToRgb(PAPER), p.me ? 0.1 : 0.3), back);
-      ctx.font = `${p.me ? 560 : 440} 14px Recursive, system-ui, sans-serif`;
-      ctx.fillStyle = rgbToCss(fill, label[2] * (d.end === undefined ? p.alpha * (p.faint ? 0.6 : 1) : 1));
+      ctx.font = `${p.me ? 600 : 520} 14px Recursive, system-ui, sans-serif`;
+      const la = label[2] * (d.end === undefined ? p.alpha * (p.faint ? 0.6 : 1) : 1);
+      // A soft halo in the sky's own colour keeps a name clear of the lines behind it.
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = rgbToCss(back, 0.7 * la);
+      ctx.strokeText(p.label, label[0], ly);
+      ctx.fillStyle = rgbToCss(fill, la);
       ctx.fillText(p.label, label[0], ly);
       if (label[2] > 0.9) layout.push({ label: p.label, x: label[0], y: ly, w: ctx.measureText(p.label).width, dot: x, fill, back });
     }

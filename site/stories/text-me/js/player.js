@@ -121,12 +121,15 @@ export class Player {
 
   async play(b) {
     const tap = () => this.tap();
+    // Any beat can carry a sound of its own: the kettle, the light switch.
+    if (b.sfx) this.sound?.[b.sfx]?.();
     if (b.chapter) return this.card('chapter', b.chapter);
     if (b.title) return this.card('title');
     if (b.end) return this.ending();
     if (b.scene) {
       // A line belongs to the picture it was said over.
       this.captions.clear();
+      this.ui.when(b.when ?? this.whenOf(b.scene));
       this.lines.show(false);
       if (b.music) this.music(b.music);
       const shown = this.stage.show(b.scene, { instant: b.instant, ms: b.ms });
@@ -180,6 +183,7 @@ export class Player {
     }
     if (seg.music) this.music(seg.music);
     this.captions.clear();
+    this.ui.when('');
     this.lines.show(true);
     await this.lines.run(seg, {
       say: (text, by) => this.captions.say(text, by, () => this.tap()),
@@ -233,8 +237,15 @@ export class Player {
    * lock screen fades in with the time and your sent text, a clock ticks, maybe one line,
    * and after a tap (or a few seconds, when there is no line) it all fades back out.
    */
+  /** When a scene happens, for the line at the top: the porch is now, the rest an age. */
+  whenOf(id) {
+    if (id.startsWith('porch')) return 'now';
+    return this.lines.age > 0 ? `age ${Math.floor(this.lines.age + 1e-6)}` : '';
+  }
+
   async backToNow(n) {
     this.captions.clear();
+    this.ui.when('');
     this.lines.show(false);
     await this.ui.dim(true);
     this.music('frame');

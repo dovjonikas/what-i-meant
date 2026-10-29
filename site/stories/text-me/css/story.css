@@ -9,7 +9,7 @@
   --ink: #070b1c;
   --paper: #f3eee5;
   --dim: rgb(243 238 229 / 0.62);
-  --me: #e8913a;
+  --me: #d9772e;
   --them: rgb(52 58 78 / 0.92);
   --glass-dark: rgb(10 13 24 / 0.82);
 
@@ -84,7 +84,7 @@ button {
   height: 46%;
   z-index: 2;
   pointer-events: none;
-  background: linear-gradient(to bottom, rgb(5 7 15 / 0), rgb(5 7 15 / 0.55) 55%, rgb(5 7 15 / 0.78));
+  background: linear-gradient(to bottom, rgb(5 7 15 / 0), rgb(5 7 15 / 0.62) 55%, rgb(5 7 15 / 0.84));
 }
 
 /* The column: everything you read and tap. */
@@ -353,7 +353,8 @@ button {
   }
 }
 
-/* Photos are drawn in CSS: a moon, a thumb over the lens, a baby in a blanket. */
+/* Photos are drawn in CSS: a moon, a thumb over the lens, a baby in a blanket, and the
+   partner's three below. */
 .is-photo {
   width: 150px;
   height: 120px;
@@ -380,18 +381,58 @@ button {
     linear-gradient(#c9d6e8, #a9b8d0);
 }
 
+/* The partner, never posed: asleep against a train window, burnt toast held up, a laugh
+   too fast for the camera. Faceless like everyone, the small imperfections are the point. */
+.photo-sleep {
+  background:
+    radial-gradient(ellipse 22% 26% at 38% 52%, #c98d68 0 98%, transparent 100%),
+    radial-gradient(ellipse 28% 34% at 34% 44%, #1f1a18 0 98%, transparent 100%),
+    radial-gradient(ellipse 40% 30% at 42% 92%, #5b8fd0 0 98%, transparent 100%),
+    linear-gradient(100deg, #6f8fb0 0 22%, #2a3346 22% 24%, #8aa6c2 24%);
+}
+
+.photo-toast {
+  background:
+    linear-gradient(#2a1810, #2a1810) 50% 52% / 34% 30% no-repeat,
+    radial-gradient(ellipse 34% 22% at 50% 60%, #f3efe6 0 96%, transparent 100%),
+    radial-gradient(ellipse 30% 40% at 78% 30%, rgb(91 143 208 / 0.6) 0 96%, transparent 100%),
+    linear-gradient(#e9c79a, #c9935e);
+}
+
+.photo-laugh {
+  background:
+    radial-gradient(ellipse 20% 25% at 55% 45%, #c98d68 0 96%, transparent 100%),
+    radial-gradient(ellipse 27% 32% at 52% 38%, #1f1a18 0 96%, transparent 100%),
+    radial-gradient(ellipse 45% 30% at 54% 95%, #5b8fd0 0 96%, transparent 100%),
+    linear-gradient(#ffd9a0, #e9a36a);
+  filter: blur(1.2px);
+}
+
 .phone-stamp {
   align-self: center;
   margin: 8px 0 4px;
-  font-size: 11px;
-  color: rgb(255 255 255 / 0.45);
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.62);
 }
 
+/* "Delivered" and "Read" carry the plot, so they are big enough to read at a glance. */
 .phone-status {
   align-self: flex-end;
   margin: 0 4px;
-  font-size: 11px;
-  color: rgb(255 255 255 / 0.5);
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.7);
+}
+
+/* A chat that waits for a tap before it closes (a loss) shows the same dot as a line. */
+.phone.is-stay.is-done .phone-thread::after {
+  content: "";
+  align-self: center;
+  width: 6px;
+  height: 6px;
+  margin: 12px 0 2px;
+  border-radius: 50%;
+  background: rgb(243 238 229 / 0.7);
+  animation: breathe 1.8s ease-in-out infinite;
 }
 
 .phone-replies {
@@ -412,9 +453,15 @@ button {
   width: 100%;
   margin-bottom: 2px;
   text-align: right;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.08em;
-  color: var(--dim);
+  color: color-mix(in srgb, var(--me) 75%, #efe9de);
+}
+
+/* A reply with no alternative is not a choice: it reads as sending, with the send arrow. */
+.phone-replies:not(.is-choice) .chip:not(.is-action)::after {
+  content: " \2191";
+  color: var(--me);
 }
 
 .phone-replies .chip {
@@ -460,9 +507,9 @@ button {
   position: absolute;
   right: 54px;
   bottom: 64px;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.06em;
-  color: var(--dim);
+  color: rgb(243 238 229 / 0.82);
   animation: breathe 1.8s ease-in-out infinite;
 }
 
@@ -911,4 +958,31 @@ body:not(.is-gate) .gate {
   .line.is-done .line-text::after {
     animation: none;
   }
+}
+
+/* When a scene happens, at the top between the back and sound buttons: "age 12", "now". */
+.when {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 3;
+  height: 44px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  transform: translateX(-50%);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-variation-settings: var(--label);
+  color: rgb(243 238 229 / 0.82);
+  text-shadow: 0 1px 6px rgb(5 7 15 / 0.7);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.when.is-on {
+  opacity: 1;
 }

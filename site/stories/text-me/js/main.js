@@ -63,9 +63,14 @@ function startAudio() {
   ctx.resume();
   const out = ctx.createGain();
   out.gain.value = soundOn ? 1 : 0;
+  // A ceiling only: it catches peaks and leaves the swells alone, since a swell is what makes
+  // the ending land.
   const limiter = ctx.createDynamicsCompressor();
-  limiter.threshold.value = -12;
-  limiter.ratio.value = 4;
+  limiter.threshold.value = -3;
+  limiter.knee.value = 0;
+  limiter.ratio.value = 20;
+  limiter.attack.value = 0.002;
+  limiter.release.value = 0.2;
   out.connect(limiter).connect(ctx.destination);
   if (!soundOn) ctx.suspend();
   const score = createScore(ctx, out);
@@ -81,6 +86,8 @@ function startAudio() {
     tick: () => sfx.tick(),
     step: (ms) => sfx.step(ms),
     clock: (on) => sfx.clock(on),
+    kettle: () => sfx.kettle(),
+    lightSwitch: () => sfx.lightSwitch(),
   };
 }
 

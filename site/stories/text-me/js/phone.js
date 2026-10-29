@@ -61,12 +61,15 @@ export class Phone {
       await this.step(step);
     }
     // The phone goes away by itself once the last message has had time to be read, so
-    // nobody sits waiting on a finished chat; a tap closes it sooner.
+    // nobody sits waiting on a finished chat; a tap closes it sooner. A chat with `stay`
+    // (a loss) waits for the player's tap instead, however long they need.
     const last = this.thread.lastElementChild?.textContent ?? '';
     this.el.classList.add('is-done');
-    await Promise.race([ctx.tap(), sleep(Math.min(4200, 1800 + last.length * 45))]);
+    this.el.classList.toggle('is-stay', !!spec.stay);
+    if (spec.stay) await ctx.tap();
+    else await Promise.race([ctx.tap(), sleep(Math.min(4200, 1800 + last.length * 45))]);
     ctx.untap?.();
-    this.el.classList.remove('is-done');
+    this.el.classList.remove('is-done', 'is-stay');
     await this.close();
   }
 

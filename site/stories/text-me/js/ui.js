@@ -169,6 +169,17 @@ export class Ui {
     });
   }
 
+  /** The small line at the top that says when a scene happens ("age 12", "now"). */
+  when(text) {
+    if (!this.whenEl) {
+      this.whenEl = document.createElement('p');
+      this.whenEl.className = 'when';
+      this.column.append(this.whenEl);
+    }
+    if (text) this.whenEl.textContent = text;
+    this.whenEl.classList.toggle('is-on', !!text);
+  }
+
   /** Shows or hides the hold hint. */
   hint(text) {
     this.hintEl.hidden = !text;

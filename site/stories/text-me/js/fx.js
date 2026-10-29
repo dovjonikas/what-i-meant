@@ -8,7 +8,14 @@
 
 import { rng } from './util.js';
 import { makePen } from './painter.js';
-import { drawPerson } from './people.js';
+import { drawPerson, markOf } from './people.js';
+
+// Who is who: as a scene comes in, each person you know gets their name above them for a
+// few seconds, in their own colour, then it fades. People passing through get none.
+const NAMES = { me: 'you', mom: 'mom', dad: 'dad', grandma: 'grandma', grandpa: 'grandpa', friend: 'best friend', partner: 'partner', kid: 'your kid', dog: 'Biscuit' };
+const NAME_IN = 0.5;
+const NAME_HOLD = 3.4;
+const NAME_OUT = 1.2;
 
 /**
  * Builds the effects for one scene. Returns { canvases: {0?, 1?, 2?}, start(), stop() };
@@ -28,6 +35,7 @@ export function createFx(items = [], view, scene, progress = () => 0, t0 = 0) {
     S: (s) => s * view.colW,
     w: cssW,
     h: view.h,
+    col: [view.margin + view.colX, view.margin + view.colX + view.colW],
   };
   items.forEach((it, i) => {
     const at = it.at ?? 2;
@@ -76,6 +84,36 @@ export function createFx(items = [], view, scene, progress = () => 0, t0 = 0) {
   };
 }
 
+/** The name over a person's head for the first seconds of a scene (see NAMES). */
+function nameTag(ctx, who, t, p) {
+  const name = who.name ?? NAMES[who.who];
+  if (!name || who.nameless) return;
+  const k = t < NAME_IN ? t / NAME_IN : t < NAME_IN + NAME_HOLD ? 1 : 1 - (t - NAME_IN - NAME_HOLD) / NAME_OUT;
+  if (k <= 0) return;
+  const tall = who.who === 'dog' ? (who.pose === 'lie' ? 0.8 : 1.3) : who.pose === 'sit' ? 0.8 : who.pose === 'bike' ? 1.15 : 1.02;
+  const y = p.Y(who.y) - p.S(who.h) * tall - 9;
+  ctx.font = '600 12px Recursive, system-ui, sans-serif';
+  const half = ctx.measureText(name).width / 2;
+  const x = Math.min(p.col[1] - half - 6, Math.max(p.col[0] + half + 6, p.X(who.x)));
+  ctx.save();
+  ctx.globalAlpha *= k;
+  ctx.textAlign = 'center';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgb(12 12 22 / 0.6)';
+  ctx.strokeText(name, x, y);
+  ctx.fillStyle = mixName(markOf(who.who));
+  ctx.fillText(name, x, y);
+  ctx.restore();
+}
+
+/** A person's colour lifted toward paper, so a small name reads on a dark halo. */
+function mixName(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.round(v + (246 - v) * 0.45));
+  return `rgb(${c[0]} ${c[1]} ${c[2]})`;
+}
+
 function dot(ctx, x, y, r, css) {
   ctx.fillStyle = css;
   ctx.beginPath();
@@ -87,7 +125,8 @@ const KINDS = {
   // A person, breathing and shifting weight. A person with a `track` moves along it:
   // [[x, y, h], ...] from start to end, driven by `progress` (how far the player has held,
   // 0 to 1) or, with `seconds`, by time (`loop` repeats it). `poses` changes the pose:
-  // [[at, pose, {fields}], ...]. Legs walk, run or pedal by the distance covered.
+  // [[at, pose, {fields}], ...]. Legs walk, run or pedal by the distance covered. `ghost`
+  // (seconds) makes them a memory that fades away.
   person: {
     init(it, p, r, pen, progress) {
       return { pen, progress, step: 0, last: null, until: 0 };
@@ -112,7 +151,20 @@ const KINDS = {
         s.last = [x, y];
         if (who.turn && s.face) who = { ...who, face: s.face };
       }
+      // A `ghost` is a memory of somebody: drawn faint, and gone `ghost` seconds after a
+      // short look.
+      if (who.ghost) {
+        const a = 0.55 * Math.max(0, 1 - Math.max(0, t - 1.5) / who.ghost);
+        if (a <= 0) return;
+        ctx.save();
+        ctx.globalAlpha = a;
+        drawPerson(ctx, who, s.pen, t, s.step, t < s.until);
+        nameTag(ctx, who, t, p);
+        ctx.restore();
+        return;
+      }
       drawPerson(ctx, who, s.pen, t, s.step, t < s.until);
+      nameTag(ctx, who, t, p);
     },
   },
 

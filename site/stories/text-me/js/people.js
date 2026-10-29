@@ -19,16 +19,16 @@ import { drawDog } from './pets.js';
 // is teal for that reason), and Dad's green is dark enough to stay apart from her red for
 // players who cannot tell red from green.
 export const LOOKS = {
-  me: { top: '#e8913a', legs: '#2e3a55', hair: '#a8824c', skin: '#efc3a2', old: { hair: '#d4cec4' } },
+  me: { top: '#d9772e', legs: '#2e3a55', hair: '#a8824c', skin: '#efc3a2', old: { hair: '#d4cec4' } },
   mom: { top: '#c9473f', legs: '#3b3346', hair: '#7a4a2c', hairStyle: 'long', skin: '#f0c4a2', coat: true, old: { hair: '#cfc8bf', hairStyle: 'bun' } },
   dad: { top: '#2f5a4e', legs: '#3a3833', hair: '#2a2420', skin: '#d6a07e', broad: true, old: { hair: '#cdc8c0' } },
   grandma: { top: '#7b5b8e', legs: '#5a4a5a', scarf: '#e0a83e', skin: '#efcaae', coat: true, mark: '#e0a83e' },
   grandpa: { top: '#8b6a4b', legs: '#4a4038', hair: '#dcd8d0', cap: '#5a4b3c', skin: '#e2b08e' },
   friend: { top: '#f2c94c', legs: '#2c4a6b', hair: '#c79a55', skin: '#f2c8a6' },
   partner: { top: '#5b8fd0', legs: '#2f3340', hair: '#1f1a18', hairStyle: 'long', skin: '#c98d68' },
-  kid: { top: '#f7b84a', legs: '#3e5a7a', hair: '#c9a46a', skin: '#f0c4a2' },
+  kid: { top: '#f0a347', legs: '#3e5a7a', hair: '#c9a46a', skin: '#f0c4a2' },
   goose: { mark: '#b9c6d8' },
-  dog: { coat: '#b9773f', light: '#f1dcbc', mark: '#c98a4b', collar: '#2f8fa3' },
+  dog: { coat: '#b9773f', light: '#f1dcbc', mark: '#2f8fa3', collar: '#2f8fa3' },
   // People who pass through: friends at the fire, strangers.
   a: { top: '#3f8f8a', legs: '#2c2c36', hair: '#1e1a18', skin: '#c48a64' },
   b: { top: '#d6d0c4', legs: '#3a4256', hair: '#8a5a32', hairStyle: 'long', skin: '#f0c8a8' },
@@ -122,9 +122,13 @@ function standing(ctx, k, it, pose) {
   const { h, t, step, moving } = k;
   const b = body(k);
   const seed = (it.x ?? 0) * 9;
-  const breathe = Math.sin(t * 1.7 + seed) * h * 0.004;
+  // Everyone breathes at their own rate. `mood: 'sad'` is grief in the body, the cues that
+  // read without a face: slower breath, a lean forward, a slower and wider sway.
+  const sad = it.mood === 'sad';
+  const rate = (1.5 + ((seed * 7.3) % 1) * 0.5) * (sad ? 0.7 : 1);
+  const breathe = Math.sin(t * rate + seed) * h * 0.004;
   // Standing still, people shift their weight a little; walking, they bob with each step.
-  const sway = moving ? 0 : Math.sin(t * 0.55 + seed) * h * 0.008;
+  const sway = moving ? 0 : Math.sin(t * (sad ? 0.4 : 0.55) + seed) * h * (sad ? 0.011 : 0.008);
   const bob = moving ? -Math.abs(Math.sin(step)) * h * 0.02 : 0;
   // Legs: back one first, in the shadow colour. A walking leg swings and lifts its foot.
   let legs;
@@ -144,7 +148,7 @@ function standing(ctx, k, it, pose) {
 
   ctx.save();
   ctx.translate(sway, b.hipY + breathe + bob);
-  ctx.rotate(it.bend ?? (k.old ? 0.2 : pose === 'phone' ? 0.07 : 0));
+  ctx.rotate((it.bend ?? (k.old ? 0.2 : pose === 'phone' ? 0.07 : 0)) + (sad ? 0.09 : 0));
   const sy = b.shoulderY - b.hipY;
   const arms = armPose(pose, k, b, sy, t);
   limb(ctx, k, k.look.top, arms.back[0], arms.back[1], b.limb, 0.28, arms.back[2]);
@@ -210,12 +214,14 @@ function torso(ctx, k, b, sy) {
   ctx.closePath();
   ctx.fill();
   if (k.rim) {
-    ctx.globalAlpha = 0.5;
+    // Relative to the alpha already set, so a faded figure (a memory) stays faded.
+    const a0 = ctx.globalAlpha;
+    ctx.globalAlpha = a0 * 0.5;
     ctx.strokeStyle = k.rim;
     ctx.lineWidth = Math.max(1, h * 0.012);
     const e = b.shoulderW * k.litSide;
     line(ctx, e, sy + h * 0.05, hw * k.litSide, h * 0.01 + coat);
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = a0;
   }
   if (look.neck) {
     ctx.fillStyle = k.paint(look.neck);
@@ -361,27 +367,36 @@ function bundle(ctx, k, b, sy) {
   ctx.fill();
 }
 
+// Sitting. `seat` says on what: 'chair' (the default: a chair or bench at knee height,
+// drawn by the scene), 'ground' (on the grass or the floor, knees up, hands on the knees)
+// or 'ledge' (the end of a pier, a step: `y` is the edge, the legs hang over it).
 function sitting(ctx, k, it) {
   const { h, t } = k;
   const b = body(k);
-  const seat = -h * 0.27;
+  const on = it.seat ?? 'chair';
+  const seat = on === 'ground' ? -h * 0.05 : on === 'ledge' ? -h * 0.01 : -h * 0.27;
+  const knee = on === 'ground' ? [h * 0.13, -h * 0.17] : on === 'ledge' ? [h * 0.15, -h * 0.01] : [h * 0.2, seat];
+  const foot = on === 'ground' ? [h * 0.23, 0] : on === 'ledge' ? [h * 0.17, h * 0.19] : [h * 0.22, 0];
   const breathe = Math.sin(t * 1.7 + (it.x ?? 0) * 9) * h * 0.004;
   if (!it.back) {
     // Seen from behind, the legs are hidden under the desk or the bench.
-    limb(ctx, k, k.look.legs, [-h * 0.02, seat], [h * 0.2, seat], b.limb * 1.2, 0.2, [h * 0.22, 0]);
-    shoe(ctx, k, [h * 0.22, 0]);
-    limb(ctx, k, k.look.legs, [0, seat], [h * 0.22, seat - h * 0.01], b.limb * 1.2, 0, [h * 0.25, 0]);
-    shoe(ctx, k, [h * 0.25, 0]);
+    limb(ctx, k, k.look.legs, [-h * 0.02, seat], knee, b.limb * 1.2, 0.2, foot);
+    shoe(ctx, k, foot);
+    const near = [foot[0] + h * 0.03, foot[1]];
+    limb(ctx, k, k.look.legs, [0, seat], [knee[0] + h * 0.02, knee[1] - h * 0.01], b.limb * 1.2, 0, near);
+    shoe(ctx, k, near);
   }
+  // Where the hands rest, measured from the hips: on the lap, or on the knees on the ground.
+  const lap = on === 'ground' ? [knee[0] + h * 0.01, knee[1] - seat + h * 0.03] : [h * 0.17, -h * 0.03];
   ctx.save();
   ctx.translate(0, seat + breathe);
   ctx.rotate(it.bend ?? 0.05);
   const sy = b.shoulderY - b.hipY;
-  limb(ctx, k, k.look.top, [-b.shoulderW * 0.7, sy + h * 0.02], [h * 0.12, -h * 0.02], b.limb, 0.25);
+  limb(ctx, k, k.look.top, [-b.shoulderW * 0.7, sy + h * 0.02], [lap[0] - h * 0.05, lap[1] + h * 0.01], b.limb, 0.25);
   torso(ctx, k, b, sy);
   head(ctx, k, b, sy, it);
-  limb(ctx, k, k.look.top, [b.shoulderW * 0.8, sy + h * 0.02], [h * 0.17, -h * 0.03], b.limb, 0);
-  hand(ctx, k, [h * 0.17, -h * 0.03], 0);
+  limb(ctx, k, k.look.top, [b.shoulderW * 0.8, sy + h * 0.02], lap, b.limb, 0);
+  hand(ctx, k, lap, 0);
   ctx.restore();
 }
 
