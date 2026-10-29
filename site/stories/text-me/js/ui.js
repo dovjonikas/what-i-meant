@@ -1,5 +1,6 @@
 // ui.js: the small pieces of interface around the story: the full-screen cards (chapter
-// names, the title, the ending), the choice buttons, the "hold" hint with its fill, and the
+// names, the title, the ending), the lock screen for the returns to the present, the soft
+// black veil between times, the choice buttons, the "hold" hint with its fill, and the
 // picker for who you keep close. Everything here is plain DOM styled in css/story.css.
 
 import { sleep } from './phone.js';
@@ -58,11 +59,48 @@ export class Ui {
     this.cardEl.hidden = true;
   }
 
+  /** A black veil over everything, faded in (on) or out: a soft cut between times. */
+  async dim(on) {
+    if (!this.veil) {
+      this.veil = document.createElement('div');
+      this.veil.className = 'veil';
+      document.body.append(this.veil);
+    }
+    await this.veil.animate([{ opacity: on ? 0 : 1 }, { opacity: on ? 1 : 0 }], { duration: on ? 700 : 900, easing: 'ease-in-out', fill: 'forwards' }).finished;
+  }
+
+  /** The phone's lock screen in the present: the time, and the text you sent with its status. */
+  async lock({ time, sent, status }) {
+    if (!this.lockEl) {
+      this.lockEl = document.createElement('section');
+      this.lockEl.className = 'lock';
+      this.lockEl.setAttribute('aria-label', 'Lock screen');
+      this.lockEl.innerHTML = '<p class="lock-day">Sunday</p><p class="lock-time"></p>' +
+        '<div class="lock-note"><p class="lock-app">Messages</p><p class="lock-text"></p><p class="lock-status"></p></div>';
+      this.column.append(this.lockEl);
+    }
+    this.lockEl.querySelector('.lock-time').textContent = time;
+    this.lockEl.querySelector('.lock-text').textContent = `You: ${sent}`;
+    this.lockEl.querySelector('.lock-status').textContent = status;
+    this.lockEl.hidden = false;
+    await this.lockEl.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 600, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' }).finished;
+  }
+
+  async unlock() {
+    if (!this.lockEl) return;
+    await this.lockEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 450, easing: 'ease-in', fill: 'forwards' }).finished;
+    this.lockEl.hidden = true;
+  }
+
   /** Buttons for a choice; resolves with the picked option's value. */
   choose(options) {
     return new Promise((resolve) => {
       this.choices.textContent = '';
       this.choices.className = 'choices is-choose';
+      const head = document.createElement('p');
+      head.className = 'choices-head';
+      head.textContent = 'your call';
+      this.choices.append(head);
       for (const o of options) {
         const b = document.createElement('button');
         b.type = 'button';
@@ -93,7 +131,7 @@ export class Ui {
       const done = document.createElement('button');
       done.type = 'button';
       done.className = 'chip is-done';
-      done.textContent = 'That’s them';
+      done.textContent = "That's them";
       done.hidden = true;
       const finish = async () => {
         await sleep(400);

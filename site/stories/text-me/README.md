@@ -12,8 +12,11 @@ played from start to end. The author rewrites them; see the repo `CLAUDE.md`.
 
 From the repo root: `node tools/serve.mjs`, then open http://localhost:5173/stories/text-me/.
 The art alone: http://localhost:5173/stories/text-me/scenes.html (every scene, one at a
-time) and `scenes.html?check`, which lists anything that sticks out past the phone-wide
-column or is out of scale next to the people.
+time; `&p=0.5` puts moving people halfway along their path) and `scenes.html?check`,
+which lists anything that sticks out past the phone-wide column or is out of scale next
+to the people. Playing with `?check` (http://localhost:5173/stories/text-me/?check) logs a
+`[check]` console warning for anything on screen that overlaps, sticks out or is too
+faint to read.
 
 ## What is where
 
@@ -27,10 +30,12 @@ column or is out of scale next to the people.
 | `js/scenes.js` | Every place in the story as data: colours, hills, houses, people, weather |
 | `js/painter.js` | Paints a scene: sky, mountains, mist, pines, water, roads |
 | `js/props.js` | Things in a scene: houses, flats, trees, pier, bus, car, lamps, desk |
-| `js/people.js` | The people: one colour and outfit each for life, faceless, lit from one side |
+| `js/people.js` | The people: one colour and outfit each for life, faceless, lit from one side; they breathe, walk, run and pedal |
+| `js/pets.js` | The family dog: wagging tail, floppy ears, a muzzle that greys |
+| `js/closeups.js` | Close shots of hands: the jar of jam, a newborn's grip |
 | `js/fx.js` | What moves in a scene: stars, birds, smoke, rain, snow, the people breathing |
 | `js/stage.js` | Shows scenes: three layers drifting at their own speeds, cross-fades, camera push |
-| `js/lines.js` | The life lines: hold to let the years run; people join, drift, come back, end |
+| `js/lines.js` | The life lines: the years run and stop at each moment; people join, drift, come back, end |
 | `js/phone.js` | The phone that slides up: messages, typing dots, replies that type themselves |
 | `js/captions.js` | The words, one line at a time |
 | `js/ui.js` | Chapter and title cards, the ending, choice buttons, the hold hint |
@@ -38,6 +43,7 @@ column or is out of scale next to the people.
 | `js/sfx.js` | Phone sounds and the sound of each place |
 | `js/util.js` | Seeded random numbers, noise for hill edges, colour maths |
 | `js/check.js` | The art checks behind `scenes.html?check` |
+| `js/audit.js` | Checks while the story plays, with `?check`: overlaps, things outside the column, faint names |
 | `scenes.html` | The art work page described above; not linked from the story |
 
 ## How the pieces connect

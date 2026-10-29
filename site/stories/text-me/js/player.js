@@ -109,7 +109,9 @@ export class Player {
     }
     while (this.i < SCRIPT.length) {
       const beat = SCRIPT[this.i];
-      if (!beat.if || matches(beat.if, this.flags)) {
+      // A condition may sit on the beat or, by habit, inside its lines or phone spec.
+      const cond = beat.if ?? beat.lines?.if ?? beat.phone?.if;
+      if (!cond || matches(cond, this.flags)) {
         if (beat.save) this.save();
         await this.play(beat);
       }
@@ -137,11 +139,13 @@ export class Player {
     if (b.phone) return this.runPhone(b.phone);
     if (b.lines) return this.runLines(b.lines);
     if (b.choose) {
+      this.captions.clear();
       const value = await this.ui.choose(b.options);
       this.flags[b.choose] = value;
       return;
     }
     if (b.hold) return this.runHold(b.hold);
+    if (b.now) return this.backToNow(b.now);
   }
 
   music(act) {
@@ -156,12 +160,18 @@ export class Player {
       tap: () => this.tap(),
       sfx: this.sound,
       music: (act) => this.music(act),
+      // Drops a waiting tap when the phone closed by itself, so a late tap does not skip
+      // the line that comes next.
+      untap: () => {
+        this.next = null;
+      },
     });
   }
 
   async runLines(seg) {
     if (seg.scene) {
       const shown = this.stage.show(seg.scene, { ms: 1200 });
+      this.lines.setBackdrop(this.stage.scene);
       this.sound?.ambience(this.stage.scene?.ambience);
       await shown;
     }
@@ -169,11 +179,18 @@ export class Player {
     this.captions.clear();
     this.lines.show(true);
     await this.lines.run(seg, {
-      say: (text) => this.captions.say(text, null, () => this.tap()),
+      say: (text, by) => this.captions.say(text, by, () => this.tap()),
       phone: (spec) => this.runPhone(spec),
       music: (act) => this.music(act),
-      pick: (spec) => this.ui.pick(spec),
+      pick: (spec) => {
+        this.captions.clear();
+        return this.ui.pick(spec);
+      },
       hint: (text) => this.ui.hint(text),
+      matches: (cond) => matches(cond, this.flags),
+      flag: (key, value) => {
+        this.flags[key] = value;
+      },
     });
     this.captions.clear();
   }
@@ -191,6 +208,7 @@ export class Player {
         }
         last = now;
         this.ui.progress(done / h.ms);
+        this.stage.progress = Math.min(1, done / h.ms);
         if (done >= h.ms) resolve();
         else requestAnimationFrame(step);
       };
@@ -198,6 +216,29 @@ export class Player {
     });
     this.ui.hint(null);
     if (h.scene) await this.stage.show(h.scene, { ms: 900 });
+    else this.stage.progress = 1;
+  }
+
+  /**
+   * Back to the present between the parts of the life: through dark to the porch, the
+   * lock screen fades in with the time and your sent text, a clock ticks, one line, and
+   * after a tap it all fades back out.
+   */
+  async backToNow(n) {
+    this.captions.clear();
+    this.lines.show(false);
+    await this.ui.dim(true);
+    this.music('frame');
+    await this.stage.show(n.scene ?? 'porchLate', { instant: true });
+    this.sound?.ambience(this.stage.scene?.ambience);
+    this.sound?.clock?.(true);
+    await this.ui.dim(false);
+    await this.ui.lock(n);
+    if (n.say) await this.captions.say(n.say, null, () => this.tap());
+    else await this.tap();
+    this.sound?.clock?.(false);
+    this.captions.clear();
+    await this.ui.unlock();
   }
 
   async card(kind, text) {

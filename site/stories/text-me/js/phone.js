@@ -7,7 +7,9 @@
 //         time: a stamp at the top, history: messages already there, steps: [...] }
 // A message or step is one of:
 //   { them: 'text' }  { me: 'text' }  { stamp: 'Fri 23:12' }  { photo: 'moon', from }
-//   { pick: ['a', 'b'], set }   reply chips; the picked text is typed and sent
+//   { pick: ['a', 'b'], set }   reply chips; the picked text is typed and sent. A chip can
+//                               be { text, silent: true }: an action, not words, such as
+//                               leaving a message on read; nothing is sent
 //   { draft: 'text' }           the text is already typed; the player taps send
 //   { type: 'text', ask, set, unsendable }   typed by itself; `ask` offers e.g. Send/Delete
 //   { erase: true }             deletes what is typed
@@ -55,7 +57,13 @@ export class Phone {
       if (step.if && !matches(step.if, ctx.flags)) continue;
       await this.step(step);
     }
-    await ctx.tap();
+    // The phone goes away by itself once the last message has had time to be read, so
+    // nobody sits waiting on a finished chat; a tap closes it sooner.
+    const last = this.thread.lastElementChild?.textContent ?? '';
+    this.el.classList.add('is-done');
+    await Promise.race([ctx.tap(), sleep(Math.min(4200, 1800 + last.length * 45))]);
+    ctx.untap?.();
+    this.el.classList.remove('is-done');
     await this.close();
   }
 
@@ -77,10 +85,16 @@ export class Phone {
       if (s.typing) await this.typing(s.wait);
       else await sleep(s.wait);
     } else if (s.pick) {
-      const text = await this.choose(s.pick);
+      const picked = await this.choose(s.pick);
+      const text = picked.text ?? picked;
       if (s.set) ctx.flags[s.set] = text;
-      await this.typeOut(text);
-      await this.sendNow();
+      if (picked.silent) {
+        // Nothing is sent: the phone just goes back in the pocket.
+        await sleep(400);
+      } else {
+        await this.typeOut(text);
+        await this.sendNow();
+      }
     } else if (s.draft) {
       this.text.textContent = s.draft;
       this.send.disabled = false;
@@ -146,18 +160,20 @@ export class Phone {
     dots.remove();
   }
 
-  /** Shows reply chips and resolves with the tapped one's text. */
+  /** Shows reply chips and resolves with the tapped option (its text, or the object). */
   choose(options) {
     return new Promise((resolve) => {
       this.replies.textContent = '';
-      for (const text of options) {
+      // Two or more replies are a real choice, and it is marked as one.
+      this.replies.classList.toggle('is-choice', options.length > 1);
+      for (const option of options) {
         const chip = document.createElement('button');
         chip.type = 'button';
-        chip.className = 'chip';
-        chip.textContent = text;
+        chip.className = option.silent ? 'chip is-action' : 'chip';
+        chip.textContent = option.text ?? option;
         chip.addEventListener('click', () => {
           this.replies.textContent = '';
-          resolve(text);
+          resolve(option);
         });
         this.replies.append(chip);
       }
@@ -212,8 +228,9 @@ export class Phone {
   }
 }
 
+/** True when every flag in `cond` has its value; a flag holding a list must contain it. */
 export function matches(cond, flags) {
-  return Object.entries(cond).every(([k, v]) => flags[k] === v);
+  return Object.entries(cond).every(([k, v]) => (Array.isArray(flags[k]) ? flags[k].includes(v) : flags[k] === v));
 }
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

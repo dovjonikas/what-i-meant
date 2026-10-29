@@ -151,6 +151,17 @@ export function createSfx(ctx, out) {
       const f = burst(ctx.currentTime, 0.22, 'bandpass', 700, 0.08, 2);
       f.frequency.exponentialRampToValueAtTime(3200, ctx.currentTime + 0.2);
     },
+    /** A quiet clock ticking while you wait in the present; clock(false) stops it. */
+    clock(on) {
+      clearInterval(this.ticking);
+      if (!on) return;
+      let n = 0;
+      this.ticking = setInterval(() => {
+        n += 1;
+        const t = ctx.currentTime;
+        tone('triangle', n % 2 ? 1900 : 1500, t, env(t, 0.018, 0.002, 0.05), 0.07);
+      }, 1000);
+    },
     /** One key of a reply typing itself. */
     tick() {
       burst(ctx.currentTime, 0.015, 'highpass', 3000, 0.025);
