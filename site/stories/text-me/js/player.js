@@ -129,15 +129,18 @@ export class Player {
     if (b.title) return this.card('title');
     if (b.end) return this.ending();
     if (b.scene) {
-      // A line belongs to the picture it was said over.
+      // A line belongs to the picture it was said over; the "when" changes with the
+      // picture, once the new one is in.
       this.captions.clear();
-      this.ui.when(b.when ?? this.whenOf(b.scene));
+      const when = b.when ?? this.whenOf(b.scene);
+      if (when !== this.ui.whenEl?.textContent) this.ui.when('');
       this.lines.show(false);
       if (b.music) this.music(b.music);
       const shown = this.stage.show(b.scene, { instant: b.instant, ms: b.ms });
       this.sound?.ambience(this.stage.scene?.ambience);
       if (b.push) this.stage.push(b.push, 14000);
       await shown;
+      this.ui.when(when);
       return;
     }
     if (b.music) return this.music(b.music);
@@ -186,6 +189,9 @@ export class Player {
   }
 
   async runLines(seg) {
+    // The last line goes with the picture it was said over, before the lines come in.
+    this.captions.clear();
+    this.ui.when('');
     if (seg.scene) {
       const shown = this.stage.show(seg.scene, { ms: 1200 });
       this.lines.setBackdrop(this.stage.scene);
