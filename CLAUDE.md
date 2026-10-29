@@ -10,6 +10,13 @@ menu. Played in the browser, phones first. Everything in this repo is in English
 - His voice: the story text is his own sentences. Never write lines for him in his name; draft only
   when he asks, and mark drafts as drafts.
 
+## How the work is done (his calls)
+- **README.md stays exactly as it is until he says to change it** (10-29: the stories and the research come first).
+- **Professional, as a programmer would on GitHub** (10-29): someone who sits down and has never seen
+  the project knows what is where and what to fix. Every folder has a short README; every file opens
+  with a comment saying what it is for; comments explain why, not what the line says; clear names;
+  small focused files; commits in English, imperative, one change each.
+
 ## Memory lives in the journal (read-only from here)
 - `D:/Claude Code/Interactive_Journal/projects/what-i-meant/README.md` - the plan, his calls, the state.
 Never write into the journal from this project.
