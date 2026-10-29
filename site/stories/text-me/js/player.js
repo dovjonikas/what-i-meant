@@ -125,6 +125,8 @@ export class Player {
     if (b.title) return this.card('title');
     if (b.end) return this.ending();
     if (b.scene) {
+      // A line belongs to the picture it was said over.
+      this.captions.clear();
       this.lines.show(false);
       if (b.music) this.music(b.music);
       const shown = this.stage.show(b.scene, { instant: b.instant, ms: b.ms });
@@ -183,9 +185,9 @@ export class Player {
       say: (text, by) => this.captions.say(text, by, () => this.tap()),
       phone: (spec) => this.runPhone(spec),
       music: (act) => this.music(act),
-      pick: (spec) => {
+      pick: (spec, toggle) => {
         this.captions.clear();
-        return this.ui.pick(spec);
+        return this.ui.pick(spec, toggle);
       },
       hint: (text) => this.ui.hint(text),
       matches: (cond) => matches(cond, this.flags),
@@ -228,8 +230,8 @@ export class Player {
 
   /**
    * Back to the present between the parts of the life: through dark to the porch, the
-   * lock screen fades in with the time and your sent text, a clock ticks, one line, and
-   * after a tap it all fades back out.
+   * lock screen fades in with the time and your sent text, a clock ticks, maybe one line,
+   * and after a tap (or a few seconds, when there is no line) it all fades back out.
    */
   async backToNow(n) {
     this.captions.clear();
@@ -242,7 +244,10 @@ export class Player {
     await this.ui.dim(false);
     await this.ui.lock(n);
     if (n.say) await this.captions.say(n.say, null, () => this.tap());
-    else await this.tap();
+    else {
+      await Promise.race([this.tap(), sleep(4200)]);
+      this.next = null;
+    }
     this.sound?.clock?.(false);
     this.captions.clear();
     await this.ui.unlock();

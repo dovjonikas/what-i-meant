@@ -4,7 +4,7 @@
 //
 // drawDog(ctx, it, k) is called by people.js for a person whose `who` is 'dog'. `it.h` is
 // the dog's height at the shoulder (a column-width fraction, like a person's height).
-// Poses: stand, sit, lie. Age: 'puppy', 'adult', 'old'.
+// Poses: stand, sit, lie, and front (sitting, turned to face us). Age: 'puppy', 'adult', 'old'.
 
 export function drawDog(ctx, it, k) {
   const { h, t, step, moving, paint } = k;
@@ -22,6 +22,10 @@ export function drawDog(ctx, it, k) {
 
   ctx.lineCap = 'round';
   const legW = h * (puppy ? 0.16 : 0.13);
+  if (pose === 'front') {
+    front(ctx, k, it, { coat, pale, headR, legW, wagSpeed, puppy, old });
+    return;
+  }
   const leg = (x, y0, dx, dark) => {
     ctx.strokeStyle = paint(coat, dark);
     ctx.lineWidth = legW;
@@ -82,6 +86,89 @@ export function drawDog(ctx, it, k) {
   head(ctx, k, len * 0.52, shoulder - h * 0.42 + lift, headR, pale, coat, it, moving ? 0.15 : 0);
 }
 
+// Sitting and turned to look at us: both ears, the muzzle in the middle with the nose on
+// it, the pale chest between two straight front legs, and the tail sweeping the ground
+// behind him from side to side. The head tips a little to one side, and back.
+function front(ctx, k, it, o) {
+  const { h, t, paint } = k;
+  const { coat, pale, headR, legW } = o;
+  const breathe = Math.sin(t * 1.6) * h * 0.012;
+  // The tail first, behind everything: it sweeps along the ground and shows past the hips.
+  const sweep = Math.sin(t * o.wagSpeed * 0.7) * (it.wag ?? 0.55);
+  ctx.strokeStyle = paint(coat, 0.12);
+  ctx.lineWidth = Math.max(1.2, h * 0.1);
+  ctx.beginPath();
+  ctx.moveTo(0, -h * 0.1);
+  ctx.quadraticCurveTo(Math.sin(sweep) * h * 0.4, -h * 0.02, Math.sin(sweep) * h * 0.66, -h * 0.05 - Math.abs(Math.cos(sweep)) * h * 0.06);
+  ctx.stroke();
+  // The haunches, one each side, then the body sitting up.
+  ctx.fillStyle = paint(coat, 0.1);
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(side * h * 0.25, -h * 0.15, h * 0.17, h * 0.15, side * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = paint(coat);
+  ctx.beginPath();
+  ctx.ellipse(0, -h * 0.5 + breathe, h * 0.25, h * (o.puppy ? 0.38 : 0.44), 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = paint(pale, 0.04);
+  ctx.beginPath();
+  ctx.ellipse(0, -h * 0.58 + breathe, h * 0.12, h * 0.25, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Two straight front legs and pale paws.
+  ctx.strokeStyle = paint(coat, 0.04);
+  ctx.lineWidth = legW;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * h * 0.1, -h * 0.4);
+    ctx.lineTo(side * h * 0.1, -legW * 0.5);
+    ctx.stroke();
+    ctx.fillStyle = paint(pale, 0.1);
+    ctx.beginPath();
+    ctx.ellipse(side * h * 0.11, -legW * 0.3, legW * 0.62, legW * 0.42, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // The head, tipped a little and back again, slowly.
+  const r = headR * 1.05;
+  ctx.save();
+  ctx.translate(0, -h * 0.98 + breathe);
+  ctx.rotate(0.06 + Math.sin(t * 0.7) * 0.14);
+  if (it.collar !== false) {
+    ctx.strokeStyle = paint(k.look.collar ?? '#2f8fa3');
+    ctx.lineWidth = Math.max(1.2, h * 0.06);
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.62, r * 0.82);
+    ctx.quadraticCurveTo(0, r * 1.12, r * 0.62, r * 0.82);
+    ctx.stroke();
+  }
+  // Floppy ears both sides, each swinging on its own.
+  ctx.fillStyle = paint(coat, 0.22);
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(side * r * 0.86, r * 0.12, r * 0.3, r * 0.62, side * (0.32 + Math.sin(t * 2.2 + side) * 0.07), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = paint(coat);
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+  // The muzzle in the middle, the nose on top of it: the only feature on the face.
+  ctx.fillStyle = paint(pale);
+  ctx.beginPath();
+  ctx.ellipse(0, r * 0.45, r * 0.54, r * 0.36, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // A dog's nose from the front: wide on top, rounded to a point below.
+  ctx.fillStyle = paint('#1c1612');
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.24, r * 0.2);
+  ctx.quadraticCurveTo(0, r * 0.1, r * 0.24, r * 0.2);
+  ctx.quadraticCurveTo(r * 0.17, r * 0.38, 0, r * 0.42);
+  ctx.quadraticCurveTo(-r * 0.17, r * 0.38, -r * 0.24, r * 0.2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function head(ctx, k, x, y, r, pale, coat, it, tilt) {
   const { paint, h } = k;
   ctx.save();
@@ -106,7 +193,7 @@ function head(ctx, k, x, y, r, pale, coat, it, tilt) {
   ctx.ellipse(-r * 0.25, r * 0.15, r * 0.3, r * 0.62, 0.35 + Math.sin(k.t * 2.2) * 0.08, 0, Math.PI * 2);
   ctx.fill();
   if (it.collar !== false) {
-    ctx.strokeStyle = paint(k.look.collar ?? '#c8333a');
+    ctx.strokeStyle = paint(k.look.collar ?? '#2f8fa3');
     ctx.lineWidth = Math.max(1.2, h * 0.06);
     ctx.beginPath();
     ctx.arc(-r * 0.15, r * 0.25, r * 0.95, 1.1, 2.3);

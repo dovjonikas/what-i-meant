@@ -183,19 +183,22 @@ const KINDS = {
     },
   },
 
-  // A fire's light breathing on everything near it.
+  // A fire's light breathing on everything near it. `rgb`, `alpha` and `pace` make it
+  // something else that flickers, like a phone screen in a dark window.
   firelight: {
     init() {
       return {};
     },
     draw(ctx, s, t, dt, it, p) {
-      const k = 0.5 + 0.25 * Math.sin(t * 9) + 0.15 * Math.sin(t * 23 + 1) + 0.1 * Math.sin(t * 4.3);
+      const q = t * (it.pace ?? 1);
+      const k = 0.5 + 0.25 * Math.sin(q * 9) + 0.15 * Math.sin(q * 23 + 1) + 0.1 * Math.sin(q * 4.3);
       const x = p.X(it.x);
       const y = p.Y(it.y);
       const r = p.S(it.r ?? 0.35);
+      const rgb = it.rgb ?? '255 150 70';
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, `rgb(255 150 70 / ${0.22 * k})`);
-      g.addColorStop(1, 'rgb(255 150 70 / 0)');
+      g.addColorStop(0, `rgb(${rgb} / ${(it.alpha ?? 0.22) * k})`);
+      g.addColorStop(1, `rgb(${rgb} / 0)`);
       ctx.fillStyle = g;
       ctx.fillRect(x - r, y - r, r * 2, r * 2);
     },

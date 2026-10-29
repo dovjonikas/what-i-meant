@@ -118,8 +118,11 @@ export class Ui {
     });
   }
 
-  /** The "who do you keep close" picker: tap up to `max`, then go on. Resolves with ids. */
-  pick(spec) {
+  /**
+   * The "who do you keep close" picker: tap up to `max`, then go on. Resolves with ids.
+   * `toggle(id, on)` hears every tap, so the life lines can show the choice as it is made.
+   */
+  pick(spec, toggle) {
     return new Promise((resolve) => {
       const chosen = new Set();
       this.choices.textContent = '';
@@ -127,14 +130,18 @@ export class Ui {
       const head = document.createElement('p');
       head.className = 'choices-head';
       head.textContent = spec.hint;
-      this.choices.append(head);
+      const slots = document.createElement('p');
+      slots.className = 'pick-slots';
+      slots.setAttribute('aria-hidden', 'true');
+      slots.innerHTML = '<i></i>'.repeat(spec.max);
+      this.choices.append(head, slots);
       const done = document.createElement('button');
       done.type = 'button';
       done.className = 'chip is-done';
       done.textContent = "That's them";
       done.hidden = true;
       const finish = async () => {
-        await sleep(400);
+        await sleep(900);
         this.choices.textContent = '';
         this.choices.className = 'choices';
         resolve([...chosen]);
@@ -147,9 +154,12 @@ export class Ui {
         b.textContent = o.label;
         b.setAttribute('aria-pressed', 'false');
         b.addEventListener('click', () => {
-          if (chosen.has(o.id)) chosen.delete(o.id);
+          const was = chosen.has(o.id);
+          if (was) chosen.delete(o.id);
           else if (chosen.size < spec.max) chosen.add(o.id);
           b.setAttribute('aria-pressed', String(chosen.has(o.id)));
+          if (was !== chosen.has(o.id)) toggle?.(o.id, !was);
+          slots.querySelectorAll('i').forEach((dot, n) => dot.classList.toggle('is-on', n < chosen.size));
           done.hidden = chosen.size === 0;
           if (chosen.size === spec.max) finish();
         });

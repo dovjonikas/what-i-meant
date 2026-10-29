@@ -16,16 +16,29 @@
 
 // Palettes by time of day. sky: top to horizon; far, mid and near: the three hill layers;
 // ground: what people stand on; rim: the light edge on silhouettes; sun: the disc.
+// The colour script (docs/reports/Attachment loss and story UI.md): every part of the life
+// owns its own hue family and saturation, so the change between parts is felt. Childhood
+// is the brightest, the teen summers the most saturated, the city years violet, the present
+// on the porch cold petrol teal and nearly still. After each death the world drains: grey
+// after the dog, slate after Dad, the deepest drain after Mom. The late years are pale and
+// calm, and the very last light is first dawn. Built in OKLab so the blends keep their hue.
 const P = {
-  dawn: { sky: ['#2e3a5c', '#8a6f9e', '#e9a3a0', '#f6c6a4'], fog: '#e8b9b0', far: '#9a7f95', mid: '#6e5a7c', near: '#4a3d5e', ground: '#2a2540', ink: '#1b1729', rim: '#ffd9b0', sun: '#fff1d6' },
-  morning: { sky: ['#4f86c0', '#8fbde0', '#cfe6ee', '#f6efd6'], fog: '#cfe2e6', far: '#86a9bb', mid: '#4f7c7d', near: '#2f5752', ground: '#24443c', ink: '#16302b', rim: '#fff1c9', sun: '#fffbe8' },
-  noon: { sky: ['#2a72ba', '#5fa3d6', '#a6d1ea', '#e0f0f2'], fog: '#b3d6e6', far: '#7aa6bf', mid: '#3d7d68', near: '#24563f', ground: '#2d6a45', ink: '#173a2a', rim: '#fff6cf', sun: '#fffdf2' },
-  golden: { sky: ['#5f86ad', '#d4a57a', '#f2bf74', '#ffd990'], fog: '#efbb78', far: '#c08f6b', mid: '#8e5c45', near: '#5a3a2c', ground: '#43291d', ink: '#2a1912', rim: '#ffe2a2', sun: '#fff3cf' },
-  dusk: { sky: ['#2b2350', '#7d3d68', '#d2615a', '#f39a55'], fog: '#d8735a', far: '#93506a', mid: '#5e3050', near: '#3a2140', ground: '#24152b', ink: '#160c1c', rim: '#ffb070', sun: '#ffe2a8' },
-  blue: { sky: ['#121a40', '#283769', '#4a5f97', '#7c8fc2'], fog: '#4f6194', far: '#3d4d80', mid: '#29365f', near: '#1b2446', ground: '#121a36', ink: '#0a0f22', rim: '#9fb0e0', sun: '#e8eef7' },
-  night: { sky: ['#070b1c', '#10183a', '#24315a', '#3a4a78'], fog: '#2a3866', far: '#1f2a4c', mid: '#151d3a', near: '#0f1530', ground: '#0b1024', ink: '#05070f', rim: '#4a5b8c', sun: '#eef1fb' },
-  snow: { sky: ['#7d8ea5', '#a7b5c6', '#d3dbe4', '#e8edf2'], fog: '#dfe6ee', far: '#b3c0cf', mid: '#8a9aad', near: '#5d6a7b', ground: '#dfe5ec', ink: '#2c3440', rim: '#ffffff', sun: '#ffffff' },
-  autumn: { sky: ['#6f86a0', '#b9a690', '#e5c49b', '#f3d6a8'], fog: '#e2b98c', far: '#b48d74', mid: '#8a5a3c', near: '#5e3626', ground: '#45281b', ink: '#26150e', rim: '#ffe2b0', sun: '#fff1d6' },
+  dawn: { sky: ['#6e7fc4', '#a98bc0', '#d6b1b2', '#ffc3a6'], fog: '#f6cfc4', far: '#ad919b', mid: '#76637a', near: '#594a68', ground: '#4a3c5e', ink: '#2a2238', rim: '#ffe4c9', sun: '#fff4e2' },
+  morning: { sky: ['#5db8e8', '#a3d0dc', '#d5e2d0', '#fff0c2'], fog: '#d9f0e6', far: '#9ecdbc', mid: '#6eb29b', near: '#50a28a', ground: '#3e9a80', ink: '#1f4d45', rim: '#fff7de', sun: '#fff6cf' },
+  noon: { sky: ['#1e7fe0', '#4da8e8', '#70c8ed', '#8fe3f0'], fog: '#b9f0ee', far: '#7cbfb2', mid: '#499a84', near: '#29856b', ground: '#0e7a5e', ink: '#0b3f33', rim: '#fffbe0', sun: '#fffdf2' },
+  golden: { sky: ['#4d7fc0', '#d9a27a', '#cdc2a1', '#ffd98a'], fog: '#efbb78', far: '#a97e52', mid: '#755135', near: '#593926', ground: '#4a2c1e', ink: '#2a1912', rim: '#ffe2a2', sun: '#fff3cf' },
+  dusk: { sky: ['#3b2c6e', '#8a3f78', '#c37d6b', '#ff9a5a'], fog: '#e77a6a', far: '#9d565c', mid: '#663a4e', near: '#492b45', ground: '#3a2240', ink: '#1c1024', rim: '#ffb07a', sun: '#ffe2a8' },
+  blue: { sky: ['#121a40', '#384671', '#5b6c9c', '#7c8fc2'], fog: '#4f6194', far: '#35436d', mid: '#222c4f', near: '#17203f', ground: '#121a36', ink: '#0a0f22', rim: '#9fb0e0', sun: '#e8eef7' },
+  night: { sky: ['#0a0f24', '#1c2544', '#2c385f', '#3a4a78'], fog: '#2a3866', far: '#1e2950', mid: '#151e3e', near: '#111735', ground: '#0e1430', ink: '#0a0e1e', rim: '#4a5b8c', sun: '#eef1fb' },
+  frame: { sky: ['#08141c', '#10232b', '#182f38', '#1e3a44'], fog: '#2a4b54', far: '#1e353d', mid: '#14252b', near: '#0f1c21', ground: '#0c171c', ink: '#050b0f', rim: '#6fa0a6', sun: '#e6f0ee' },
+  city: { sky: ['#120f2a', '#221b43', '#2f2558', '#3b2e6b'], fog: '#5b3f7a', far: '#3e2c58', mid: '#281e3f', near: '#1c1631', ground: '#16122a', ink: '#0b0a16', rim: '#7fe3ff', sun: '#e8e4ff' },
+  snow: { sky: ['#8a8e9e', '#a9abb8', '#c8c4cc', '#d9d4d8'], fog: '#cfcbd3', far: '#aeb0bd', mid: '#8a8a99', near: '#5c5a68', ground: '#e4e2e6', ink: '#3e3a45', rim: '#ffffff', sun: '#ffffff' },
+  autumn: { sky: ['#4f8fc0', '#96a6ab', '#cab695', '#f6c27a'], fog: '#f0cfa0', far: '#ba9780', mid: '#916d67', near: '#7a565a', ground: '#6e4a52', ink: '#2a1a20', rim: '#ffe0a8', sun: '#fff1d6' },
+  grey: { sky: ['#5a6b78', '#85898b', '#a9a299', '#c9b8a6'], fog: '#b7b2aa', far: '#898680', mid: '#676460', near: '#54524f', ground: '#4a4846', ink: '#1e1e22', rim: '#e6ded2', sun: '#f2eee8' },
+  slate: { sky: ['#4a5563', '#646f7c', '#7a8591', '#8e98a3'], fog: '#a7afb7', far: '#747a82', mid: '#4d535a', near: '#393e45', ground: '#2e333a', ink: '#1b1f24', rim: '#c9d1d9', sun: '#e4e8ec' },
+  drain: { sky: ['#2f3442', '#464754', '#5a5663', '#6b6470'], fog: '#77707a', far: '#514d56', mid: '#35323a', near: '#26242c', ground: '#1e1d24', ink: '#121117', rim: '#9a93a0', sun: '#c8c2cc' },
+  late: { sky: ['#a9b4c6', '#c6c6cc', '#ded5d0', '#f3e2d3'], fog: '#ece4de', far: '#beb6b9', mid: '#9b929c', near: '#877f8d', ground: '#7d7484', ink: '#3a3440', rim: '#fff6ec', sun: '#fffaf2' },
+  first: { sky: ['#4a6fa5', '#919aab', '#cbbcac', '#ffd9a8'], fog: '#f7e6d4', far: '#a69d9d', mid: '#6a6673', near: '#4a495c', ground: '#3a3a4f', ink: '#22223a', rim: '#fff3e0', sun: '#fff8ec' },
 };
 
 /**
@@ -57,6 +70,29 @@ function ground(p, y = 0.72, seed = 2) {
   return { kind: 'ground', y, color: p.ground, amp: 0.025, seed, mist: 0, hold: 0.2, g: 2, bleed: true };
 }
 
+/**
+ * A track written by the clock, for people and pets that move on their own: `keys` are
+ * [seconds, x, y, h], `poses` are [seconds, pose, {fields}]. fx.js moves along a track at
+ * an even pace per point, so the keys are filled in every tenth of a second; standing
+ * still is two keys with the same place. Returns { seconds, track, poses } to spread into
+ * a person.
+ */
+function timed(keys, poses = []) {
+  const seconds = keys[keys.length - 1][0];
+  const steps = Math.round(seconds * 10);
+  const track = [];
+  for (let n = 0; n <= steps; n += 1) {
+    const s = n / 10;
+    let i = 0;
+    while (i < keys.length - 2 && keys[i + 1][0] < s) i += 1;
+    const [t0, ...a] = keys[i];
+    const [t1, ...b] = keys[i + 1];
+    const u = t1 > t0 ? Math.min(1, Math.max(0, (s - t0) / (t1 - t0))) : 1;
+    track.push(a.map((v, j) => Math.round((v + (b[j] - v) * u) * 10000) / 10000));
+  }
+  return { seconds, track, poses: poses.map(([s, pose, extra]) => [s / seconds, pose, extra]) };
+}
+
 /** A lines-view background: mostly sky, a low range far down. */
 function linesBack(p, o = {}) {
   return {
@@ -79,8 +115,8 @@ function linesBack(p, o = {}) {
 export const SCENES = {
   // The frame: an old house on a hill at night. Somebody just drove away down the valley.
   porch: {
-    sky: P.night.sky,
-    fog: P.night.fog,
+    sky: P.frame.sky,
+    fog: P.frame.fog,
     vibrance: 0.9,
     ambience: 'night',
     fx: [
@@ -88,13 +124,13 @@ export const SCENES = {
       { kind: 'taillights', at: 1, path: [[0.95, 0.655], [0.9, 0.61], [0.66, 0.6], [0.62, 0.575]], delay: 0.8, seconds: 12 },
     ],
     layers: [
-      ...backdrop(P.night, { h: 0.5, stars: 150, moon: { x: 0.24, y: 0.15 }, peaks: 0.36, seed: 4 }),
-      { kind: 'road', path: [[1.1, 0.7], [0.9, 0.6], [0.66, 0.6], [0.61, 0.57]], w0: 0.07, w1: 0.008, color: '#33406a', hazeFar: 0.5, g: 1 },
-      { kind: 'ground', y: 0.72, color: P.night.ground, amp: 0.03, seed: 2, mist: 0, g: 2, bleed: true },
+      ...backdrop(P.frame, { h: 0.5, stars: 150, moon: { x: 0.24, y: 0.15 }, peaks: 0.36, seed: 4 }),
+      { kind: 'road', path: [[1.1, 0.7], [0.9, 0.6], [0.66, 0.6], [0.61, 0.57]], w0: 0.07, w1: 0.008, color: '#1f3c46', hazeFar: 0.5, g: 1 },
+      { kind: 'ground', y: 0.72, color: P.frame.ground, amp: 0.03, seed: 2, mist: 0, g: 2, bleed: true },
       { kind: 'glow', x: 0.42, y: 0.66, r: 0.55, color: '#ffb35c', alpha: 0.2, g: 2 },
-      { kind: 'house', x: 0.36, y: 0.75, w: 0.5, tall: 0.6, color: '#0b1020', rim: '#4a5b8c', lit: '#ffc46b', door: 0.12, doorLit: '#ffd38a', windows: [{ x: -0.36, s: 0.14 }, { x: 0.33, s: 0.12 }], g: 2 },
+      { kind: 'house', x: 0.36, y: 0.75, w: 0.5, tall: 0.6, color: '#06121a', rim: '#6fa0a6', lit: '#ffc46b', door: 0.12, doorLit: '#ffd38a', windows: [{ x: -0.36, s: 0.14 }, { x: 0.33, s: 0.12 }], g: 2 },
       { kind: 'figure', who: 'me', x: 0.43, y: 0.748, h: 0.17, age: 'old', light: 0.32, rim: '#ffcf86', rimSide: -1, g: 2 },
-      { kind: 'pine', x: 0.95, y: 0.9, h: 0.78, color: '#05070f', seed: 31, g: 2, bleed: true },
+      { kind: 'pine', x: 0.95, y: 0.9, h: 0.78, color: '#030a0d', seed: 31, g: 2, bleed: true },
     ],
   },
 
@@ -102,18 +138,18 @@ export const SCENES = {
   // the same house, the car long gone, the kitchen light on and you at the window. The moon
   // sits low on the right, clear of the lock screen's clock.
   porchLate: {
-    sky: P.night.sky,
-    fog: P.night.fog,
+    sky: P.frame.sky,
+    fog: P.frame.fog,
     vibrance: 0.85,
     ambience: 'night',
     fx: [{ kind: 'stars', bottom: 0.4 }],
     layers: [
-      ...backdrop(P.night, { h: 0.5, stars: 170, moon: { x: 0.8, y: 0.405 }, peaks: 0.36, seed: 4 }),
-      { kind: 'road', path: [[1.1, 0.7], [0.9, 0.6], [0.66, 0.6], [0.61, 0.57]], w0: 0.07, w1: 0.008, color: '#33406a', hazeFar: 0.5, g: 1 },
-      { kind: 'ground', y: 0.72, color: P.night.ground, amp: 0.03, seed: 2, mist: 0, g: 2, bleed: true },
+      ...backdrop(P.frame, { h: 0.5, stars: 170, moon: { x: 0.8, y: 0.405 }, peaks: 0.36, seed: 4 }),
+      { kind: 'road', path: [[1.1, 0.7], [0.9, 0.6], [0.66, 0.6], [0.61, 0.57]], w0: 0.07, w1: 0.008, color: '#1f3c46', hazeFar: 0.5, g: 1 },
+      { kind: 'ground', y: 0.72, color: P.frame.ground, amp: 0.03, seed: 2, mist: 0, g: 2, bleed: true },
       { kind: 'glow', x: 0.2, y: 0.62, r: 0.35, color: '#ffb35c', alpha: 0.16, g: 2 },
-      { kind: 'house', x: 0.36, y: 0.75, w: 0.5, tall: 0.6, color: '#0b1020', rim: '#4a5b8c', lit: '#ffc46b', door: 0.12, windows: [{ x: -0.36, s: 0.14, who: true }, { x: 0.33, s: 0.12, lit: null }], g: 2 },
-      { kind: 'pine', x: 0.95, y: 0.9, h: 0.78, color: '#05070f', seed: 31, g: 2, bleed: true },
+      { kind: 'house', x: 0.36, y: 0.75, w: 0.5, tall: 0.6, color: '#06121a', rim: '#6fa0a6', lit: '#ffc46b', door: 0.12, windows: [{ x: -0.36, s: 0.14, who: true }, { x: 0.33, s: 0.12, lit: null }], g: 2 },
+      { kind: 'pine', x: 0.95, y: 0.9, h: 0.78, color: '#030a0d', seed: 31, g: 2, bleed: true },
     ],
   },
 
@@ -197,6 +233,39 @@ export const SCENES = {
     ],
   },
 
+  // Age 7: the first day of school, seen from the back of the class. The new kid's chair
+  // is broken (there, by the empty desk ahead), so they sit at your desk, next to you.
+  // Sun through the window, dust in it, a blackboard with the alphabet started.
+  school: {
+    sky: P.morning.sky,
+    fog: P.morning.fog,
+    vibrance: 1,
+    ambience: 'morning',
+    light: 0.86,
+    shade: '#6e5238',
+    lightFrom: -1,
+    fx: [{ kind: 'motes', count: 28 }],
+    layers: [
+      ...backdrop(P.morning, { h: 0.4, sun: { x: 0.12, y: 0.17, r: 0.045, halo: 0.5 }, peaks: 0.25, seed: 61, near: false }),
+      { kind: 'tree', x: 0.27, y: 0.58, h: 0.42, color: P.morning.near, rim: P.morning.rim, seed: 4, g: 0 },
+      { kind: 'room', window: [0.04, 0.12, 0.36, 0.5], color: '#dcc497', frame: '#f2e6cc', g: 1, bleed: true },
+      { kind: 'band', y: 0.55, y2: 0.7, color: '#b98f5c', trim: '#f2e6cc', g: 1, bleed: true },
+      { kind: 'band', y: 0.7, y2: 1, color: '#7a5233', planks: 6, trim: '#5a3b24', g: 1, bleed: true },
+      { kind: 'board', x: 0.69, y: 0.47, w: 0.48, h: 0.22, g: 1 },
+      { kind: 'sunbeam', from: [0.04, 0.36, 0.5], to: [0.04, 0.42, 0.86], alpha: 0.14, g: 1 },
+      { kind: 'desk', x: 0.16, y: 0.775, w: 0.24, top: 0.11, screen: null, color: '#8a5a32', rim: '#ffe9b8', g: 1 },
+      { kind: 'chair', x: 0.12, y: 0.865, h: 0.2, broken: true, rim: '#ffe9b8', g: 1 },
+      { kind: 'desk', x: 0.575, y: 0.9, w: 0.66, top: 0.255, screen: null, color: '#8a5a32', rim: '#ffe9b8', g: 1 },
+      // The two of you on the middle layer, so your chairs, on the near one, are in front.
+      { kind: 'people', rim: '#ffe9b8', rimSide: -1, list: [
+        { who: 'me', x: 0.43, y: 0.93, h: 0.62, age: 'child', pose: 'sit', back: true, bend: 0.09 },
+        { who: 'friend', x: 0.72, y: 0.93, h: 0.6, age: 'child', pose: 'sit', back: true, face: -1, bend: 0.1 },
+      ], g: 1 },
+      { kind: 'chair', x: 0.43, y: 0.935, h: 0.31, rim: '#ffe9b8', g: 2 },
+      { kind: 'chair', x: 0.72, y: 0.935, h: 0.3, rim: '#ffe9b8', g: 2 },
+    ],
+  },
+
   // Age 12: walking home from school. He is at the gate before you are round the corner.
   dogGate: {
     sky: P.golden.sky,
@@ -209,10 +278,23 @@ export const SCENES = {
       ground(P.golden, 0.72, 13),
       { kind: 'house', x: 0.72, y: 0.74, w: 0.42, color: P.golden.ink, roof: '#6b3020', rim: P.golden.rim, rimSide: -1, windows: [{ x: -0.3 }, { x: 0.18 }], g: 2 },
       { kind: 'gate', x: 0.62, y: 0.79, h: 0.075, from: -0.1, to: 1.1, color: '#3a2418', rim: P.golden.rim, rimSide: -1, g: 2, bleed: true },
+      // You come round the corner from the left. Until then he lies at the gate looking
+      // down the road; the moment you are in sight he is up, tail going, and runs to you,
+      // zooms about in front of you, then sits down facing us while you walk up beside him.
+      // He is drawn after you, so his zooming stays in front of you, never behind.
+      // `x` and `y` are where each one ends up, which is what the bounds check looks at.
       { kind: 'people', rim: P.golden.rim, rimSide: -1, list: [
-        // He waits at the gate, and when you get there he runs one happy lap round you.
-        { who: 'dog', x: 0.62, y: 0.84, h: 0.06, face: -1, wag: 0.8, turn: true, seconds: 10, track: [[0.62, 0.84, 0.06], [0.62, 0.84, 0.06], [0.62, 0.84, 0.06], [0.62, 0.84, 0.06], [0.62, 0.84, 0.06], [0.6, 0.845, 0.06], [0.52, 0.87, 0.062], [0.36, 0.9, 0.065], [0.52, 0.915, 0.066], [0.6, 0.885, 0.064], [0.55, 0.86, 0.062]] },
-        { who: 'me', x: 0.1, y: 0.88, h: 0.18, age: 'child', pose: 'walk', seconds: 5, track: [[0.08, 0.89, 0.18], [0.3, 0.875, 0.18], [0.44, 0.865, 0.18]] },
+        { who: 'me', x: 0.4, y: 0.858, h: 0.178, age: 'child', pose: 'walk', ...timed([
+          [0, -0.12, 0.872, 0.18], [1.6, 0.04, 0.87, 0.18], [4.2, 0.27, 0.864, 0.179],
+          [7.6, 0.27, 0.864, 0.179], [9.6, 0.4, 0.858, 0.178], [11, 0.4, 0.858, 0.178],
+        ], [[0, 'walk'], [4.2, 'stand'], [7.6, 'walk'], [9.6, 'stand']]) },
+        { who: 'dog', x: 0.5, y: 0.868, h: 0.062, face: -1, turn: true, ...timed([
+          [0, 0.62, 0.84, 0.06], [2.5, 0.62, 0.84, 0.06], [2.9, 0.59, 0.844, 0.06],
+          [3.6, 0.45, 0.856, 0.061], [4.1, 0.35, 0.866, 0.062], [4.6, 0.31, 0.884, 0.064],
+          [5.1, 0.2, 0.882, 0.064], [5.5, 0.15, 0.868, 0.062], [5.9, 0.21, 0.876, 0.063],
+          [6.5, 0.36, 0.886, 0.064], [7.1, 0.47, 0.878, 0.063], [7.6, 0.52, 0.87, 0.062],
+          [8.1, 0.5, 0.868, 0.062], [11, 0.5, 0.868, 0.062],
+        ], [[0, 'lie', { wag: 0.12 }], [1.8, 'stand', { wag: 1 }], [8.1, 'front', { wag: 0.9 }]]) },
       ], g: 2 },
     ],
   },
@@ -264,12 +346,12 @@ export const SCENES = {
     ambience: 'wind',
     fx: [],
     layers: [
-      ...backdrop({ ...P.blue, sky: ['#1b2348', '#3d4a7a', '#7d7fa6', '#b39aa8'] }, { h: 0.5, seed: 57 }),
-      ground(P.blue, 0.72, 13),
-      { kind: 'house', x: 0.72, y: 0.74, w: 0.42, color: P.blue.ink, rim: P.blue.rim, rimSide: -1, windows: [{ x: -0.3 }, { x: 0.18, lit: '#ffc46b' }], g: 2 },
-      { kind: 'gate', x: 0.62, y: 0.79, h: 0.075, from: -0.1, to: 1.1, color: '#141a30', rim: P.blue.rim, rimSide: -1, g: 2, bleed: true },
+      ...backdrop({ ...P.grey, sky: ['#1b2348', '#3d4a7a', '#7d7fa6', '#b39aa8'] }, { h: 0.5, seed: 57 }),
+      ground(P.grey, 0.72, 13),
+      { kind: 'house', x: 0.72, y: 0.74, w: 0.42, color: P.grey.ink, rim: P.grey.rim, rimSide: -1, windows: [{ x: -0.3 }, { x: 0.18, lit: '#ffc46b' }], g: 2 },
+      { kind: 'gate', x: 0.62, y: 0.79, h: 0.075, from: -0.1, to: 1.1, color: '#141a30', rim: P.grey.rim, rimSide: -1, g: 2, bleed: true },
       { kind: 'leash', x: 0.665, y: 0.725, s: 0.05, g: 2 },
-      { kind: 'figure', who: 'me', x: 0.42, y: 0.87, h: 0.21, rim: P.blue.rim, rimSide: -1, light: 0.6, g: 2 },
+      { kind: 'figure', who: 'me', x: 0.42, y: 0.87, h: 0.21, rim: P.grey.rim, rimSide: -1, light: 0.6, g: 2 },
     ],
   },
 
@@ -332,6 +414,48 @@ export const SCENES = {
     ],
   },
 
+  // The cold open: the same house at night, nobody on the road. Someone stands at the lit
+  // kitchen window, too dark to tell who; a phone's light comes and goes on the glass.
+  kitchenWait: {
+    sky: P.night.sky,
+    fog: P.night.fog,
+    vibrance: 0.85,
+    ambience: 'night',
+    fx: [
+      { kind: 'stars', bottom: 0.4 },
+      { kind: 'firelight', x: 0.34, y: 0.655, r: 0.075, rgb: '205 225 255', alpha: 0.32, pace: 0.22, at: 2 },
+    ],
+    layers: [
+      ...backdrop(P.night, { h: 0.52, stars: 150, peaks: 0.3, seed: 81 }),
+      ground(P.night, 0.72, 4),
+      { kind: 'glow', x: 0.4, y: 0.6, r: 0.4, color: '#ffb35c', alpha: 0.2, g: 2 },
+      { kind: 'house', x: 0.5, y: 0.75, w: 0.66, tall: 0.6, color: '#0b1020', rim: '#4a5b8c', windows: [{ x: -0.32, s: 0.15, lit: '#ffc46b', who: true }, { x: 0.2, s: 0.13, lit: null }], door: 0.02, g: 2 },
+      { kind: 'lamp', x: 0.1, y: 0.8, h: 0.5, g: 2 },
+    ],
+  },
+
+  // The end: that night again, years back, seen close through the same window. It was Mom,
+  // in the kitchen just after one, the phone lit in her hand, waiting for a text.
+  // The kitchen and Mom are on the far layer, so the house wall in front frames them.
+  kitchenWaitMom: {
+    sky: P.night.sky,
+    fog: P.night.fog,
+    vibrance: 0.9,
+    ambience: 'night',
+    shade: '#3a2a2a',
+    fx: [{ kind: 'firelight', x: 0.44, y: 0.56, r: 0.12, rgb: '205 225 255', alpha: 0.28, pace: 0.22, at: 0 }],
+    layers: [
+      { kind: 'kitchen', rect: [0.1, 0.18, 0.9, 0.66], lamp: [0.68, 0.34], clock: [0.24, 0.29], time: [1, 6], cupboards: [0.54, 0.9], g: 0 },
+      { kind: 'people', list: [
+        { who: 'mom', x: 0.34, y: 0.76, h: 0.62, pose: 'phone', look: { coat: false }, light: 0.8, rim: '#d6e6ff', rimSide: 1 },
+      ], g: 0 },
+      { kind: 'room', window: [0.12, 0.2, 0.88, 0.64], color: '#0d1324', frame: '#1c2540', g: 1, bleed: true },
+      { kind: 'band', y: 0, y2: 0.06, color: '#060912', g: 1, bleed: true },
+      { kind: 'glow', x: 0.5, y: 0.68, r: 0.3, color: '#ffb35c', alpha: 0.08, g: 1 },
+      { kind: 'pine', x: 0.98, y: 1.02, h: 0.7, color: '#05070f', seed: 31, g: 2, bleed: true },
+    ],
+  },
+
   // Eighteen: the bus stop at dusk. One bag, one bus, two people waving.
   busStop: {
     sky: P.dusk.sky,
@@ -353,16 +477,16 @@ export const SCENES = {
 
   // Nineteen: the city at night in the rain. Walking home to a dark window.
   cityNight: {
-    sky: ['#0c1022', '#151b33', '#232a45', '#2f3550'],
-    fog: '#2a3048',
-    vibrance: 0.45,
+    sky: P.city.sky,
+    fog: P.city.fog,
+    vibrance: 0.8,
     ambience: 'rain',
     fx: [{ kind: 'rain', count: 140 }],
     layers: [
-      { kind: 'city', y: 0.62, color: '#1a2036', haze: 0.35, hMin: 0.12, hMax: 0.42, lit: '#ffd9a0', litShare: 0.1, seed: 5, g: 0, bleed: true },
+      { kind: 'city', y: 0.62, color: '#241c46', haze: 0.35, hMin: 0.12, hMax: 0.42, lit: '#ffd9a0', litShare: 0.1, seed: 5, g: 0, bleed: true },
       { kind: 'mist', y: 0.6, h: 0.08, alpha: 0.5, g: 0 },
-      { kind: 'flats', x: 0.33, y: 0.74, w: 0.56, h: 0.62, rows: 9, cols: 8, color: '#10141f', litShare: 0.3, lit: '#ffcf86', dark: [6, 2], seed: 9, g: 1 },
-      { kind: 'ground', y: 0.74, color: '#0b0d16', amp: 0.005, seed: 1, mist: 0, g: 2, bleed: true },
+      { kind: 'flats', x: 0.33, y: 0.74, w: 0.56, h: 0.62, rows: 9, cols: 8, color: '#140f2a', litShare: 0.3, lit: '#ffcf86', dark: [6, 2], seed: 9, g: 1 },
+      { kind: 'ground', y: 0.74, color: P.city.ground, amp: 0.005, seed: 1, mist: 0, g: 2, bleed: true },
       { kind: 'lamp', x: 0.72, y: 0.8, h: 0.5, g: 2 },
       { kind: 'figure', who: 'me', x: 0.62, y: 0.88, h: 0.25, pose: 'walk', face: -1, track: [[0.62, 0.88, 0.25], [0.52, 0.82, 0.21], [0.44, 0.775, 0.18]], poses: [[0.98, 'phone']], light: 0.42, rim: '#ffcf86', rimSide: -1, g: 2 },
     ],
@@ -370,8 +494,8 @@ export const SCENES = {
 
   // A small rented room at night. The window, the moon, the laptop.
   room: {
-    sky: P.night.sky,
-    fog: P.night.fog,
+    sky: P.city.sky,
+    fog: P.city.fog,
     vibrance: 0.6,
     ambience: 'room',
     fx: [{ kind: 'stars', at: 0, bottom: 0.4 }],
@@ -525,7 +649,7 @@ export const SCENES = {
       ...backdrop(P.blue, { h: 0.5, stars: 80, peaks: 0.32, seed: 171 }),
       ground(P.blue, 0.72, 5),
       { kind: 'house', x: 0.3, y: 0.76, w: 0.46, color: P.blue.ink, rim: P.blue.rim, lit: '#ffc46b', door: 0.12, doorLit: '#ffd38a', g: 2 },
-      { kind: 'car', x: 0.68, y: 0.82, w: 0.44, color: '#0a0f22', rim: P.blue.rim, rimSide: -1, inside: '#ffe2a8', lights: '#ff5040', g: 2 },
+      { kind: 'car', x: 0.68, y: 0.82, w: 0.44, color: '#0a0f22', rim: P.blue.rim, rimSide: -1, inside: '#ffe2a8', lights: '#ff5040', beam: 0.1, g: 2 },
       { kind: 'people', rim: '#ffcf86', list: [
         { who: 'me', x: 0.37, y: 0.765, h: 0.165, pose: 'wave', light: 0.5 },
         { who: 'mom', x: 0.47, y: 0.83, h: 0.18, age: 'old', rimSide: -1, light: 0.5 },
@@ -593,10 +717,12 @@ export const SCENES = {
   linesMorning: linesBack(P.morning, { ambience: 'morning', fx: [{ kind: 'clouds', at: 0, count: 3, top: 0.05, bottom: 0.3 }] }),
   linesNoon: linesBack(P.noon, { ambience: 'summer', fx: [{ kind: 'clouds', at: 0, count: 3, top: 0.05, bottom: 0.3 }] }),
   linesDusk: linesBack(P.dusk, { ambience: 'evening' }),
-  linesNight: linesBack({ ...P.night, sky: ['#0c1022', '#151b33', '#232a45', '#2f3550'] }, { stars: 60, vibrance: 0.45, ambience: 'room' }),
-  linesSunrise: linesBack({ ...P.dawn, sky: ['#3b4a78', '#a77b98', '#f2a08a', '#ffd6a0'] }, { ambience: 'morning' }),
+  linesNight: linesBack(P.city, { stars: 60, vibrance: 0.8, ambience: 'room' }),
+  linesSunrise: linesBack(P.dawn, { ambience: 'morning' }),
   linesAfternoon: linesBack(P.autumn, { ambience: 'wind' }),
-  linesEnd: linesBack(P.night, { stars: 140, moon: true, ambience: 'night', fx: [{ kind: 'stars', bottom: 0.7 }] }),
+  linesSlate: linesBack(P.slate, { ambience: 'rain', vibrance: 0.8, fx: [{ kind: 'rain', count: 70 }] }),
+  linesDrain: linesBack(P.drain, { ambience: 'night', vibrance: 0.7 }),
+  linesEnd: linesBack(P.late, { ambience: 'morning', vibrance: 0.85, fx: [{ kind: 'clouds', at: 0, count: 2, top: 0.05, bottom: 0.3, color: 'rgb(255 250 244 / 0.5)' }] }),
 };
 
 // The very end: the same house later still, the kitchen light off.
@@ -606,4 +732,28 @@ SCENES.porchDark = {
   layers: SCENES.porchLate.layers
     .filter((it) => it.kind !== 'glow')
     .map((it) => (it.kind === 'house' ? { ...it, lit: null, windows: it.windows.map((w) => ({ ...w, lit: null, who: false })) } : it)),
+};
+
+// Your kid at sixteen walking home at two, and you at the lit kitchen window: the night
+// at fifteen again, the other way round.
+SCENES.kitchenNightKid = {
+  ...SCENES.kitchenNight,
+  layers: SCENES.kitchenNight.layers.map((it) => (it.kind === 'figure' ? { ...it, who: 'kid' } : it)),
+};
+
+// The morning after: the same house at first light, the long night over. The sun comes up
+// where the car went, and nothing in the house is lit.
+SCENES.porchDawn = {
+  sky: P.first.sky,
+  fog: P.first.fog,
+  vibrance: 0.95,
+  ambience: 'morning',
+  fx: [{ kind: 'birds', count: 3, y: 0.3, color: 'rgb(40 40 70 / 0.5)' }],
+  layers: [
+    ...backdrop(P.first, { h: 0.5, sun: { x: 0.74, y: 0.41, r: 0.06 }, peaks: 0.36, seed: 4 }),
+    { kind: 'road', path: [[1.1, 0.7], [0.9, 0.6], [0.66, 0.6], [0.61, 0.57]], w0: 0.07, w1: 0.008, color: '#6a6878', hazeFar: 0.5, g: 1 },
+    { kind: 'ground', y: 0.72, color: P.first.ground, amp: 0.03, seed: 2, mist: 0, g: 2, bleed: true },
+    { kind: 'house', x: 0.36, y: 0.75, w: 0.5, tall: 0.6, color: '#2a2a40', rim: '#ffe2b8', lit: null, door: 0.12, windows: [{ x: -0.36, s: 0.14, lit: null }, { x: 0.33, s: 0.12, lit: null }], g: 2 },
+    { kind: 'pine', x: 0.95, y: 0.9, h: 0.78, color: '#1c1c30', seed: 31, g: 2, bleed: true },
+  ],
 };

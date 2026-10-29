@@ -3,7 +3,8 @@
 // The years run by themselves and stop wherever something happens, so nobody has to
 // guess how long to hold; a tap goes on from there, and holding a finger down only makes
 // the years go faster. People join, walk beside you, drift off to the side, come back,
-// or stop, leaving a small ring where their line ended.
+// or stop, leaving a small ring where their line ended. Each of those moments slows the
+// years down and plays out in real time, so it is seen even while a line of text is up.
 // Each person's line has their colour from people.js, so the dot is somebody you know.
 //
 // run(segment, hooks) plays one stretch of years from script.js and resolves at its end.
@@ -19,6 +20,18 @@ import { hexToRgb, rgbToCss, mix, vivid, readable } from './util.js';
 const RATE = 0.9; // years per second on their own
 const FAST = 2.4; // how much faster while a finger is held down
 const STEP = 0.1; // years between stored trail points
+// When somebody joins, leaves or dies the years slow right down and pick up again over
+// BEAT_MS, so the moment can be seen; a stretch of years never ends before it is over.
+// The moments themselves play in real time, so they also show while a line is on screen.
+const BEAT_MS = 2600;
+const JOIN_MS = 1600; // a new dot grows in, with one ring going out from it
+const FADE_MS = 3200; // somebody who fades out of your life
+const END_MS = 3400; // a dot that stops: it dims where it stopped, its name stays a while
+const LEAVE_NAME_MS = 4000; // the name of somebody drifting off stays this long
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+// Where the people picked at 25 stand, in the order they are picked, and their colours.
+const PICK_SLOTS = [0.28, 0.72, 0.94];
+const PICK_LOOKS = ['a', 'b', 'c', 'd', 'stranger', 'friend'];
 const PAPER = '#efe9de';
 // People whose names come first when there is room for only some.
 const IMPORTANT = new Set(['partner', 'kid', 'friend', 'dog', 'goose']);
@@ -68,12 +81,25 @@ export class Lines {
 
   /** The whole state, for saving; load() puts it back. */
   save() {
-    return { age: this.age, people: [...this.people.values()].map((p) => ({ ...p, trail: thin(p.trail) })) };
+    return { age: this.age, people: [...this.people].map(([key, p]) => ({ ...p, key, trail: thin(p.trail) })) };
   }
 
+  /** A saved game comes back with every moment already finished. */
   load(data) {
     this.age = data.age;
-    this.people = new Map(data.people.map((p) => [p.id, p]));
+    this.people = new Map(data.people.map((p) => {
+      delete p.joinT;
+      delete p.leaveT;
+      delete p.endT;
+      if (p.state === 'fading') p.state = 'away';
+      if (p.state === 'here' && !p.faint) p.alpha = 1;
+      if (p.arriving) {
+        p.arriving = false;
+        p.x = p.tx;
+        p.trail.push([data.age, p.x]);
+      }
+      return [p.key ?? p.id, p];
+    }));
   }
 
   show(on) {
@@ -107,8 +133,7 @@ export class Lines {
           if (ev.say) await hooks.say(ev.say, ev.by);
           if (ev.phone) await hooks.phone(ev.phone);
           if (ev.pick) {
-            const chosen = await hooks.pick(ev.pick);
-            this.settlePick(ev.pick, chosen);
+            const chosen = await hooks.pick(ev.pick, (id, on) => this.preview(ev.pick, id, on));
             hooks.flag?.(ev.pick.set ?? 'picks', chosen);
           }
           this.paused = false;
@@ -118,40 +143,56 @@ export class Lines {
       const next = Math.min(seg.to, i < events.length ? events[i].at : Infinity);
       await new Promise((resolve) => this.waiters.push({ age: next, resolve }));
     }
+    const rest = (this.beatT ?? 0) + BEAT_MS - performance.now();
+    if (rest > 0) await new Promise((resolve) => setTimeout(resolve, rest));
     this.auto = false;
   }
 
-  /** Applies an event at once. Used while playing and to rebuild a saved game. */
+  /** Applies an event at once, while playing. */
   apply(ev) {
     const p = this.people.get(ev.join ?? ev.move ?? ev.leave ?? ev.back ?? ev.end);
+    const t = performance.now();
+    if (ev.join || (ev.leave && p) || (ev.back && p) || (ev.end && p)) this.beatT = t;
     if (ev.join) {
       const me = this.people.get('me');
       const person = p ?? { id: ev.join, label: ev.label, color: markOf(ev.look ?? ev.join), trail: [] };
       const start = { left: -0.3, right: 1.3, birth: me?.x }[ev.from] ?? ev.x ?? person.x;
+      const grow = ev.from === 'fade' || ev.from === 'birth';
+      // Somebody new from the side walks in along the "now" line, even while a line of
+      // text is on screen; their own line starts where they stop.
+      const walk = ev.from === 'left' || ev.from === 'right';
       Object.assign(person, {
-        label: ev.label ?? person.label, x: start, tx: ev.x ?? person.x, state: 'here',
-        alpha: ev.from === 'fade' || ev.from === 'birth' ? 0 : 1, dashed: !!ev.dashed, speed: 1, me: person.me ?? false,
+        label: ev.label ?? person.label, x: start, tx: ev.x ?? person.x, state: 'here', v: 0,
+        alpha: grow ? 0 : 1, dashed: !!ev.dashed, speed: 1, me: person.me ?? false, arriving: walk,
       });
-      person.trail.push([this.age, start]);
+      if (grow) person.joinT = t;
+      if (!walk) person.trail.push([this.age, start]);
       this.people.set(ev.join, person);
     }
-    if (ev.move && p) p.tx = ev.x;
+    if (ev.move && p) {
+      p.tx = ev.x;
+      p.speed = 2.4;
+    }
     if (ev.leave && p) {
       p.state = ev.side === 'fade' ? 'fading' : 'leaving';
       p.tx = ev.side === 'left' ? -0.6 : ev.side === 'right' ? 1.6 : p.x;
       p.speed = ev.slow ? 0.4 : 0.8;
+      p.leaveT = t;
     }
     if (ev.back && p) {
       p.state = 'here';
       p.alpha = 1;
-      p.speed = 0.8;
-      p.x = p.x < 0.5 ? -0.3 : 1.3;
+      p.speed = 1;
+      p.v = 0;
+      p.x = ev.x < 0.5 ? -0.3 : 1.3;
       p.tx = ev.x;
-      p.trail.push(null, [this.age, p.x]);
+      p.arriving = true;
+      p.trail.push(null);
     }
     if (ev.end && p) {
       p.state = 'gone';
       p.endAge = this.age;
+      p.endT = t;
       p.trail.push([this.age, p.x]);
     }
     if (ev.cross) {
@@ -165,37 +206,81 @@ export class Lines {
     }
   }
 
-  /** After a pick: the chosen come close and stay, the rest drift away. */
-  settlePick(spec, chosen) {
-    const me = this.people.get('me');
-    const looks = ['a', 'b', 'c', 'd', 'stranger', 'friend'];
-    let side = 1;
-    spec.options.forEach((o, n) => {
-      const keep = chosen.includes(o.id);
-      const x = keep ? me.x + side * (0.1 + (n % 3) * 0.05) : 0.7 + n * 0.06;
-      side = -side;
-      this.people.set(`pick-${o.id}`, {
-        id: o.id, label: '', color: markOf(looks[n]), x: 1.2 + n * 0.08, tx: keep ? x : 1.6,
-        state: keep ? 'here' : 'leaving', alpha: keep ? 1 : 0.5, speed: keep ? 1 : 0.5, faint: !keep,
-        trail: [[this.age, 1.2 + n * 0.08]],
+  /**
+   * The picker: everyone tapped walks in from the side to a free place in your life, with
+   * a short name, and walks back out if tapped again. Nobody who is not picked joins.
+   */
+  preview(spec, id, on) {
+    const key = `pick-${id}`;
+    const n = spec.options.findIndex((o) => o.id === id);
+    const p = this.people.get(key);
+    if (on) {
+      const taken = [...this.people].filter(([k, q]) => k.startsWith('pick-') && !q.exit).map(([, q]) => q.tx);
+      const slot = PICK_SLOTS.find((x) => !taken.includes(x)) ?? PICK_SLOTS[0];
+      this.people.set(key, {
+        id, label: spec.options[n].name, color: markOf(PICK_LOOKS[n]), x: p?.x ?? (slot < 0.5 ? -0.25 : 1.25), tx: slot,
+        v: 0, state: 'here', alpha: 1, speed: 1, arriving: true, trail: [],
       });
-    });
+    } else if (p) {
+      Object.assign(p, { arriving: false, exit: true, state: 'leaving', trail: [], tx: p.x < 0.5 ? -0.5 : 1.5 });
+    }
   }
 
   tick(now) {
     const dt = this.last ? Math.min(0.05, (now - this.last) / 1000) : 0;
     this.last = now;
+    this.ease(now, dt);
     if (this.visible && (this.auto || this.holding) && !this.paused) {
       const target = this.waiters.length ? Math.min(...this.waiters.map((w) => w.age)) : Infinity;
-      const step = Math.min(dt * RATE * (this.holding ? FAST : 1), target - this.age);
+      const step = Math.min(dt * RATE * (this.holding ? FAST : 1) * this.pace(now), target - this.age);
       if (step > 0) this.advance(step);
       this.waiters = this.waiters.filter((w) => {
         if (this.age >= w.age - 1e-6) w.resolve();
         return this.age < w.age - 1e-6;
       });
     }
-    if (this.visible) this.draw(now / 1000);
+    if (this.visible) this.draw(now);
     requestAnimationFrame((t) => this.tick(t));
+  }
+
+  /** How fast the years go right now: slow just after a moment, then back up to speed. */
+  pace(now) {
+    if (!this.beatT) return 1;
+    const k = clamp01((now - this.beatT) / BEAT_MS);
+    return 0.15 + 0.85 * k * k;
+  }
+
+  /**
+   * Plays the moments in real time: a dot growing in, somebody walking in from the side,
+   * a dot fading out of your life.
+   */
+  ease(now, dt) {
+    for (const [key, p] of this.people) {
+      if (p.arriving || p.exit) {
+        const k = 12;
+        p.v += (k * (p.tx - p.x) - 2 * Math.sqrt(k) * p.v) * dt;
+        p.x += p.v * dt;
+        if (p.exit) {
+          if (p.x < -0.4 || p.x > 1.4) this.people.delete(key);
+        } else if (Math.abs(p.tx - p.x) < 0.006 && Math.abs(p.v) < 0.05) {
+          p.x = p.tx;
+          p.v = 0;
+          p.arriving = false;
+          p.trail.push([this.age, p.x]);
+        }
+      }
+      if (p.joinT) {
+        p.alpha = clamp01((now - p.joinT) / JOIN_MS);
+        if (p.alpha >= 1) delete p.joinT;
+      }
+      if (p.state === 'fading') {
+        p.alpha = 1 - clamp01((now - p.leaveT) / FADE_MS);
+        if (p.alpha <= 0) {
+          p.state = 'away';
+          p.trail.push([this.age, p.x]);
+        }
+      }
+    }
   }
 
   /** Moves time forward by `years`, in small steps so the trails curve smoothly. */
@@ -206,15 +291,13 @@ export class Lines {
       left -= d;
       this.age += d;
       for (const p of this.people.values()) {
-        if (p.state === 'pending' || p.state === 'gone' || p.state === 'away') continue;
+        if (p.state === 'pending' || p.state === 'gone' || p.state === 'away' || p.arriving || p.exit) continue;
         // A damped spring: a person starts drifting gently and settles gently, so a line
         // that leaves draws a long soft curve, not a corner.
         const k = 2.6 * p.speed * p.speed;
         p.v = (p.v ?? 0) + (k * (p.tx - p.x) - 2 * Math.sqrt(k) * (p.v ?? 0)) * d;
         p.x += p.v * d;
-        if (p.state === 'fading') p.alpha = Math.max(0, p.alpha - d * 0.9);
-        else if (p.alpha < 1 && !p.faint) p.alpha = Math.min(1, p.alpha + d * 2);
-        if ((p.state === 'leaving' && (p.x < -0.45 || p.x > 1.45)) || (p.state === 'fading' && p.alpha <= 0)) {
+        if (p.state === 'leaving' && (p.x < -0.45 || p.x > 1.45)) {
           p.state = 'away';
           p.trail.push([this.age, p.x]);
           continue;
@@ -225,8 +308,11 @@ export class Lines {
     }
   }
 
-  draw(t) {
+  draw(ms) {
     const { ctx, w, h } = this;
+    const t = ms / 1000;
+    const dt = this.drawn ? Math.min(0.1, (ms - this.drawn) / 1000) : 0;
+    this.drawn = ms;
     ctx.clearRect(0, 0, w, h);
     const now = h * 0.4;
     const perYear = Math.min(30, Math.max(16, h * 0.032));
@@ -260,7 +346,8 @@ export class Lines {
       ctx.setLineDash(p.dashed ? [3, 5] : []);
       ctx.beginPath();
       let pen = false;
-      const pts = p.state === 'here' || p.state === 'leaving' || p.state === 'fading' ? [...p.trail, [this.age, p.x]] : p.trail;
+      const live = (p.state === 'here' || p.state === 'leaving' || p.state === 'fading') && !p.arriving && !p.exit;
+      const pts = live ? [...p.trail, [this.age, p.x]] : p.trail;
       for (const pt of pts) {
         if (!pt) {
           pen = false;
@@ -279,25 +366,70 @@ export class Lines {
       ctx.setLineDash([]);
       if (p.state === 'gone') {
         const y = Y(p.endAge);
+        const x = X(p.trail[p.trail.length - 1][1]);
         if (y < h) {
           ctx.strokeStyle = rgbToCss(mix(rgb, hexToRgb(PAPER), 0.3), 0.8);
           ctx.lineWidth = 1.6;
           ctx.beginPath();
-          ctx.arc(X(p.trail[p.trail.length - 1][1]), y, 5, 0, Math.PI * 2);
+          ctx.arc(x, y, 5, 0, Math.PI * 2);
           ctx.stroke();
         }
+        // The moment a line stops, the dot stays a while where it stopped and dims.
+        const k = p.endT ? clamp01((ms - p.endT) / END_MS) : 1;
+        if (k < 1) dots.push({ p, x, y, rgb, end: k });
       } else if (p.state !== 'away' && p.alpha > 0.02) {
-        dots.push({ p, x: X(p.x), rgb });
+        dots.push({ p, x: X(p.x), y: now, rgb });
+      }
+    }
+
+    // A friend you only know online (a dashed line) is joined to you by a faint thread
+    // under the line, with a message now and then running along it, either way.
+    const me = this.people.get('me');
+    for (const p of this.people.values()) {
+      if (!p.dashed || !me || p.arriving || (p.state !== 'here' && p.state !== 'fading') || p.alpha < 0.02) continue;
+      const rgb = mix(hexToRgb(p.color), hexToRgb(PAPER), 0.35);
+      const [x0, x1] = [X(me.x), X(p.x)];
+      const dip = Math.min(26, Math.abs(x1 - x0) * 0.18);
+      const at = (u) => [x0 + (x1 - x0) * u, now + dip * 4 * u * (1 - u)];
+      ctx.strokeStyle = rgbToCss(rgb, 0.32 * p.alpha);
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([2, 5]);
+      ctx.beginPath();
+      ctx.moveTo(x0, now);
+      ctx.quadraticCurveTo((x0 + x1) / 2, now + dip * 2, x1, now);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      for (const [speed, phase, back] of [[0.32, 0, false], [0.26, 0.55, true]]) {
+        const u = (t * speed + phase) % 1;
+        const [mx, my] = at(back ? 1 - u : u);
+        ctx.fillStyle = rgbToCss(rgb, 0.85 * p.alpha * Math.sin(u * Math.PI));
+        ctx.beginPath();
+        ctx.arc(mx, my, 2.2, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
 
     dots.sort((a, b) => a.x - b.x);
-    // Names. A person's name shows only once they have stopped moving (a name sliding
-    // across others reads as a glitch), on one of two rows above the line, never on top
-    // of another name. Your own name is placed first; when two dots sit on the same spot
-    // only one of them is named. Each name's colour is adjusted until it reads clearly on
-    // the sky behind it.
-    const rows = [[], []];
+    // Names, on one of three rows above the line, never on top of another name. Your own
+    // name is placed first; when two dots sit on the same spot only one of them is named.
+    // A name keeps its row while its dot moves and fades in rather than blinking on.
+    // Somebody walking in is named once they stop; somebody drifting off, or whose line
+    // has just stopped, keeps the name a little while. Each name's colour is adjusted
+    // until it reads clearly on the sky behind it.
+    const want = (d) => {
+      const { p } = d;
+      if (p.me) return 1;
+      if (d.end !== undefined) return Math.abs(d.y - now) < 2 ? 1 - clamp01((d.end - 0.6) / 0.4) : 0;
+      if (p.arriving) return 0;
+      if (p.state === 'here') return 1;
+      if (p.state === 'leaving' && p.leaveT) return 1 - clamp01((ms - p.leaveT) / LEAVE_NAME_MS);
+      if (p.state === 'fading') return p.alpha;
+      return 0;
+    };
+    // Three rows of names, and a name may sit a little to either side of its dot, so a
+    // crowded line still names everyone; a name never sits over somebody else's dot.
+    const rows = [[], [], []];
+    const SHIFTS = [0, -14, 14, -26, 26];
     const layout = [];
     const lineH = 15;
     const span = (p, x) => {
@@ -307,33 +439,71 @@ export class Lines {
       return [lx - half, lx + half, lx];
     };
     const free = (row, s) => rows[row].every(([a, b]) => s[1] <= a || s[0] >= b);
-    const settled = (p) => Math.max(0, 1 - Math.abs(p.tx - p.x) / 0.06) * (p.state === 'here' ? 1 : 0);
     const rank = (p) => (p.me ? 3 : p.since !== undefined || IMPORTANT.has(p.id) ? 2 : 1);
     const order = [...dots].sort((a, b) => rank(b.p) - rank(a.p));
     const labels = new Map();
     const named = [];
-    for (const { p, x } of order) {
-      if (!p.label || (!p.me && settled(p) < 0.05)) continue;
-      if (named.some((nx) => Math.abs(nx - x) < 14)) continue;
-      const s = span(p, x);
-      const row = free(0, s) ? 0 : free(1, s) && !dots.some((d) => d.p !== p && Math.abs(d.x - s[2]) < 10) ? 1 : -1;
-      if (row === -1) continue;
+    for (const d of order) {
+      const { p, x } = d;
+      const goal = p.label ? want(d) : 0;
+      if (goal < 0.02 || named.some((nx) => Math.abs(nx - x) < 14)) {
+        p.la = 0;
+        continue;
+      }
+      // Tries the spot this name had last frame first, so names do not jump about.
+      const spots = [];
+      if (p.spot) spots.push(p.spot);
+      for (const r of [0, 1, 2]) for (const dx of SHIFTS) spots.push([r, dx]);
+      let s;
+      let row;
+      for (const [r, dx] of spots) {
+        const c = span(p, x + dx);
+        // A name on the lowest row moved off its own dot must not land over somebody
+        // else's; the higher rows sit above the other names and can go anywhere.
+        const clear = r > 0 || dx === 0 || !dots.some((o) => o.p !== p && Math.abs(o.x - c[2]) < 10);
+        if (free(r, c) && clear) {
+          s = c;
+          row = r;
+          p.spot = [r, dx];
+          break;
+        }
+      }
+      if (row === undefined) {
+        p.la = 0;
+        continue;
+      }
+      p.la = Math.min(goal, (p.la ?? 0) + dt * 4);
       rows[row].push(s);
       named.push(x);
-      labels.set(p, [s[2], row, p.me ? 1 : settled(p)]);
+      labels.set(p, [s[2], row, p.la]);
     }
 
-    for (const { p, x, rgb } of dots) {
-      const a = p.alpha * (p.faint ? 0.6 : 1);
-      const pulse = p.me ? 1 + Math.sin(t * 2.2) * 0.08 : 1;
-      const halo = ctx.createRadialGradient(x, now, 0, x, now, p.me ? 18 : 12);
+    for (const d of dots) {
+      const { p, x, y, rgb } = d;
+      let a = p.alpha * (p.faint ? 0.6 : 1);
+      let r = (p.me ? 6.5 : 5) * (p.me ? 1 + Math.sin(t * 2.2) * 0.08 : 1);
+      // One ring goes out from a dot that has just appeared, or whose line has just stopped.
+      const ring = p.joinT ? clamp01((ms - p.joinT) / JOIN_MS) : d.end;
+      if (p.joinT) r *= 0.45 + 0.55 * (1 - (1 - ring) ** 3);
+      if (d.end !== undefined) {
+        a *= 1 - d.end * d.end;
+        r *= 1 - 0.3 * d.end;
+      }
+      if (ring !== undefined && ring < 1) {
+        ctx.strokeStyle = rgbToCss(mix(rgb, [255, 255, 255], 0.3), 0.55 * (1 - ring));
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x, y, 6 + ring * 24, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      const halo = ctx.createRadialGradient(x, y, 0, x, y, p.me ? 18 : 12);
       halo.addColorStop(0, rgbToCss(rgb, 0.45 * a));
       halo.addColorStop(1, rgbToCss(rgb, 0));
       ctx.fillStyle = halo;
-      ctx.fillRect(x - 20, now - 20, 40, 40);
+      ctx.fillRect(x - 20, y - 20, 40, 40);
       ctx.fillStyle = rgbToCss(mix(rgb, [255, 255, 255], 0.25), a);
       ctx.beginPath();
-      ctx.arc(x, now, (p.me ? 6.5 : 5) * pulse, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
       const label = labels.get(p);
       if (!label) continue;
@@ -341,7 +511,7 @@ export class Lines {
       const back = this.skyAt(ly);
       const fill = readable(mix(rgb, hexToRgb(PAPER), p.me ? 0.1 : 0.3), back);
       ctx.font = `${p.me ? 560 : 440} 14px Recursive, system-ui, sans-serif`;
-      ctx.fillStyle = rgbToCss(fill, a * label[2]);
+      ctx.fillStyle = rgbToCss(fill, label[2] * (d.end === undefined ? p.alpha * (p.faint ? 0.6 : 1) : 1));
       ctx.fillText(p.label, label[0], ly);
       if (label[2] > 0.9) layout.push({ label: p.label, x: label[0], y: ly, w: ctx.measureText(p.label).width, dot: x, fill, back });
     }

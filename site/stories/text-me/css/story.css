@@ -574,12 +574,35 @@ button {
   width: 100%;
   margin: 0 0 4px;
   text-align: center;
-  color: var(--dim);
-  font-size: 14px;
+  color: rgb(243 238 229 / 0.86);
+  font-size: 15px;
 }
 
 .chip.is-done {
   border-color: var(--me);
+}
+
+/* The picker's places: one ring per person to pick, filled as they are tapped. */
+.pick-slots {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+  margin: 0 0 6px;
+}
+
+.pick-slots i {
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--dim);
+  border-radius: 50%;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 180ms var(--ease-out);
+}
+
+.pick-slots i.is-on {
+  background: var(--me);
+  border-color: var(--me);
+  transform: scale(1.15);
 }
 
 .hint {

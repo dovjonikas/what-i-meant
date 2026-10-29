@@ -54,7 +54,7 @@ export class Phone {
     this.text.textContent = '';
     this.send.disabled = true;
     if (spec.time) this.stamp(spec.time);
-    for (const m of spec.history ?? []) this.place(m);
+    for (const m of spec.history ?? []) if (!m.if || matches(m.if, ctx.flags)) this.place(m);
     await this.open();
     for (const step of spec.steps ?? []) {
       if (step.if && !matches(step.if, ctx.flags)) continue;

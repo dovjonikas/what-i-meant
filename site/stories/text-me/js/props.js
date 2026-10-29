@@ -270,37 +270,124 @@ const PROPS = {
     }
   },
 
-  // A car from behind or from the side; `lights` adds glowing rear lights.
+  // A car from the side, front to the right (`face: -1` turns it round). A rounded roof and
+  // bonnet, wheel arches, a door line, the side windows (lit warm by `inside`), and a soft
+  // highlight along its shoulder from the scene's light. `lights` is the colour of the red
+  // rear lights; with them on, the headlights burn warm yellow (`head`) and throw a beam
+  // onto the road ahead, `beam` column widths long (0 for the lamps only).
   car(ctx, it, pen) {
     const x = pen.X(it.x);
     const y = pen.Y(it.y);
     const w = pen.S(it.w ?? 0.2);
-    const h = w * 0.34; // a car is about three times as long as it is tall
-    withRim(ctx, it, pen, (fill) => {
-      ctx.fillStyle = fill;
-      roundRect(ctx, x - w / 2, y - h * 0.62, w, h * 0.5, w * 0.06);
-      ctx.fill();
+    const face = it.face ?? 1;
+    // Drawn in the car's own units: 1 is the car's length, x forward, y up from the road.
+    // A car is about three times as long as it is tall (the roof is at 0.34).
+    ctx.translate(x, y);
+    ctx.scale(face * w, w);
+    const wheels = [-0.31, 0.32];
+    const wheelR = 0.088;
+    const body = () => {
       ctx.beginPath();
-      ctx.moveTo(x - w * 0.3, y - h * 0.6);
-      ctx.lineTo(x - w * 0.18, y - h);
-      ctx.lineTo(x + w * 0.2, y - h);
-      ctx.lineTo(x + w * 0.34, y - h * 0.6);
+      ctx.moveTo(-0.49, -0.07);
+      ctx.quadraticCurveTo(-0.505, -0.15, -0.475, -0.19);
+      ctx.quadraticCurveTo(-0.44, -0.215, -0.39, -0.22);
+      ctx.quadraticCurveTo(-0.3, -0.33, -0.18, -0.338);
+      ctx.lineTo(0.06, -0.34);
+      ctx.quadraticCurveTo(0.14, -0.335, 0.24, -0.225);
+      ctx.quadraticCurveTo(0.42, -0.205, 0.48, -0.17);
+      ctx.quadraticCurveTo(0.505, -0.13, 0.5, -0.07);
+      ctx.closePath();
+    };
+    // The same rim as withRim, with its shift turned into the car's units.
+    const shape = (fill) => {
+      ctx.fillStyle = fill;
+      body();
+      ctx.fill();
+      // The sill between the wheels, low to the road.
+      ctx.fillRect(-0.47, -0.08, 0.94, 0.04);
+    };
+    if (it.rim) {
+      ctx.save();
+      ctx.translate(((it.rimSide ?? 1) * face * (it.rimW ?? 1.4)) / w, -0.6 / w);
+      shape(pen.tone(it.rim, 0, it.rimAlpha ?? 0.8));
+      ctx.restore();
+    }
+    shape(pen.tone(it.color ?? '#141826', it.haze ?? 0));
+    // Wheel arches: a darker hollow round each wheel, then the tyre and a pale hub.
+    for (const dx of wheels) {
+      ctx.fillStyle = pen.tone('#05070d', 0, 0.85);
+      ctx.beginPath();
+      ctx.arc(dx, -wheelR, wheelR * 1.22, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = pen.tone('#0b0d14');
+      ctx.beginPath();
+      ctx.arc(dx, -wheelR, wheelR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = pen.tone(it.rim ?? '#8a93a8', 0.3, 0.55);
+      ctx.beginPath();
+      ctx.arc(dx, -wheelR, wheelR * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // The side windows with the pillar between them, lit warm from inside or dark glass.
+    const glass = it.inside ? pen.tone(it.inside, 0, 0.62) : pen.tone(it.rim ?? '#8a93a8', 0.4, 0.22);
+    ctx.fillStyle = glass;
+    ctx.beginPath();
+    ctx.moveTo(-0.34, -0.225);
+    ctx.quadraticCurveTo(-0.27, -0.305, -0.17, -0.312);
+    ctx.lineTo(-0.05, -0.314);
+    ctx.lineTo(-0.05, -0.225);
+    ctx.closePath();
+    ctx.moveTo(-0.02, -0.225);
+    ctx.lineTo(-0.02, -0.314);
+    ctx.lineTo(0.05, -0.314);
+    ctx.quadraticCurveTo(0.12, -0.31, 0.2, -0.225);
+    ctx.closePath();
+    ctx.fill();
+    // A line of light along the shoulder, and the door lines below the windows.
+    ctx.strokeStyle = pen.tone(it.rim ?? '#8a93a8', 0, 0.38);
+    ctx.lineWidth = 0.008;
+    ctx.beginPath();
+    ctx.moveTo(-0.44, -0.205);
+    ctx.quadraticCurveTo(0, -0.215, 0.42, -0.19);
+    ctx.stroke();
+    ctx.strokeStyle = pen.tone('#000000', 0, 0.35);
+    ctx.lineWidth = 0.006;
+    for (const dx of [-0.035, 0.21]) line(ctx, dx, -0.22, dx + (dx > 0 ? 0.01 : 0), -0.09);
+    if (!it.lights) return;
+    // Lights: the red ones at the back, the warm yellow ones at the front with their beam.
+    ctx.globalCompositeOperation = 'screen';
+    const rear = it.lights;
+    const head = it.head ?? '#ffc640';
+    glow(ctx, -0.49, -0.16, 0.13, pen.tone(rear, 0, 0.55), pen.tone(rear, 0, 0));
+    const beam = (it.beam ?? 0.75 * (it.w ?? 0.2)) / (it.w ?? 0.2);
+    if (beam > 0) {
+      const cone = ctx.createLinearGradient(0.49, 0, 0.49 + beam, 0);
+      cone.addColorStop(0, pen.tone(head, 0, 0.55));
+      cone.addColorStop(0.55, pen.tone(head, 0, 0.16));
+      cone.addColorStop(1, pen.tone(head, 0, 0));
+      ctx.fillStyle = cone;
+      ctx.beginPath();
+      ctx.moveTo(0.49, -0.17);
+      ctx.lineTo(0.49 + beam, -0.13);
+      ctx.lineTo(0.49 + beam, 0.02);
+      ctx.lineTo(0.49, -0.11);
       ctx.closePath();
       ctx.fill();
-      for (const dx of [-0.3, 0.3]) {
-        ctx.beginPath();
-        ctx.arc(x + dx * w, y - h * 0.12, w * 0.1, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    });
-    if (it.inside) {
-      ctx.fillStyle = pen.tone(it.inside, 0, 0.55);
-      ctx.fillRect(x - w * 0.14, y - h * 0.94, w * 0.3, h * 0.3);
+      // Where the beam lands on the road.
+      ctx.save();
+      ctx.translate(0.49 + beam * 0.45, 0);
+      ctx.scale(1, 0.12);
+      glow(ctx, 0, 0, beam * 0.42, pen.tone(head, 0, 0.38), pen.tone(head, 0, 0));
+      ctx.restore();
     }
-    if (it.lights) {
-      ctx.globalCompositeOperation = 'screen';
-      for (const dx of [-0.46, 0.46]) glow(ctx, x + dx * w, y - h * 0.4, w * 0.25, pen.tone(it.lights, 0, 0.6), pen.tone(it.lights, 0, 0));
-    }
+    glow(ctx, 0.48, -0.15, 0.16, pen.tone(head, 0, 0.75), pen.tone(head, 0, 0));
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = pen.tone(rear);
+    ctx.fillRect(-0.5, -0.185, 0.018, 0.05);
+    ctx.fillStyle = pen.tone('#fff6d8');
+    ctx.beginPath();
+    ctx.ellipse(0.483, -0.152, 0.014, 0.022, 0, 0, Math.PI * 2);
+    ctx.fill();
   },
 
   // A street lamp with its cone of light and the pool it makes on the ground.
@@ -446,6 +533,85 @@ const PROPS = {
     ctx.restore();
   },
 
+  // A kitchen at night seen from outside through its window, painted only inside `rect`
+  // [x0, y0, x1, y1] (the house wall painted after it frames it): a warm wall, cupboards
+  // along the top right, a lamp hanging at `lamp` [x, y] with its light on the wall, and a
+  // clock at `clock` [x, y] showing `time` [hours, minutes].
+  kitchen(ctx, it, pen) {
+    const [u0, v0, u1, v1] = it.rect;
+    const x0 = pen.X(u0);
+    const y0 = pen.Y(v0);
+    const w = pen.X(u1) - x0;
+    const h = pen.Y(v1) - y0;
+    ctx.beginPath();
+    ctx.rect(x0, y0, w, h);
+    ctx.clip();
+    const wall = ctx.createLinearGradient(0, y0, 0, y0 + h);
+    wall.addColorStop(0, pen.tone(it.wall ?? '#9a6538'));
+    wall.addColorStop(1, pen.tone(it.floor ?? '#5e3a22'));
+    ctx.fillStyle = wall;
+    ctx.fillRect(x0, y0, w, h);
+    const [lx, ly] = [pen.X(it.lamp[0]), pen.Y(it.lamp[1])];
+    const light = it.light ?? '#ffcf86';
+    ctx.globalCompositeOperation = 'screen';
+    glow(ctx, lx, ly + pen.S(0.04), pen.S(0.5), pen.tone(light, 0, 0.5), pen.tone(light, 0, 0));
+    ctx.globalCompositeOperation = 'source-over';
+    // Cupboards: a row of doors with small knobs.
+    const wood = pen.tone(it.wood ?? '#4a2d18');
+    const cx0 = pen.X(it.cupboards?.[0] ?? 0.54);
+    const cx1 = pen.X(it.cupboards?.[1] ?? 0.9);
+    const ch = pen.S(0.13);
+    ctx.fillStyle = wood;
+    ctx.fillRect(cx0, y0, cx1 - cx0, ch);
+    ctx.fillStyle = pen.tone('#000000', 0, 0.3);
+    const doors = Math.max(2, Math.round((cx1 - cx0) / pen.S(0.11)));
+    for (let i = 1; i < doors; i += 1) ctx.fillRect(cx0 + ((cx1 - cx0) * i) / doors - 0.6, y0, 1.2, ch);
+    ctx.fillStyle = pen.tone('#d8b27a', 0, 0.8);
+    for (let i = 0; i < doors; i += 1) ctx.fillRect(cx0 + ((cx1 - cx0) * (i + 0.5)) / doors - 1, y0 + ch * 0.8, 2, 2);
+    // The clock: a pale face, the hour marks, two hands.
+    if (it.clock) {
+      const [kx, ky] = [pen.X(it.clock[0]), pen.Y(it.clock[1])];
+      const r = pen.S(it.clockR ?? 0.04);
+      ctx.fillStyle = pen.tone('#2a1a10');
+      ctx.beginPath();
+      ctx.arc(kx, ky, r * 1.12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = pen.tone('#f1e6cf');
+      ctx.beginPath();
+      ctx.arc(kx, ky, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = pen.tone('#5a4636');
+      for (let i = 0; i < 12; i += 1) {
+        const a = (i / 12) * Math.PI * 2;
+        ctx.fillRect(kx + Math.sin(a) * r * 0.78 - 0.7, ky - Math.cos(a) * r * 0.78 - 0.7, 1.4, 1.4);
+      }
+      const [hh, mm] = it.time ?? [1, 6];
+      ctx.strokeStyle = pen.tone('#1c1410');
+      ctx.lineCap = 'round';
+      const hand = (a, len, wid) => {
+        ctx.lineWidth = wid;
+        line(ctx, kx, ky, kx + Math.sin(a) * len, ky - Math.cos(a) * len);
+      };
+      hand((((hh % 12) + mm / 60) / 12) * Math.PI * 2, r * 0.5, Math.max(1.4, r * 0.12));
+      hand((mm / 60) * Math.PI * 2, r * 0.75, Math.max(1, r * 0.07));
+    }
+    // The lamp on its cord: a dark shade, bright underneath.
+    ctx.strokeStyle = pen.tone('#1a120c');
+    ctx.lineWidth = 1.2;
+    line(ctx, lx, y0, lx, ly);
+    const sw = pen.S(0.06);
+    ctx.fillStyle = pen.tone('#2c1c12');
+    ctx.beginPath();
+    ctx.moveTo(lx - sw * 0.35, ly);
+    ctx.lineTo(lx + sw * 0.35, ly);
+    ctx.lineTo(lx + sw * 0.6, ly + sw * 0.45);
+    ctx.lineTo(lx - sw * 0.6, ly + sw * 0.45);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = pen.tone('#fff0c8');
+    ctx.fillRect(lx - sw * 0.5, ly + sw * 0.42, sw, sw * 0.08);
+  },
+
   // The inside of a dark room: a wall with one window cut out, so the layers painted
   // before it show through the window as the view outside.
   room(ctx, it, pen) {
@@ -466,26 +632,179 @@ const PROPS = {
     ctx.fillRect(x0 - bar, y1, x1 - x0 + bar * 2, bar * 1.6);
   },
 
+  // A band of wall or floor across the whole width, from `y` down to `y2`, in `color`.
+  // `planks` draws that many floorboard seams, closer together toward the back; `trim`
+  // a skirting line along the top edge.
+  band(ctx, it, pen) {
+    const y0 = pen.Y(it.y);
+    const y1 = pen.Y(it.y2 ?? 1);
+    ctx.fillStyle = pen.tone(it.color);
+    ctx.fillRect(0, y0, pen.right, y1 - y0);
+    if (it.trim) {
+      ctx.fillStyle = pen.tone(it.trim);
+      ctx.fillRect(0, y0 - Math.max(2, pen.S(0.008)), pen.right, Math.max(2, pen.S(0.012)));
+    }
+    if (it.planks) {
+      ctx.fillStyle = pen.tone('#000000', 0, 0.16);
+      for (let i = 1; i <= it.planks; i += 1) {
+        const k = (i / (it.planks + 1)) ** 1.6;
+        ctx.fillRect(0, y0 + (y1 - y0) * k, pen.right, 1);
+      }
+    }
+  },
+
+  // A blackboard on the wall: `x` its middle, `y` its bottom edge, `w` and `h` its size.
+  // Chalk on it (letters, a sum, a small sun) and the ledge with two bits of chalk.
+  board(ctx, it, pen) {
+    const x = pen.X(it.x);
+    const y = pen.Y(it.y);
+    const w = pen.S(it.w ?? 0.5);
+    const h = pen.S(it.h ?? 0.2);
+    const edge = Math.max(3, w * 0.025);
+    ctx.fillStyle = pen.tone(it.frame ?? '#7a5534');
+    ctx.fillRect(x - w / 2 - edge, y - h - edge, w + edge * 2, h + edge * 2);
+    ctx.fillStyle = pen.tone(it.color ?? '#2f4a3c');
+    ctx.fillRect(x - w / 2, y - h, w, h);
+    // The ledge and its chalk.
+    ctx.fillStyle = pen.tone(it.frame ?? '#7a5534');
+    ctx.fillRect(x - w / 2 - edge * 1.5, y + edge * 0.6, w + edge * 3, edge * 1.2);
+    ctx.fillStyle = pen.tone('#f3efe4');
+    ctx.fillRect(x - w * 0.3, y + edge * 0.2, w * 0.05, edge * 0.5);
+    ctx.fillRect(x + w * 0.18, y + edge * 0.2, w * 0.035, edge * 0.5);
+    // Chalk: a tall A, B and C, a sum underneath, and a sun in the corner.
+    const u = h / 10;
+    const at = (cx, cy) => [x - w / 2 + cx * u, y - h + cy * u];
+    ctx.strokeStyle = pen.tone('#eef2ea', 0, 0.72);
+    ctx.lineWidth = Math.max(1.2, u * 0.32);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const path = (pts) => {
+      ctx.beginPath();
+      pts.forEach(([cx, cy], i) => (i ? ctx.lineTo(...at(cx, cy)) : ctx.moveTo(...at(cx, cy))));
+      ctx.stroke();
+    };
+    path([[1.6, 4.6], [2.6, 1.6], [3.6, 4.6]]);
+    path([[2.1, 3.4], [3.1, 3.4]]);
+    path([[4.6, 4.6], [4.6, 1.6], [5.6, 1.9], [5.6, 2.8], [4.6, 3.1], [5.8, 3.5], [5.7, 4.4], [4.6, 4.6]]);
+    ctx.beginPath();
+    ctx.arc(...at(7.6, 3.1), u * 1.5, Math.PI * 0.25, Math.PI * 1.75);
+    ctx.stroke();
+    path([[1.8, 7.2], [3, 7.2]]);
+    path([[2.4, 6.6], [2.4, 7.8]]);
+    path([[4.2, 6.8], [5.4, 6.8]]);
+    path([[4.2, 7.6], [5.4, 7.6]]);
+    const [sx, sy] = at(w / u - 2.4, 2.6);
+    ctx.beginPath();
+    ctx.arc(sx, sy, u * 0.9, 0, Math.PI * 2);
+    ctx.stroke();
+    for (let i = 0; i < 8; i += 1) {
+      const a = (i / 8) * Math.PI * 2;
+      line(ctx, sx + Math.cos(a) * u * 1.3, sy + Math.sin(a) * u * 1.3, sx + Math.cos(a) * u * 1.9, sy + Math.sin(a) * u * 1.9);
+    }
+  },
+
+  // Sun through a window: a pale shaft from `from` [x0, x1, y] (the window's bottom
+  // corners) down to `to` [x0, x1, y] on the floor, brightest where it lands.
+  sunbeam(ctx, it, pen) {
+    const [a0, a1, ay] = it.from;
+    const [b0, b1, by] = it.to;
+    const light = it.color ?? '#ffe6a8';
+    ctx.globalCompositeOperation = 'screen';
+    const shaft = ctx.createLinearGradient(0, pen.Y(ay), 0, pen.Y(by));
+    shaft.addColorStop(0, pen.tone(light, 0, it.alpha ?? 0.16));
+    shaft.addColorStop(1, pen.tone(light, 0, (it.alpha ?? 0.16) * 0.5));
+    ctx.fillStyle = shaft;
+    ctx.beginPath();
+    ctx.moveTo(pen.X(a0), pen.Y(ay));
+    ctx.lineTo(pen.X(a1), pen.Y(ay));
+    ctx.lineTo(pen.X(b1), pen.Y(by));
+    ctx.lineTo(pen.X(b0), pen.Y(by));
+    ctx.closePath();
+    ctx.fill();
+    // The patch of sun on the floor.
+    ctx.fillStyle = pen.tone(light, 0, (it.alpha ?? 0.16) * 1.2);
+    const d = pen.S(it.patch ?? 0.05);
+    ctx.beginPath();
+    ctx.moveTo(pen.X(b0), pen.Y(by));
+    ctx.lineTo(pen.X(b1), pen.Y(by));
+    ctx.lineTo(pen.X(b1) + d * 1.6, pen.Y(by) + d);
+    ctx.lineTo(pen.X(b0) + d * 1.6, pen.Y(by) + d);
+    ctx.closePath();
+    ctx.fill();
+  },
+
+  // A school chair seen straight on: a wooden back rest and seat on a metal frame. `y` is
+  // the floor, `h` the height of the back (about half a child's height). `broken: true`
+  // has one front leg snapped off: the chair sags toward that corner and the leg lies on
+  // the floor in front of it.
+  chair(ctx, it, pen) {
+    const x = pen.X(it.x);
+    const y = pen.Y(it.y);
+    const s = pen.S(it.h ?? 0.12);
+    const wood = pen.tone(it.color ?? '#a8743f');
+    const metal = pen.tone(it.metal ?? '#3f4b5a');
+    const bar = Math.max(1.4, s * 0.05);
+    ctx.translate(x, y);
+    ctx.scale(it.face ?? 1, 1);
+    if (it.broken) {
+      // The snapped leg, lying on the floor in front.
+      ctx.save();
+      ctx.translate(s * 0.12, s * 0.05);
+      ctx.rotate(-0.2);
+      ctx.fillStyle = metal;
+      ctx.fillRect(0, -bar / 2, s * 0.42, bar);
+      ctx.restore();
+      ctx.translate(-s * 0.3, 0);
+      ctx.rotate(0.09);
+      ctx.translate(s * 0.3, 0);
+    }
+    // The back legs stand a little further off, so their feet are a little higher; they run
+    // up into the posts of the back rest.
+    ctx.fillStyle = pen.tone(it.metal ?? '#3f4b5a', 0.25);
+    for (const side of [-1, 1]) ctx.fillRect(side * s * 0.26 - bar / 2, -s, bar, s * 0.96);
+    ctx.fillStyle = wood;
+    ctx.fillRect(-s * 0.31, -s, s * 0.62, s * 0.2);
+    // The seat, then the front legs: the right one only a stub when broken.
+    ctx.fillRect(-s * 0.34, -s * 0.52, s * 0.68, s * 0.07);
+    ctx.fillStyle = metal;
+    ctx.fillRect(-s * 0.31 - bar / 2, -s * 0.46, bar, s * 0.46);
+    ctx.fillRect(s * 0.31 - bar / 2, -s * 0.46, bar, it.broken ? s * 0.1 : s * 0.46);
+    if (it.rim) {
+      ctx.fillStyle = pen.tone(it.rim, 0, 0.6);
+      ctx.fillRect(-s * 0.34, -s * 0.52, s * 0.68, Math.max(1, s * 0.015));
+      ctx.fillRect(-s * 0.31, -s, s * 0.62, Math.max(1, s * 0.015));
+    }
+  },
+
   // A desk seen from behind the person at it, so the open laptop's lit screen faces us.
   // `y` is the floor, `w` the desk width, `top` the desk height. Next to a person of
   // height H a desk is about 0.43 H tall and a laptop about a quarter of the desk wide.
+  // `screen: null` is a desk with no laptop (a school desk); `rim` lights its top edge.
   desk(ctx, it, pen) {
     const x = pen.X(it.x);
     const floor = pen.Y(it.y);
     const w = pen.S(it.w ?? 0.4);
     const top = floor - pen.S(it.top ?? 0.26);
-    const screen = it.screen ?? '#9fc4ff';
+    const screen = it.screen === null ? null : it.screen ?? '#9fc4ff';
     const lw = w * 0.28;
     const lh = lw * 0.64;
     const lx = x + w * (it.laptop ?? 0.12);
-    ctx.globalCompositeOperation = 'screen';
-    glow(ctx, lx, top - lh * 0.5, w * 0.9, pen.tone(screen, 0, 0.3), pen.tone(screen, 0, 0));
-    ctx.globalCompositeOperation = 'source-over';
+    if (screen) {
+      ctx.globalCompositeOperation = 'screen';
+      glow(ctx, lx, top - lh * 0.5, w * 0.9, pen.tone(screen, 0, 0.3), pen.tone(screen, 0, 0));
+      ctx.globalCompositeOperation = 'source-over';
+    }
     const wood = pen.tone(it.color ?? '#0c0f18');
     ctx.fillStyle = wood;
     ctx.fillRect(x - w / 2, top, w, Math.max(3, w * 0.035));
     ctx.fillRect(x - w * 0.46, top, w * 0.035, floor - top);
     ctx.fillRect(x + w * 0.425, top, w * 0.035, floor - top);
+    if (it.rim) {
+      ctx.fillStyle = pen.tone(it.rim, 0, 0.7);
+      ctx.fillRect(x - w / 2, top, w, Math.max(1, w * 0.008));
+    }
+    if (!screen) return;
+    ctx.fillStyle = wood;
     ctx.fillRect(lx - lw / 2, top - lh, lw, lh);
     ctx.fillStyle = pen.tone(screen, 0, 0.95);
     ctx.fillRect(lx - lw / 2 + lw * 0.05, top - lh + lh * 0.07, lw * 0.9, lh * 0.82);

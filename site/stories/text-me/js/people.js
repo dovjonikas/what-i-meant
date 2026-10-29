@@ -15,18 +15,20 @@ const mixHex = (a, b, t) => '#' + mix(a, b, t).map((v) => Math.round(v).toString
 import { drawDog } from './pets.js';
 
 // One look per person. `mark` is their colour in the life lines (their top, unless noted).
-// `old` replaces parts of the look once they are old.
+// `old` replaces parts of the look once they are old. Red is Mom's alone (the dog's collar
+// is teal for that reason), and Dad's green is dark enough to stay apart from her red for
+// players who cannot tell red from green.
 export const LOOKS = {
   me: { top: '#e8913a', legs: '#2e3a55', hair: '#a8824c', skin: '#efc3a2', old: { hair: '#d4cec4' } },
   mom: { top: '#c9473f', legs: '#3b3346', hair: '#7a4a2c', hairStyle: 'long', skin: '#f0c4a2', coat: true, old: { hair: '#cfc8bf', hairStyle: 'bun' } },
-  dad: { top: '#4e6a48', legs: '#3a3833', hair: '#2a2420', skin: '#d6a07e', broad: true, old: { hair: '#cdc8c0' } },
+  dad: { top: '#2f5a4e', legs: '#3a3833', hair: '#2a2420', skin: '#d6a07e', broad: true, old: { hair: '#cdc8c0' } },
   grandma: { top: '#7b5b8e', legs: '#5a4a5a', scarf: '#e0a83e', skin: '#efcaae', coat: true, mark: '#e0a83e' },
   grandpa: { top: '#8b6a4b', legs: '#4a4038', hair: '#dcd8d0', cap: '#5a4b3c', skin: '#e2b08e' },
   friend: { top: '#f2c94c', legs: '#2c4a6b', hair: '#c79a55', skin: '#f2c8a6' },
   partner: { top: '#5b8fd0', legs: '#2f3340', hair: '#1f1a18', hairStyle: 'long', skin: '#c98d68' },
-  kid: { top: '#f0a347', legs: '#3e5a7a', hair: '#c9a46a', skin: '#f0c4a2' },
+  kid: { top: '#f7b84a', legs: '#3e5a7a', hair: '#c9a46a', skin: '#f0c4a2' },
   goose: { mark: '#b9c6d8' },
-  dog: { coat: '#b9773f', light: '#f1dcbc', mark: '#c98a4b', collar: '#c8333a' },
+  dog: { coat: '#b9773f', light: '#f1dcbc', mark: '#c98a4b', collar: '#2f8fa3' },
   // People who pass through: friends at the fire, strangers.
   a: { top: '#3f8f8a', legs: '#2c2c36', hair: '#1e1a18', skin: '#c48a64' },
   b: { top: '#d6d0c4', legs: '#3a4256', hair: '#8a5a32', hairStyle: 'long', skin: '#f0c8a8' },

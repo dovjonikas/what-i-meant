@@ -23,6 +23,11 @@
 // when the flag has that value (or, for a list such as `picks`, contains it). The choices
 // come back later this way: what you told Mom at sixteen, who you kept close, the weekend,
 // whether you wrote to your best friend, and your last reply.
+//
+// The thread through it: it opens on somebody's phone one night long ago, typing dots that
+// stop and a question typed and deleted, with no names. At nineteen, in the city, you type
+// "home" to Mom at that same minute and delete it. At the end the night comes back from her
+// side, and you answer her.
 
 // Everyone who appears in the life lines. x is where they stand, 0 to 1 across the column.
 export const CAST = {
@@ -37,12 +42,30 @@ export const CAST = {
 const SENT = 'Text me when you get home.';
 
 // Back to now, between the parts of the life: the porch, and the phone's lock screen with
-// the time and the text you sent, still only Delivered.
-const frame = (time, line) => [{ now: { time, sent: SENT, status: 'Delivered', say: line } }];
+// the time and the text you sent at 21:12, still only Delivered, and how long ago.
+const frame = (time, line) => {
+  const [h, m] = time.split(':').map(Number);
+  const ago = h * 60 + m - (21 * 60 + 12);
+  return [{ now: { time, sent: SENT, status: `Delivered · ${ago} minutes ago`, say: line } }];
+};
 
 export const SCRIPT = [
+  // Cold open: somebody's phone, one night long ago. Whose phone, and who was typing,
+  // only comes clear at the very end.
+  { scene: 'kitchenWait', instant: true },
+  { wait: 1200 },
+  { phone: { with: '', time: '', steps: [
+    { stamp: 'Thu 01:06' },
+    { wait: 2600, typing: true },
+    { wait: 1600 },
+    { type: 'are you home?', unsendable: true },
+    { wait: 1300 },
+    { erase: true },
+    { wait: 900 },
+  ] } },
+
   // The frame: the end of the story, shown first.
-  { scene: 'porch', music: 'frame', instant: true },
+  { scene: 'porch', music: 'frame' },
   { wait: 1600 },
   { say: 'Drive safe.', by: 'you' },
   { say: 'The red lights go down the hill and around the bend.' },
@@ -64,7 +87,7 @@ export const SCRIPT = [
   { say: 'Your first word is no.' },
   { say: 'Dad says you get that from Mom.' },
   { say: "Mom doesn't say anything. Which is also a no." },
-  { lines: { scene: 'linesMorning', to: 5.2, events: [
+  { lines: { scene: 'linesMorning', to: 5.6, events: [
     { at: 5, join: 'dog', label: 'dog', x: 0.58, from: 'fade' },
   ] } },
   { scene: 'puppy', push: 1.04, save: true },
@@ -75,17 +98,19 @@ export const SCRIPT = [
   { lines: { scene: 'linesMorning', to: 6, events: [] } },
   { scene: 'garden', push: 1.04, save: true },
   { say: "Grandma's house smells of dill and floor polish." },
+  { say: 'Grandpa peels you an apple in one long curl. He has never broken one.' },
   { scene: 'jarHands', ms: 900 },
   { say: 'Every time you leave, she gives you a jar of jam.' },
   { say: 'And every time she says the same thing.' },
   { say: 'Come visit more.', by: 'grandma' },
   { say: "You're six. You say okay." },
   { lines: { scene: 'linesMorning', to: 7.4, events: [
-    { at: 7, join: 'friend', label: 'best friend', x: 0.68, from: 'right', say: 'First day of school.' },
-    { at: 7.1, move: 'dad', x: 0.8 },
-    { at: 7.2, say: 'The other chair at your desk is broken, so somebody sits next to you.' },
-    { at: 7.3, say: "By lunch you're best friends." },
+    { at: 6.1, move: 'dad', x: 0.8 },
+    { at: 7, join: 'friend', label: 'best friend', x: 0.66, from: 'right', say: 'First day of school.' },
   ] } },
+  { scene: 'school', push: 1.04 },
+  { say: 'Their chair is broken, so the new kid sits at your desk.' },
+  { say: "By lunch you're best friends." },
   { scene: 'bike', music: 'morning', save: true },
   { say: 'The road smells of hot dust and cut grass.' },
   { say: "I've got you. I've got you.", by: 'dad' },
@@ -93,11 +118,13 @@ export const SCRIPT = [
   { say: "He doesn't have you. He hasn't for a while." },
   { say: 'You ride straight into a bush.' },
   { say: "You're fine. The bush isn't." },
-  ...frame('21:19', 'Seven minutes.'),
+  ...frame('21:19'),
 
   // Noon: 9 to 17.
   { chapter: 'Noon', save: true },
-  { lines: { scene: 'linesNoon', music: 'noon', to: 11, events: [] } },
+  { lines: { scene: 'linesNoon', music: 'noon', to: 11, events: [
+    { at: 10, say: "You're too old to have your apples peeled. You let him anyway." },
+  ] } },
   { scene: 'lake', push: 1.04, save: true },
   { say: 'Summers smell of sunscreen and lake water.' },
   { say: 'The two of you jump off that pier a thousand times.' },
@@ -118,8 +145,10 @@ export const SCRIPT = [
   { say: "Every day after school he's at the gate before you come round the corner." },
   { say: "Nobody tells him what time you'll be home. He just knows." },
   { lines: { scene: 'linesNoon', to: 14, events: [
+    { at: 11.8, say: 'The curl breaks halfway. He laughs, and then he looks at it for a while.' },
     { at: 12, end: 'grandpa', say: 'Grandpa is the first one.' },
     { at: 12.2, say: "You don't really get it yet. You get it later, a bit at a time." },
+    { at: 13.4, say: 'Grandma peels the apples now. Hers always break.' },
   ] } },
   { lines: { scene: 'linesNoon', to: 15.5, events: [
     { at: 14.3, leave: 'friend', side: 'left', slow: true },
@@ -156,7 +185,6 @@ export const SCRIPT = [
     { at: 16.52, say: "He wasn't scared. I was holding him.", by: 'dad' },
   ] } },
   { scene: 'gateEmpty', music: 'grief' },
-  { say: "The next day nobody's at the gate." },
   { say: 'You stand there a bit anyway.' },
   { lines: { scene: 'linesNoon', music: 'noon', to: 17.2, events: [
     { at: 17, say: "Somewhere in there the best friend isn't next to you anymore." },
@@ -178,19 +206,23 @@ export const SCRIPT = [
   { say: 'Dad puts the bag on the bus, takes it off, and puts it on again.' },
   { say: 'Text me when you get there.', by: 'mom' },
   { lines: { scene: 'linesDusk', to: 19, events: [
-    { at: 18, move: 'mom', x: 0.2 },
-    { at: 18, move: 'dad', x: 0.82 },
+    { at: 17.3, move: 'mom', x: 0.2 },
+    { at: 17.3, move: 'dad', x: 0.82 },
     { at: 18.4, say: "From here on, you're the one who visits." },
   ] } },
   { scene: 'cityNight', music: 'lonely', save: true },
   { say: 'The city smells of rain and bus brakes. Nobody in it knows your name.' },
   { say: 'At first that is the best part.' },
   { hold: { hint: 'hold to walk home', ms: 4200 } },
-  { phone: { with: null, time: 'Thu 01:06', steps: [{ type: 'home', unsendable: true, byHand: true }, { wait: 1200 }, { erase: true }] } },
+  // Mom's chat: the last time anybody asked was the day you left. You type "home" anyway,
+  // and take it back.
+  { phone: { with: 'mom', time: '', history: [
+    { stamp: 'Sep 1' }, { them: 'Text me when you get there.\nMom' }, { me: 'here' },
+  ], steps: [{ stamp: 'Thu 01:06' }, { type: 'home', unsendable: true, byHand: true }, { wait: 1400 }, { erase: true }] } },
   { say: 'You get home and stand in the dark for a bit.' },
   { say: 'Nobody needs to know you got home.' },
   { say: 'Nobody is lying awake about it.' },
-  ...frame('21:31', 'Nineteen minutes. Nothing yet.'),
+  ...frame('21:31', 'Nothing yet.'),
   { scene: 'room', music: 'goose', save: true },
   { say: 'You meet goose on a forum about a game neither of you is any good at.' },
   { phone: { with: 'goose', time: 'Tue 02:41', steps: [
@@ -229,13 +261,14 @@ export const SCRIPT = [
   { lines: { scene: 'linesSunrise', to: 26, events: [
     { at: 25, say: 'You start to sound like the people you spend your time with.' },
     { at: 25.1, say: 'So you get to choose a bit.' },
-    { at: 25.2, pick: { max: 3, hint: 'tap who you want close', options: [
-      { id: 'asks', label: 'asks how you are' },
-      { id: 'late', label: 'always late, always comes' },
-      { id: 'user', label: 'only calls when they need something' },
-      { id: 'funny', label: 'makes you laugh' },
-      { id: 'small', label: 'makes you feel small' },
-      { id: 'truth', label: 'tells you the truth' },
+    // Each tap brings that person into your lines at once, so the choice is seen.
+    { at: 25.2, pick: { max: 3, hint: 'Who do you keep close? Tap three.', options: [
+      { id: 'asks', name: 'checks in', label: 'the one who asks how you are' },
+      { id: 'late', name: 'always late', label: 'the one who is always late, and always comes' },
+      { id: 'user', name: 'needs favours', label: 'the one who only calls when they need something' },
+      { id: 'funny', name: 'funny one', label: 'the one who makes you laugh' },
+      { id: 'small', name: 'critic', label: 'the one who makes you feel small' },
+      { id: 'truth', name: 'honest one', label: 'the one who tells you the truth' },
     ] } },
   ] } },
   { say: "Same weekend: Grandma asks if you're coming, and the lake trip you've all planned since spring.", save: true },
@@ -249,21 +282,49 @@ export const SCRIPT = [
   { say: 'You stay up until the fire goes out.', if: { weekend: 'lake' } },
   { say: "Grandma says on the phone it's fine. She says come next time.", if: { weekend: 'lake' } },
   { lines: { scene: 'linesSunrise', music: 'dawn', to: 28.6, events: [
+    { at: 26.4, move: 'mom', x: 0.12 },
     { at: 28, join: 'partner', label: 'partner', x: 0.38, from: 'left', say: 'Then somebody sits down next to you and stays.' },
-    { at: 28.1, move: 'mom', x: 0.12 },
     { at: 28.3, say: 'No broken chair this time.' },
   ] } },
   { scene: 'bench', push: 1.04 },
   { say: "You're bad at saying how you feel." },
   { say: "They're patient about it." },
+  { phone: { with: 'partner', time: 'Fri 23:40', steps: [
+    { them: 'text me when you get home' },
+    { pick: ['home'], byHand: true },
+    { them: 'good' },
+    { them: 'night x' },
+  ] } },
+  { say: 'Somebody asks again.' },
+  // Grandma has learned to text: capitals, a few words at a time.
+  { phone: { with: 'grandma', time: 'Sat 10:15', steps: [
+    { them: 'JAM READY' },
+    { them: 'COME VISIT MORE' },
+    { pick: ['next weekend. promise'] },
+    { them: 'OK' },
+  ] } },
+  // Grandma: told by Mom's text, not by a line.
   { lines: { scene: 'linesSunrise', to: 30, events: [
-    { at: 29.5, end: 'grandma', say: 'Grandma dies in January.' },
+    { at: 29.5, end: 'grandma', music: 'silence', phone: { with: 'mom', time: 'Mon 07:12', steps: [
+      { them: 'Are you up?\nMom' },
+      { wait: 1600, typing: true },
+      { them: "Call me when you can. It's Grandma.\nMom" },
+    ] } },
   ] } },
   { scene: 'snow', music: 'grief', save: true },
-  { say: "You'd meant to go at Easter.", if: { weekend: 'lake' } },
-  { say: 'You still think about the lake sometimes.', if: { weekend: 'grandma' } },
+  { say: "Next weekend, you'd said.", if: { weekend: 'lake' } },
+  { say: 'You think about that weekend. The two jars.', if: { weekend: 'grandma' } },
   { say: "There's one jar of her jam left in your fridge." },
   { say: "You don't open it for a long time." },
+  { phone: { with: 'partner', time: 'Sat 06:58', steps: [
+    { them: 'are you up' },
+    { them: 'come to the bathroom' },
+    { them: 'no wait. sit down first' },
+    { wait: 1800, typing: true },
+    { them: 'two lines. i did it three times' },
+    { pick: ['WHAT'] },
+  ] } },
+  { say: "You're in the kitchen. They're in the bathroom. You've been texting through one wall." },
   { lines: { scene: 'linesSunrise', music: 'dawn', to: 31.6, events: [
     { at: 31, join: 'kid', label: 'kid', x: 0.44, from: 'birth' },
   ] } },
@@ -277,7 +338,7 @@ export const SCRIPT = [
     { wait: 2200, typing: true },
     { them: 'proud of you.' },
   ] } },
-  ...frame('21:44', 'Thirty-two minutes.'),
+  ...frame('21:44'),
 
   // Afternoon: 34 to 66.
   { chapter: 'Afternoon', save: true },
@@ -285,6 +346,12 @@ export const SCRIPT = [
   { say: 'Is the moon following us?', by: 'kid' },
   { say: 'You say yes.' },
   { say: 'Your kid waves at it the whole way home.' },
+  { phone: { with: 'dad', time: 'Sun 21:40', steps: [
+    { pick: ['home'], byHand: true },
+    { wait: 1300, typing: true },
+    { them: 'ok.' },
+  ] } },
+  { say: 'Every time. ok. With the full stop.' },
   { lines: { scene: 'linesAfternoon', to: 44, events: [
     { at: 38, move: 'kid', x: 0.46 },
     { at: 41, move: 'mom', x: 0.2 },
@@ -304,7 +371,7 @@ export const SCRIPT = [
   ] } },
   { say: "You'll write tomorrow.", if: { reconnect: 'Delete' } },
   { if: { reconnect: 'Send' }, lines: { scene: 'linesAfternoon', to: 45, events: [
-    { at: 44.2, back: 'friend', x: 0.6, say: 'The door was open the whole time.' },
+    { at: 44.2, back: 'friend', x: 0.86, say: 'The door was open the whole time.' },
   ] } },
   { scene: 'pierAutumn', push: 1.04, if: { reconnect: 'Send' } },
   { say: 'Same pier. Neither of you jumps.', if: { reconnect: 'Send' } },
@@ -317,42 +384,74 @@ export const SCRIPT = [
     { pick: ["Mom that's your thumb"] },
     { them: 'I know\nMom' },
   ] } },
+  // Your kid at sixteen. Now you are the one who asks, and the one who waits up, at the
+  // same lit window as the very first scene.
+  { scene: 'kitchenWait', music: 'frame' },
+  { phone: { with: 'kid', time: 'Fri 22:30', steps: [{ draft: SENT }, { status: 'Read' }, { wait: 2600 }] } },
+  { say: 'Read. Nothing else.' },
+  { scene: 'kitchenNightKid', push: 1.05 },
+  { say: 'At two the front door goes.' },
+  { say: "You were going to pretend you weren't waiting." },
+  { say: 'They sit down across from you and tell you everything. The party, the car, the person.' },
+  { say: "You don't shout. You put the kettle on." },
+  { say: 'After that they tell you things. For years.' },
   { scene: 'dadGarden', music: 'afternoon', push: 1.04 },
   { say: 'Dad calls to ask how to turn off the capital letters.' },
   { say: 'HE IS VERY UPSET ABOUT IT.' },
   { say: 'You show him. He holds the phone like you used to hold the handlebars.' },
   { say: "You let go. He doesn't notice." },
   { say: "I've got it. I've got it.", by: 'dad' },
+  { phone: { with: 'dad', time: 'Sun 20:55', steps: [
+    { pick: ['home'], byHand: true },
+    { wait: 1300, typing: true },
+    { them: 'OK.' },
+    { wait: 1200, typing: true },
+    { them: 'ITS BIG AGAIN' },
+  ] } },
+  { say: "You don't fix it. It suits him." },
   { scene: 'momTaxi', push: 1.04 },
   { say: 'Mom comes for the weekend. She brings jam.' },
   { say: 'Text me when you get home.', by: 'you' },
   { phone: { with: 'mom', time: 'Sun 19:40', steps: [{ wait: 1600 }, { them: 'Home.\nMom' }] } },
   { say: "She texts before you've even shut the door." },
-  { lines: { scene: 'linesAfternoon', to: 66, save: true, events: [
+  { lines: { scene: 'linesAfternoon', to: 58, save: true, events: [
     { at: 52, move: 'kid', x: 0.6 },
-    // Dad's chat: years of your "home" and his "ok.", "proud of you." among them, and a
-    // last "home" that nobody answers.
-    { at: 58, end: 'dad', music: 'silence', phone: { with: 'dad', time: '', history: [
+    // Dad's chat: years of your "home" and his "ok.", and this time your "home", sent by
+    // your own tap like every time, with nothing after it.
+    { at: 58, music: 'silence', phone: { with: 'dad', time: '', history: [
       { stamp: 'Fri 22:40' }, { me: 'home' }, { them: 'ok.' },
-      { stamp: 'Sun 19:15' }, { me: 'home' }, { them: 'ok.' },
       { stamp: 'Wed 04:12' }, { photo: 'baby', from: 'me' }, { them: 'ok.' }, { them: 'proud of you.' },
-      { stamp: 'Tue 21:03' }, { me: 'home' }, { them: 'ok.' },
-      { stamp: 'Mon 18:02' }, { me: 'home' },
-    ], steps: [{ status: 'Delivered' }, { wait: 3600 }] } },
+      { stamp: 'Sun 21:40' }, { me: 'home' }, { them: 'ok.' },
+      { stamp: 'Sun 20:55' }, { me: 'home' }, { them: 'OK.' }, { them: 'ITS BIG AGAIN' },
+    ], steps: [{ stamp: 'Mon 18:02' }, { pick: ['home'], byHand: true }, { status: 'Delivered' }, { wait: 4600 }] } },
+  ] } },
+  // After Dad the colour goes out of the world: slate and rain.
+  { lines: { scene: 'linesSlate', to: 65.9, events: [
+    { at: 58.05, end: 'dad', say: 'Mom calls in the morning.' },
     { at: 58.3, music: 'afternoon' },
+    // The habit goes on with nobody at the other end.
+    { at: 59.5, phone: { with: 'dad', time: '', history: [{ stamp: 'Mon 18:02' }, { me: 'home' }], steps: [
+      { stamp: 'Sun 19:30' }, { type: 'home', byHand: true, unsendable: true }, { wait: 1500 }, { erase: true },
+    ] } },
+    { at: 59.55, say: 'Your thumb still does it after every visit.' },
     { at: 61, cross: ['a nurse', 'the bus driver', 'someone on the worst day of their life', 'a kid who sat alone'] },
     { at: 61.4, say: 'Most lines cross yours once and keep going.' },
     { at: 61.5, say: 'You never know what kind of day it is in theirs.' },
+  ] } },
+  // Mom, and the deepest drain.
+  { lines: { scene: 'linesDrain', to: 66.2, events: [
     // Mom's last text, shown and not told: about the weather, signed as always.
     { at: 66, end: 'mom', music: 'silence', phone: { with: 'mom', time: '', history: [
       { stamp: 'Thu 08:31' }, { them: 'Rain tomorrow. Take a jacket.\nMom' },
     ], steps: [{ wait: 3400 }] } },
   ] } },
-  ...frame('21:52', 'Forty minutes.'),
+  ...frame('21:52'),
 
   // Late: 66 to 78, and back to the frame.
   { chapter: 'Late', save: true },
   { lines: { scene: 'linesEnd', music: 'end', to: 78, events: [
+    { at: 67, say: 'It rains the next Tuesday.' },
+    { at: 67.1, say: 'You take a jacket.' },
     { at: 70, move: 'kid', x: 0.66 },
     { at: 71, say: 'The people you kept close get old with you.' },
     { at: 71.1, say: 'The one who makes you laugh still calls on Sundays.', if: { picks: 'funny' } },
@@ -372,14 +471,13 @@ export const SCRIPT = [
   { scene: 'porchLate', music: 'frame', push: 1.05, save: true },
   { say: "You put the kettle on. You don't want tea." },
   { say: 'You check the phone. You check it again.' },
-  // The last wait: Delivered, then Read and the longest silence (where Mom's "Read" comes
-  // back), then typing that stops once and starts again, then home. No tap hurries it.
-  { phone: { with: '', time: 'Sun 21:12', history: [{ me: SENT }], final: true, steps: [
+  // The last wait: Delivered, then Read and the longest silence, then typing that stops
+  // once and starts again, then home. No tap hurries it.
+  { phone: { with: 'kid', time: 'Sun 21:12', history: [{ me: SENT }], steps: [
     { status: 'Delivered' },
     { wait: 2600 },
     { status: 'Read' },
-    { note: 'Once you left your mom on read. She waited up anyway.', if: { teen: 'leave it on read' } },
-    { note: 'Every Friday the same text from your mom. She waited up anyway.', if: { teen: 'ok' } },
+    { wait: 3200 },
     { wait: 2200, typing: true },
     { wait: 1500 },
     { wait: 1800, typing: true },
@@ -389,8 +487,36 @@ export const SCRIPT = [
     { them: 'you sound like grandpa', if: { last: 'ok' } },
     { them: 'love you. go to sleep', if: { last: 'ok. love you too' } },
   ] } },
+  // The night from the very start, from the other side: Mom's phone, Thursday 01:06, the
+  // night you typed home in the city and deleted it. She saw you typing.
+  { scene: 'kitchenWaitMom', ms: 2200 },
+  { wait: 2000 },
+  // Her side keeps the bonfire night too: your ok, or nothing under her text.
+  { phone: { with: 'kid', time: '', history: [
+    { stamp: 'Fri 23:47' }, { me: 'Text me when you get home.\nMom' }, { them: 'ok', if: { teen: 'ok' } },
+    { stamp: 'Sep 1' }, { me: 'Text me when you get there.\nMom' }, { them: 'here' },
+  ], steps: [
+    { stamp: 'Thu 01:06' },
+    { wait: 2600, typing: true },
+    { wait: 1600 },
+    { type: 'are you home?', unsendable: true },
+    { wait: 1300 },
+    { erase: true },
+    { wait: 900 },
+  ] } },
+  { say: 'She was lying awake about it.' },
+  // And you answer her, by hand, on the phone with her last text in it.
+  { scene: 'porchLate', ms: 2200 },
+  { phone: { with: 'mom', time: '', history: [{ stamp: 'Thu 08:31' }, { them: 'Rain tomorrow. Take a jacket.\nMom' }], steps: [
+    { stamp: 'Today 22:14' },
+    { pick: ['home'], byHand: true },
+    { status: 'Delivered' },
+    { wait: 2800 },
+  ] } },
   { say: 'You turn off the kitchen light.' },
   { scene: 'porchDark', ms: 2600 },
   { say: 'You sleep fine.' },
+  { scene: 'porchDawn', ms: 3200 },
+  { wait: 2600 },
   { end: true },
 ];
