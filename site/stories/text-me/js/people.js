@@ -129,7 +129,7 @@ function standing(ctx, k, it, pose) {
   const breathe = Math.sin(t * rate + seed) * h * 0.004;
   // Standing still, people shift their weight a little; walking, they bob with each step.
   const sway = moving ? 0 : Math.sin(t * (sad ? 0.4 : 0.55) + seed) * h * (sad ? 0.011 : 0.008);
-  const bob = moving ? -Math.abs(Math.sin(step)) * h * 0.02 : 0;
+  const bob = moving ? -Math.abs(Math.sin(step)) * h * (sad ? 0.009 : 0.02) : 0;
   // Legs: back one first, in the shadow colour. A walking leg swings and lifts its foot.
   let legs;
   if (moving) {

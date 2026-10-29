@@ -230,7 +230,7 @@ export class Lines {
     const dt = this.last ? Math.min(0.05, (now - this.last) / 1000) : 0;
     this.last = now;
     this.ease(now, dt);
-    if (this.visible && (this.auto || this.holding) && !this.paused) {
+    if (this.visible && (this.auto || this.holding) && !this.paused && !this.reading) {
       const target = this.waiters.length ? Math.min(...this.waiters.map((w) => w.age)) : Infinity;
       const step = Math.min(dt * RATE * (this.holding ? FAST : 1) * this.pace(now), target - this.age);
       if (step > 0) this.advance(step);

@@ -78,10 +78,12 @@ export class Phone {
     if (s.them !== undefined) {
       await this.typing(s.typing ?? Math.min(2000, 600 + s.them.length * 40));
       this.bubble('them', s.them);
+      this.onMessage?.(this.name(), s.them.split('\n').join(' '));
       ctx.sfx?.pop();
     } else if (s.photo) {
       if (s.from === 'them') await this.typing(700);
       this.place(s);
+      this.onMessage?.(s.from === 'me' ? 'you' : this.name(), '(a photo)');
       ctx.sfx?.[s.from === 'me' ? 'whoosh' : 'pop']();
     } else if (s.stamp) {
       this.stamp(s.stamp);
@@ -235,8 +237,14 @@ export class Phone {
     this.el.classList.remove('is-unsendable');
   }
 
+  /** Who the chat is with, as its header shows it. */
+  name() {
+    return this.el.querySelector('.phone-name').textContent || 'a message';
+  }
+
   async sendNow() {
     const text = this.text.textContent;
+    this.onMessage?.('you', text);
     this.text.textContent = '';
     this.send.disabled = true;
     this.bubble('me', text);

@@ -8,6 +8,7 @@ import { Captions } from './captions.js';
 import { Phone } from './phone.js';
 import { Ui } from './ui.js';
 import { Player } from './player.js';
+import { History } from './history.js';
 import { createScore } from './score.js';
 import { createSfx } from './sfx.js';
 import { registerWorker } from '../../../js/install.js';
@@ -21,6 +22,12 @@ const captions = new Captions(column);
 const phone = new Phone(column);
 const ui = new Ui(column, document.querySelector('.card'));
 const soundButton = document.querySelector('.sound');
+// Everything said and sent so far, to read again; the years wait while it is open.
+const history = new History(document.querySelector('.history-open'), column, (open) => {
+  lines.reading = open;
+});
+captions.onLine = (by, text) => history.add(by ?? '', text);
+phone.onMessage = (who, text) => history.add(who, text);
 
 registerWorker('../../');
 

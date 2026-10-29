@@ -459,7 +459,6 @@ export const SCRIPT = [
   { lines: { scene: 'linesSlate', to: 60, events: [
     { at: 58.05, end: 'dad', say: 'Mom calls in the morning.' },
     { at: 58.1, say: 'The one who shows up is at your door by noon, with soup.', if: { picks: 'soup' } },
-    { at: 58.3, music: 'afternoon' },
     // The habit goes on with nobody at the other end.
     { at: 59.5, phone: { with: 'dad', time: '', history: [{ stamp: 'Mon 18:02' }, { me: 'home' }], steps: [
       { stamp: 'Sun 19:30' }, { type: 'home', byHand: true, unsendable: true }, { wait: 1500 }, { erase: true },
@@ -565,7 +564,7 @@ export const SCRIPT = [
     { stamp: 'Today 22:14' },
     { pick: ['home'], byHand: true, music: 'remember' },
     { status: 'Delivered' },
-    { wait: 2800 },
+    { wait: 7500 },
   ] } },
   { say: 'You turn off the kitchen light.', sfx: 'lightSwitch' },
   { scene: 'porchDark', ms: 2600 },

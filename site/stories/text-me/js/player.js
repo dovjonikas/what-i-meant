@@ -23,7 +23,7 @@ export class Player {
   // went down after it was asked for, so lifting a finger held for the years does not
   // also skip the line that just appeared.
   listen() {
-    const ignore = (e) => e.target.closest?.('button, a, .chip, .phone-send');
+    const ignore = (e) => e.target.closest?.('button, a, .chip, .phone-send, .history');
     addEventListener('pointerdown', (e) => {
       if (ignore(e)) return;
       this.downAt = performance.now();

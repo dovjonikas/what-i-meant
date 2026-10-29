@@ -17,6 +17,7 @@ export class Captions {
 
   /** Shows `text` and resolves after the player taps to go on. `tap` gives the next tap. */
   async say(text, by, tap) {
+    this.onLine?.(by, text);
     const line = document.createElement('div');
     line.className = by ? 'line is-said' : 'line';
     if (by) {

@@ -447,7 +447,7 @@ export const SCENES = {
     layers: [
       { kind: 'kitchen', rect: [0.1, 0.18, 0.9, 0.66], lamp: [0.68, 0.34], clock: [0.24, 0.29], time: [1, 6], cupboards: [0.54, 0.9], g: 0 },
       { kind: 'people', list: [
-        { who: 'mom', x: 0.34, y: 0.76, h: 0.62, pose: 'phone', look: { coat: false }, light: 0.8, rim: '#d6e6ff', rimSide: 1 },
+        { who: 'mom', mood: 'sad', x: 0.34, y: 0.76, h: 0.62, pose: 'phone', look: { coat: false }, light: 0.8, rim: '#d6e6ff', rimSide: 1 },
       ], g: 0 },
       { kind: 'room', window: [0.12, 0.2, 0.88, 0.64], color: '#0d1324', frame: '#1c2540', g: 1, bleed: true },
       { kind: 'band', y: 0, y2: 0.06, color: '#060912', g: 1, bleed: true },
