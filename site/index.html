@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>What I Meant</title>
+    <meta name="description" content="Interactive stories.">
+    <meta name="theme-color" content="#121a2c">
+
+    <!-- Link previews (messages, social apps). -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="What I Meant">
+    <meta property="og:description" content="Interactive stories.">
+    <meta property="og:url" content="https://dovjonikas.github.io/what-i-meant/">
+    <meta property="og:image" content="https://dovjonikas.github.io/what-i-meant/assets/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+    <link rel="apple-touch-icon" href="assets/icon-180.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Recursive:slnt,wght,CASL,CRSV,MONO@-15..0,300..1000,0..1,0..1,0..1&display=swap">
+    <link rel="stylesheet" href="css/menu.css">
+    <script type="module" src="js/main.js"></script>
+  </head>
+  <body class="is-gate">
+    <div class="lamp" aria-hidden="true"></div>
+
+    <!-- Header, cards and dots stay inert until the start tap; js/main.js lifts it. -->
+    <header class="bar" inert>
+      <p class="kicker">Interactive stories</p>
+      <button class="sound" type="button" aria-pressed="true" aria-label="Sound">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z" />
+          <path class="waves" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11" />
+          <path class="cross" d="M16 9.5l5 5M21 9.5l-5 5" />
+        </svg>
+      </button>
+    </header>
+
+    <main class="menu">
+      <div class="title-wrap">
+        <h1 class="title">What I Meant</h1>
+      </div>
+      <!-- Filled from js/stories.js by js/shelf.js. -->
+      <ul class="shelf" aria-label="Stories" inert></ul>
+      <nav class="dots" aria-label="Stories" inert></nav>
+    </main>
+
+    <button class="gate" type="button">
+      <span class="gate-hint">tap to start</span>
+    </button>
+
+    <noscript><p class="noscript">This page needs JavaScript.</p></noscript>
+  </body>
+</html>
