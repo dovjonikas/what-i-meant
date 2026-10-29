@@ -24,10 +24,14 @@ browsers do not load ES modules from `file://` pages.
 | `js/covers.js` | Placeholder cover art drawn in code, and the film grain |
 | `js/title.js` | The title letters and how they change form |
 | `js/music.js` | The menu music, generated live with the Web Audio API |
-| `assets/` | Icons and the link preview image (`og.png`) |
+| `js/install.js` | The offer to add the site to the home screen, and starting `sw.js` |
+| `sw.js` | Service worker: always fetches the newest files, keeps a copy for offline |
+| `manifest.webmanifest` | Name, colours and icons for the home screen |
+| `assets/` | Icons (home screen ones too) and the link preview image (`og.png`) |
+| `stories/` | One folder per story, each with its own README |
 
-Stories will live in `stories/<id>/`, one folder each, linked from the menu once their
-entry in `js/stories.js` is set to `out`.
+Stories live in `stories/<id>/`, one folder each, linked from the menu once their entry
+in `js/stories.js` is set to `out`. The first is `stories/text-me/`.
 
 ## Notes
 
@@ -36,6 +40,11 @@ entry in `js/stories.js` is set to `out`.
 - Sound only starts after a tap or click; browsers block it before that. On iPhone the
   page asks for media playback (`navigator.audioSession`) so the silent switch does not
   mute the music.
-- The sound switch is remembered in `localStorage` under `wim.sound`.
+- The sound switch is remembered in `localStorage` under `wim.sound`; the stories share it.
+- Home screen: Chrome, Edge and Android get a one-tap Add button; iPhone and iPad Safari
+  cannot install a page from code, so they get a note pointing at Share, then Add to Home
+  Screen. Turning the offer down hides it for 14 days (`wim.install.later`).
+- Updates: `sw.js` asks the network first for every file, so a home screen copy shows a
+  new release on its next start with a connection. Nothing needs bumping on release.
 - `assets/og.png` and the icons are screenshots of the page and the font. Remake them when
   the title or the colours change.
