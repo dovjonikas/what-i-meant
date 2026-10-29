@@ -12,8 +12,11 @@ import { startMusic } from './music.js';
 import { splitTitle, nudgeLetter } from './title.js';
 import { renderShelf } from './shelf.js';
 import { grainTile } from './covers.js';
+import { registerWorker, offerInstall } from './install.js';
 
 const SOUND_KEY = 'wim.sound';
+registerWorker();
+
 const ENTER_MS = 1800; // how long is-entering lasts; matches the delays in menu.css
 
 const body = document.body;
@@ -98,7 +101,10 @@ function enterMenu() {
     );
   }
 
-  setTimeout(() => body.classList.replace('is-entering', 'is-live'), ENTER_MS);
+  setTimeout(() => {
+    body.classList.replace('is-entering', 'is-live');
+    offerInstall();
+  }, ENTER_MS);
 }
 
 function setSoundButton(on) {

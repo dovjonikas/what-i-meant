@@ -504,7 +504,99 @@ body:not(.is-gate) .gate {
   }
 }
 
+/* The home screen offer (js/install.js): a small sheet at the bottom of the column. */
+.install {
+  position: fixed;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 6;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 12px;
+  align-items: center;
+  width: calc(var(--app-w) - 24px);
+  padding: 14px;
+  border-radius: 22px;
+  background: rgb(18 26 44 / 0.86);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 16px 50px rgb(0 0 0 / 0.45), inset 0 0 0 1px rgb(255 255 255 / 0.07);
+  transform: translate(-50%, calc(100% + 30px));
+  transition: transform 460ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.install.is-in {
+  transform: translate(-50%, 0);
+}
+
+.install-icon {
+  border-radius: 11px;
+}
+
+.install-title {
+  margin: 0;
+  font-size: 15px;
+  font-variation-settings: var(--name);
+}
+
+.install-sub {
+  margin: 2px 0 0;
+  font-variation-settings: "MONO" 0, "CASL" 0.3, "wght" 400, "slnt" 0, "CRSV" 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--fog);
+}
+
+.install-sub b {
+  font-weight: inherit;
+  color: var(--paper);
+}
+
+/* The iPhone Share icon: a box with an arrow out of the top. */
+.install-share {
+  width: 13px;
+  height: 15px;
+  margin: 0 1px;
+  vertical-align: -2px;
+  color: var(--paper);
+}
+
+.install-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+}
+
+.install-actions button {
+  flex: 1;
+  min-height: 42px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 150ms var(--ease-out);
+}
+
+.install-actions button:active {
+  transform: scale(0.97);
+}
+
+.install-add {
+  background: var(--lamp);
+  color: #1d1208;
+}
+
+.install-later {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--paper);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .install {
+    transition: none;
+  }
+
   .title .ch,
   .is-live .title .ch {
     transition: none;
