@@ -11,18 +11,22 @@
 
 import { hexToRgb, mix, rgbToCss, vivid } from './util.js';
 
+const mixHex = (a, b, t) => '#' + mix(a, b, t).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+import { drawDog } from './pets.js';
+
 // One look per person. `mark` is their colour in the life lines (their top, unless noted).
 // `old` replaces parts of the look once they are old.
 export const LOOKS = {
-  me: { top: '#e8913a', legs: '#2e3a55', hair: '#3a2a20', skin: '#e8b896', old: { hair: '#d6d1c8' } },
+  me: { top: '#e8913a', legs: '#2e3a55', hair: '#a8824c', skin: '#efc3a2', old: { hair: '#d4cec4' } },
   mom: { top: '#c9473f', legs: '#3b3346', hair: '#7a4a2c', hairStyle: 'long', skin: '#f0c4a2', coat: true, old: { hair: '#cfc8bf', hairStyle: 'bun' } },
   dad: { top: '#4e6a48', legs: '#3a3833', hair: '#2a2420', skin: '#d6a07e', broad: true, old: { hair: '#cdc8c0' } },
   grandma: { top: '#7b5b8e', legs: '#5a4a5a', scarf: '#e0a83e', skin: '#efcaae', coat: true, mark: '#e0a83e' },
   grandpa: { top: '#8b6a4b', legs: '#4a4038', hair: '#dcd8d0', cap: '#5a4b3c', skin: '#e2b08e' },
   friend: { top: '#f2c94c', legs: '#2c4a6b', hair: '#c79a55', skin: '#f2c8a6' },
   partner: { top: '#5b8fd0', legs: '#2f3340', hair: '#1f1a18', hairStyle: 'long', skin: '#c98d68' },
-  kid: { top: '#f0a347', legs: '#3e5a7a', hair: '#4a3222', skin: '#f0c4a2' },
+  kid: { top: '#f0a347', legs: '#3e5a7a', hair: '#c9a46a', skin: '#f0c4a2' },
   goose: { mark: '#b9c6d8' },
+  dog: { coat: '#b9773f', light: '#f1dcbc', mark: '#c98a4b', collar: '#c8333a' },
   // People who pass through: friends at the fire, strangers.
   a: { top: '#3f8f8a', legs: '#2c2c36', hair: '#1e1a18', skin: '#c48a64' },
   b: { top: '#d6d0c4', legs: '#3a4256', hair: '#8a5a32', hairStyle: 'long', skin: '#f0c8a8' },
@@ -42,9 +46,11 @@ export function markOf(id) {
  * who (a key of LOOKS), age ('child', 'adult', 'old'), pose (stand, walk, wave, sit, phone,
  * hand, push, reach, carry, bike), face (-1 faces left), back (seen from behind), bend,
  * stride, and any look field to override (top, hair, ...). `t` is time in seconds, for
- * breathing and waving; leave it at 0 for a still.
+ * breathing, shifting weight and waving; leave it at 0 for a still. `step` is how far the
+ * legs have gone round (radians) while the person walks, runs or pedals, and `moving`
+ * says whether they are moving right now (fx.js works both out from the person's track).
  */
-export function drawPerson(ctx, it, pen, t = 0) {
+export function drawPerson(ctx, it, pen, t = 0, step = 0, moving = false) {
   const base = LOOKS[it.who] ?? LOOKS.stranger;
   const look = { ...base, ...(it.age === 'old' ? base.old : null), ...it.look };
   const light = it.light ?? pen.scene.light ?? sceneLight(pen.scene);
@@ -60,6 +66,8 @@ export function drawPerson(ctx, it, pen, t = 0) {
   const k = {
     h,
     t,
+    step,
+    moving,
     litSide,
     child: it.age === 'child',
     old: it.age === 'old',
@@ -81,7 +89,8 @@ export function drawPerson(ctx, it, pen, t = 0) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   const pose = it.pose ?? 'stand';
-  if (pose === 'sit') sitting(ctx, k, it);
+  if (it.who === 'dog') drawDog(ctx, it, k);
+  else if (pose === 'sit') sitting(ctx, k, it);
   else if (pose === 'bike') onBike(ctx, k, it);
   else standing(ctx, k, it, pose);
   ctx.restore();
@@ -95,7 +104,7 @@ function sceneLight(scene) {
 // Body measurements as fractions of height, for adults and children.
 function body(k) {
   const { h, child } = k;
-  const headR = h * (child ? 0.095 : 0.068);
+  const headR = h * (child ? 0.1 : 0.075);
   const shoulderY = -h + headR * 2 + h * (child ? 0.025 : 0.035);
   return {
     headR,
@@ -108,19 +117,31 @@ function body(k) {
 }
 
 function standing(ctx, k, it, pose) {
-  const { h, t } = k;
+  const { h, t, step, moving } = k;
   const b = body(k);
-  const breathe = Math.sin(t * 1.7 + (it.x ?? 0) * 9) * h * 0.004;
-  const stride = pose === 'walk' || it.stride;
-  // Legs: back one first, in the shadow colour.
-  const legs = stride ? [[-h * 0.13, 0], [h * 0.13, 0]] : [[-h * 0.045, 0], [h * 0.045, 0]];
-  limb(ctx, k, k.look.legs, [-h * 0.03, b.hipY], legs[0], b.limb * 1.15, 0.25);
+  const seed = (it.x ?? 0) * 9;
+  const breathe = Math.sin(t * 1.7 + seed) * h * 0.004;
+  // Standing still, people shift their weight a little; walking, they bob with each step.
+  const sway = moving ? 0 : Math.sin(t * 0.55 + seed) * h * 0.008;
+  const bob = moving ? -Math.abs(Math.sin(step)) * h * 0.02 : 0;
+  // Legs: back one first, in the shadow colour. A walking leg swings and lifts its foot.
+  let legs;
+  if (moving) {
+    const s = Math.sin(step);
+    const lift = (v) => -Math.max(0, v) * h * 0.05;
+    legs = [[-s * h * 0.13, lift(-Math.cos(step))], [s * h * 0.13, lift(Math.cos(step))]];
+  } else if (pose === 'walk' || it.stride) {
+    legs = [[-h * 0.13, 0], [h * 0.13, 0]];
+  } else {
+    legs = [[-h * 0.045 + sway, 0], [h * 0.045 + sway, 0]];
+  }
+  limb(ctx, k, k.look.legs, [-h * 0.03 + sway, b.hipY + bob], legs[0], b.limb * 1.15, 0.25);
   shoe(ctx, k, legs[0]);
-  limb(ctx, k, k.look.legs, [h * 0.03, b.hipY], legs[1], b.limb * 1.15, 0);
+  limb(ctx, k, k.look.legs, [h * 0.03 + sway, b.hipY + bob], legs[1], b.limb * 1.15, 0);
   shoe(ctx, k, legs[1]);
 
   ctx.save();
-  ctx.translate(0, b.hipY + breathe);
+  ctx.translate(sway, b.hipY + breathe + bob);
   ctx.rotate(it.bend ?? (k.old ? 0.2 : pose === 'phone' ? 0.07 : 0));
   const sy = b.shoulderY - b.hipY;
   const arms = armPose(pose, k, b, sy, t);
@@ -152,8 +173,11 @@ function armPose(pose, k, b, sy, t) {
       const a = Math.sin(t * 5) * 0.28;
       return { back: down(-1), front: [[s, sy + h * 0.02], [s + h * 0.08, sy - h * 0.1], [s + h * 0.1 + Math.sin(a) * h * 0.08, sy - h * 0.22]] };
     }
-    case 'walk':
-      return { back: [[-s, sy + h * 0.02], [-s - h * 0.08, h * 0.04]], front: [[s, sy + h * 0.02], [s + h * 0.1, h * 0.04]] };
+    case 'walk': {
+      // Arms swing against the legs while moving.
+      const a = k.moving ? Math.sin(k.step) * h * 0.1 : h * 0.08;
+      return { back: [[-s, sy + h * 0.02], [-s + a, h * 0.04]], front: [[s, sy + h * 0.02], [s - a + h * 0.02, h * 0.04]] };
+    }
     case 'hand':
       return { back: down(-1), front: [[s, sy + h * 0.02], [s + h * 0.17, h * 0.12]] };
     case 'reach':
@@ -202,6 +226,18 @@ function head(ctx, k, b, sy, it) {
   const r = b.headR;
   const cy = sy - h * 0.025 - r;
   const cx = h * 0.01;
+  const hairStyle = look.hair && !look.scarf ? look.hairStyle ?? 'short' : null;
+  // Long hair falls behind the head and shoulders, so it is drawn first.
+  if (hairStyle === 'long') {
+    ctx.fillStyle = k.paint(look.hair, 0.14);
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 1.05, cy - r * 0.2);
+    ctx.quadraticCurveTo(cx - r * 1.35, cy + r * 1.6, cx - r * 0.75, cy + r * 2.4);
+    ctx.lineTo(cx + r * 0.15, cy + r * 2.2);
+    ctx.quadraticCurveTo(cx + r * 0.1, cy + r * 1.1, cx + r * 0.2, cy + r * 0.2);
+    ctx.closePath();
+    ctx.fill();
+  }
   ctx.fillStyle = k.paint(look.skin, 0.12);
   ctx.fillRect(cx - r * 0.35, cy + r * 0.6, r * 0.7, h * 0.04);
   // The face: skin, shaded on the side away from the light. No eyes, no mouth.
@@ -226,33 +262,48 @@ function head(ctx, k, b, sy, it) {
     ctx.closePath();
     ctx.fill();
   } else if (look.hair) {
-    ctx.fillStyle = k.paint(look.hair, 0.08);
+    ctx.fillStyle = k.paint(look.hair, 0.04);
     ctx.beginPath();
     if (it.back) {
-      ctx.arc(cx, cy, r * 1.04, 0, Math.PI * 2);
+      // From behind: hair over the whole head, a little wider than it.
+      ctx.arc(cx, cy - r * 0.04, r * 1.1, 0, Math.PI * 2);
     } else {
-      // Hair over the top and the back of the head; the face side stays open.
-      ctx.arc(cx - r * 0.06, cy - r * 0.05, r * 1.06, Math.PI * 0.72, Math.PI * 1.93);
-      ctx.quadraticCurveTo(cx + r * 0.2, cy - r * 0.55, cx - r * 0.2, cy - r * 0.2);
-      ctx.lineTo(cx - r * 0.45, cy + r * 0.55);
+      // Hair has volume: its outline is a little bigger than the head and sits back
+      // and up. It covers the crown and the back, comes down over the forehead in a
+      // fringe, and stops at a hairline in front of the ear and at the nape.
+      const R = r * 1.13;
+      const ox = cx - r * 0.07;
+      const oy = cy - r * 0.08;
+      const front = -0.45;
+      const nape = hairStyle === 'long' ? Math.PI * 0.62 : Math.PI * 0.74;
+      ctx.moveTo(ox + R * Math.cos(front), oy + R * Math.sin(front));
+      ctx.arc(ox, oy, R, front, nape, true);
+      ctx.lineTo(cx - r * 0.42, cy + r * 0.52);
+      ctx.quadraticCurveTo(cx - r * 0.12, cy + r * 0.32, cx - r * 0.05, cy + r * 0.02);
+      // The fringe: two soft scallops across the forehead.
+      ctx.quadraticCurveTo(cx + r * 0.2, cy - r * 0.3, cx + r * 0.42, cy - r * 0.46);
+      ctx.quadraticCurveTo(cx + r * 0.66, cy - r * 0.36, ox + R * Math.cos(front), oy + R * Math.sin(front));
     }
     ctx.closePath();
     ctx.fill();
-    if (look.hairStyle === 'long') {
+    if (hairStyle === 'bun') {
       ctx.beginPath();
-      ctx.ellipse(cx - r * 0.75, cy + r * 1.1, r * 0.48, r * 1.15, 0.12, 0, Math.PI * 2);
+      ctx.arc(cx - r * 0.9, cy - r * 0.6, r * 0.45, 0, Math.PI * 2);
       ctx.fill();
     }
-    if (look.hairStyle === 'bun') {
+    if (!it.back) {
+      // A soft shine on the lit side of the hair, so it reads as hair and not a cap.
+      ctx.strokeStyle = k.paint(mixHex(look.hair, '#ffffff', 0.22));
+      ctx.lineWidth = Math.max(1, r * 0.09);
       ctx.beginPath();
-      ctx.arc(cx - r * 0.85, cy - r * 0.55, r * 0.42, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.arc(cx - r * 0.07, cy - r * 0.08, r * 0.78, litSide > 0 ? -1.9 : -2.5, litSide > 0 ? -1.35 : -1.95);
+      ctx.stroke();
     }
   }
   if (look.cap) {
     ctx.fillStyle = k.paint(look.cap);
     ctx.beginPath();
-    ctx.arc(cx, cy - r * 0.15, r * 1.02, Math.PI, Math.PI * 2);
+    ctx.arc(cx, cy - r * 0.15, r * 1.08, Math.PI, Math.PI * 2);
     ctx.fill();
     ctx.fillRect(cx, cy - r * 0.25, r * 1.5, r * 0.22);
   }
@@ -260,7 +311,8 @@ function head(ctx, k, b, sy, it) {
     ctx.strokeStyle = k.rim;
     ctx.lineWidth = Math.max(1, h * 0.012);
     ctx.beginPath();
-    ctx.arc(cx, cy, r * 1.02, litSide > 0 ? -1.2 : Math.PI - 0.4, litSide > 0 ? 0.4 : Math.PI + 1.2);
+    // Only along the face and jaw; on the hair it would read as a helmet's edge.
+    ctx.arc(cx, cy, r * 1.02, litSide > 0 ? -0.25 : Math.PI - 0.9, litSide > 0 ? 0.9 : Math.PI + 0.25);
     ctx.stroke();
   }
 }
@@ -331,34 +383,48 @@ function sitting(ctx, k, it) {
   ctx.restore();
 }
 
+// On a bike: the wheels turn and the feet go round the pedals as `step` grows.
 function onBike(ctx, k, it) {
-  const { h } = k;
+  const { h, step } = k;
   const b = body(k);
   const wr = h * 0.2;
   const metal = k.paint('#2a2f3a');
-  ctx.strokeStyle = metal;
-  ctx.lineWidth = Math.max(1.4, h * 0.022);
   for (const dx of [-h * 0.34, h * 0.34]) {
+    ctx.strokeStyle = metal;
+    ctx.lineWidth = Math.max(1.4, h * 0.022);
     ctx.beginPath();
     ctx.arc(dx, -wr, wr, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.lineWidth = Math.max(0.6, h * 0.007);
+    for (let i = 0; i < 3; i += 1) {
+      const a = step * 0.7 + (i * Math.PI) / 3;
+      line(ctx, dx - Math.cos(a) * wr * 0.92, -wr - Math.sin(a) * wr * 0.92, dx + Math.cos(a) * wr * 0.92, -wr + Math.sin(a) * wr * 0.92);
+    }
   }
+  const hip = [-h * 0.08, -wr * 2.35];
+  const crank = [-h * 0.02, -wr];
+  const pedal = (a) => [crank[0] + Math.cos(a) * h * 0.07, crank[1] + Math.sin(a) * h * 0.07];
+  // A leg from the hip to a pedal, the knee pushed forward and up.
+  const leg = (p, dark) => {
+    const knee = [(hip[0] + p[0]) / 2 + h * 0.08, (hip[1] + p[1]) / 2 - h * 0.03];
+    limb(ctx, k, k.look.legs, hip, knee, b.limb * 1.1, dark, p);
+  };
+  leg(pedal(step + Math.PI), 0.25);
   ctx.strokeStyle = k.paint('#c8473e');
   ctx.lineWidth = Math.max(1.6, h * 0.03);
   line(ctx, -h * 0.34, -wr, -h * 0.02, -wr);
   line(ctx, -h * 0.02, -wr, h * 0.22, -wr * 2.1);
   line(ctx, -h * 0.34, -wr, -h * 0.08, -wr * 2.2);
   line(ctx, h * 0.34, -wr, h * 0.24, -wr * 2.5);
-  const hip = -wr * 2.35;
-  limb(ctx, k, k.look.legs, [-h * 0.08, hip], [h * 0.06, hip + h * 0.14], b.limb * 1.1, 0, [-h * 0.02, -wr]);
+  leg(pedal(step), 0);
   ctx.save();
-  ctx.translate(-h * 0.08, hip);
+  ctx.translate(hip[0], hip[1]);
   ctx.rotate(0.35);
   const sy = b.shoulderY - b.hipY;
   torso(ctx, k, b, sy);
   head(ctx, k, b, sy, it);
   ctx.restore();
-  limb(ctx, k, k.look.top, [h * 0.04, hip - h * 0.3], [h * 0.22, -wr * 2.55], b.limb, 0);
+  limb(ctx, k, k.look.top, [h * 0.04, hip[1] - h * 0.3], [h * 0.22, -wr * 2.55], b.limb, 0);
   hand(ctx, k, [h * 0.22, -wr * 2.55], 0);
 }
 

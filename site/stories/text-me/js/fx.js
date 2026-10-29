@@ -1,6 +1,6 @@
-// fx.js: the few things in a scene that move: twinkling stars, birds, chimney smoke, a car's
-// rear lights going down the road, snow, rain, fireflies, sparks from a fire, glints on
-// water. Everything else in a scene is a still painting (painter.js), which keeps phones cool.
+// fx.js: the things in a scene that move: the people, twinkling stars, birds, clouds,
+// chimney smoke, falling leaves, a car's rear lights going down the road, snow, rain,
+// fireflies, a fire's light, sparks, glints on water, trees going past a car. Everything else in a scene is a still painting (painter.js), which keeps phones cool.
 //
 // A scene lists its effects as { kind, at, ... }. `at` is the painted layer the effect sits
 // just in front of (0 far, 1 middle, 2 near; 2 by default), so stars can stay behind the
@@ -14,8 +14,9 @@ import { drawPerson } from './people.js';
  * Builds the effects for one scene. Returns { canvases: {0?, 1?, 2?}, start(), stop() };
  * the stage puts each canvas in the layer of the same number. People are drawn here too
  * (kind 'person'), so they can breathe and wave; their layers keep the full pixel ratio.
+ * `t0` is how long the scene has already been on screen.
  */
-export function createFx(items = [], view, scene) {
+export function createFx(items = [], view, scene, progress = () => 0, t0 = 0) {
   const pen = makePen(scene, view);
   const sharp = new Set(items.filter((it) => it.kind === 'person').map((it) => it.at ?? 2));
   const cssW = view.w + view.margin * 2;
@@ -43,14 +44,14 @@ export function createFx(items = [], view, scene) {
     }
     const kind = KINDS[it.kind];
     if (!kind) throw new Error(`Unknown effect: ${it.kind}`);
-    const state = kind.init(it, pos, rng(1000 + i * 77), pen);
+    const state = kind.init(it, pos, rng(1000 + i * 77), pen, progress);
     slots[at].list.push({ kind, it, state });
   });
   for (const s of Object.values(slots)) live.push(s);
 
   let raf = 0;
   let last = 0;
-  let t = 0;
+  let t = t0; // seconds since the scene first appeared, so a repaint carries on
   const frame = (now) => {
     const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
     last = now;
@@ -83,12 +84,141 @@ function dot(ctx, x, y, r, css) {
 }
 
 const KINDS = {
+  // A person, breathing and shifting weight. A person with a `track` moves along it:
+  // [[x, y, h], ...] from start to end, driven by `progress` (how far the player has held,
+  // 0 to 1) or, with `seconds`, by time (`loop` repeats it). `poses` changes the pose:
+  // [[at, pose, {fields}], ...]. Legs walk, run or pedal by the distance covered.
   person: {
-    init(it, p, r, pen) {
-      return pen;
+    init(it, p, r, pen, progress) {
+      return { pen, progress, step: 0, last: null, until: 0 };
     },
-    draw(ctx, pen, t, dt, it) {
-      drawPerson(ctx, it.person, pen, t);
+    draw(ctx, s, t, dt, it, p) {
+      let who = it.person;
+      if (who.track) {
+        const raw = who.seconds ? (t - (who.delay ?? 0)) / who.seconds : s.progress();
+        // A `loop` track (a puppy running circles) starts over; others stop at the end.
+        const k = who.loop ? raw - Math.floor(raw) : Math.min(1, Math.max(0, raw));
+        const [x, y, h] = along(who.track, k);
+        who = { ...who, x, y, h };
+        for (const [at, pose, extra] of who.poses ?? []) if (k >= at) who = { ...who, pose, ...extra };
+        if (s.last) {
+          const dx = p.X(x) - p.X(s.last[0]);
+          const d = Math.hypot(dx, p.Y(y) - p.Y(s.last[1]));
+          // `turn`: face the way they are going (a dog running a lap).
+          if (who.turn && Math.abs(dx) > 0.3) s.face = dx > 0 ? 1 : -1;
+          s.step += d / Math.max(4, p.S(h) * 0.16);
+          if (d > 0.02) s.until = t + 0.25;
+        }
+        s.last = [x, y];
+        if (who.turn && s.face) who = { ...who, face: s.face };
+      }
+      drawPerson(ctx, who, s.pen, t, s.step, t < s.until);
+    },
+  },
+
+  // Flat clouds drifting slowly across the sky.
+  clouds: {
+    init(it, p, r) {
+      return Array.from({ length: it.count ?? 3 }, () => ({
+        x: r() * p.w, y: p.Y((it.top ?? 0.08) + r() * ((it.bottom ?? 0.3) - (it.top ?? 0.08))), w: p.S(0.25 + r() * 0.3), sp: 3 + r() * 5, r,
+      }));
+    },
+    draw(ctx, list, t, dt, it, p) {
+      ctx.fillStyle = it.color ?? 'rgb(255 255 255 / 0.35)';
+      for (const c of list) {
+        c.x += c.sp * dt;
+        if (c.x - c.w > p.w) c.x = -c.w;
+        const h = c.w * 0.22;
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.y, c.w / 2, h * 0.45, 0, Math.PI, 0);
+        ctx.ellipse(c.x - c.w * 0.18, c.y - h * 0.25, c.w * 0.2, h * 0.55, 0, Math.PI, 0);
+        ctx.ellipse(c.x + c.w * 0.12, c.y - h * 0.35, c.w * 0.24, h * 0.7, 0, Math.PI, 0);
+        ctx.fill();
+      }
+    },
+  },
+
+  // Autumn leaves falling and turning over.
+  leaves: {
+    init(it, p, r) {
+      const colors = it.colors ?? ['#c4552b', '#e39a3b', '#b5502a', '#d98a34'];
+      return Array.from({ length: it.count ?? 18 }, () => ({
+        x: r() * p.w, y: r() * p.h, s: 2.5 + r() * 3, sp: 14 + r() * 18, ph: r() * 6, c: colors[Math.floor(r() * colors.length)],
+      }));
+    },
+    draw(ctx, list, t, dt, it, p) {
+      for (const l of list) {
+        l.y += l.sp * dt;
+        l.x += Math.sin(t * 1.3 + l.ph) * 18 * dt - 6 * dt;
+        if (l.y > p.h + 10) {
+          l.y = -10;
+          l.x = Math.random() * p.w;
+        }
+        ctx.save();
+        ctx.translate(l.x, l.y);
+        ctx.rotate(t * 2 + l.ph);
+        ctx.scale(1, Math.cos(t * 3 + l.ph));
+        ctx.fillStyle = l.c;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, l.s, l.s * 0.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    },
+  },
+
+  // Specks of light floating in warm air: pollen, dust in sun.
+  motes: {
+    init(it, p, r) {
+      return Array.from({ length: it.count ?? 22 }, () => ({ x: r() * p.w, y: p.Y(0.3 + r() * 0.6), ph: r() * 6, sp: 0.3 + r() * 0.6 }));
+    },
+    draw(ctx, list, t, dt) {
+      for (const m of list) {
+        m.y -= m.sp * 4 * dt;
+        m.x += Math.sin(t * m.sp + m.ph) * 6 * dt;
+        const a = 0.25 + 0.35 * Math.sin(t * 1.5 + m.ph) ** 2;
+        dot(ctx, m.x, m.y, 1.2, `rgb(255 240 200 / ${a})`);
+        if (m.y < 0) m.y = 900;
+      }
+    },
+  },
+
+  // A fire's light breathing on everything near it.
+  firelight: {
+    init() {
+      return {};
+    },
+    draw(ctx, s, t, dt, it, p) {
+      const k = 0.5 + 0.25 * Math.sin(t * 9) + 0.15 * Math.sin(t * 23 + 1) + 0.1 * Math.sin(t * 4.3);
+      const x = p.X(it.x);
+      const y = p.Y(it.y);
+      const r = p.S(it.r ?? 0.35);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgb(255 150 70 / ${0.22 * k})`);
+      g.addColorStop(1, 'rgb(255 150 70 / 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    },
+  },
+
+  // Trees and posts sliding past, for a moving car: the moon stays, the world goes by.
+  passing: {
+    init(it, p, r) {
+      return Array.from({ length: it.count ?? 6 }, (_, i) => ({ x: (i / (it.count ?? 6)) * p.w * 1.4, h: p.S(0.12 + r() * 0.22), w: 0.3 + r() * 0.1, r }));
+    },
+    draw(ctx, list, t, dt, it, p) {
+      ctx.fillStyle = it.color ?? '#070b18';
+      const y = p.Y(it.y ?? 0.75);
+      for (const tr of list) {
+        tr.x -= (it.speed ?? 160) * dt;
+        if (tr.x < -60) tr.x = p.w + 40 + Math.random() * 80;
+        ctx.beginPath();
+        ctx.moveTo(tr.x, y - tr.h);
+        ctx.lineTo(tr.x + tr.h * tr.w * 0.5, y);
+        ctx.lineTo(tr.x - tr.h * tr.w * 0.5, y);
+        ctx.closePath();
+        ctx.fill();
+      }
     },
   },
 
@@ -266,6 +396,15 @@ const KINDS = {
     },
   },
 };
+
+/** A point along a track of [x, y, h] points, k from 0 (first) to 1 (last). */
+function along(track, k) {
+  const n = track.length - 1;
+  const f = Math.min(n - 1e-9, Math.max(0, k * n));
+  const i = Math.floor(f);
+  const u = f - i;
+  return track[i].map((v, j) => v + (track[i + 1][j] - v) * u);
+}
 
 function easeOut(t) {
   return 1 - (1 - t) ** 2;

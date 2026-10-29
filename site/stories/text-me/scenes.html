@@ -3,7 +3,8 @@
      js/scenes.js full screen, with its moving effects, so the art can be checked and tuned
      without playing to that point. Open scenes.html?s=porch; with no ?s= it lists them all;
      scenes.html?check lists every prop that reaches past the column or is out of
-     scale with the people next to it (see js/check.js). -->
+     scale with the people next to it (see js/check.js); ?p=0.5 puts people with a
+     track halfway along it. -->
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -36,6 +37,8 @@
       } else {
         const stage = new Stage(document.getElementById('stage'));
         stage.show(id, { instant: true });
+        // ?p=0.5 shows people with a track halfway along it, as if the player held halfway.
+        stage.progress = Number(query.get('p') ?? 0);
       }
     </script>
   </body>

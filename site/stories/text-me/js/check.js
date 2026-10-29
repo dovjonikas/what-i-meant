@@ -19,7 +19,10 @@ export function checkScenes(view) {
   const right = left + view.colW;
   for (const [id, scene] of Object.entries(SCENES)) {
     const pen = makePen(scene, { ...view, dpr: 1 });
-    scene.layers.forEach((item, i) => {
+    // A person who moves is checked at every point of their track.
+    const items = scene.layers.flatMap((item, i) =>
+      item.track ? item.track.map(([x, y, h]) => [{ ...item, x, y, h }, i]) : [[item, i]]);
+    items.forEach(([item, i]) => {
       if (LAYERS[item.kind] || item.bleed || item.kind === 'glow') return;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, cssW, view.h);
@@ -59,7 +62,7 @@ export function checkScales() {
   for (const [id, scene] of Object.entries(SCENES)) {
     const people = scene.layers.flatMap((it) =>
       it.kind === 'figure' ? [it] : it.kind === 'people' ? it.list : []);
-    const adults = people.filter((p) => (p.age ?? 'adult') !== 'child' && p.pose !== 'sit' && p.pose !== 'bike');
+    const adults = people.filter((p) => (p.age ?? 'adult') !== 'child' && p.pose !== 'sit' && p.pose !== 'bike' && p.who !== 'dog');
     const near = (y) => adults.filter((p) => Math.abs(p.y - y) < 0.03);
     scene.layers.forEach((it, i) => {
       const rule = SIZES[it.kind];

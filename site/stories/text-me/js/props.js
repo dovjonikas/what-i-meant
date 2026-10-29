@@ -355,6 +355,67 @@ const PROPS = {
     });
   },
 
+  // A garden gate between two fence runs; `x` is the gate's middle, `open` swings it.
+  gate(ctx, it, pen) {
+    const x = pen.X(it.x);
+    const y = pen.Y(it.y);
+    const h = pen.S(it.h ?? 0.08);
+    const w = h * 1.1;
+    PROPS.fence(ctx, { ...it, x2: it.x - (w / 2) / pen.view.colW, x: it.from ?? -0.1 }, pen);
+    PROPS.fence(ctx, { ...it, x: it.x + (w / 2) / pen.view.colW, x2: it.to ?? 1.1 }, pen);
+    withRim(ctx, it, pen, (fill) => {
+      ctx.fillStyle = fill;
+      ctx.fillRect(x - w / 2 - h * 0.1, y - h * 1.15, h * 0.14, h * 1.15);
+      ctx.fillRect(x + w / 2 - h * 0.04, y - h * 1.15, h * 0.14, h * 1.15);
+      const open = it.open ?? 0;
+      const gw = w * (1 - open * 0.6);
+      ctx.fillRect(x - w / 2, y - h * 0.8, gw, h * 0.1);
+      ctx.fillRect(x - w / 2, y - h * 0.35, gw, h * 0.1);
+      for (let i = 0; i <= 4; i += 1) ctx.fillRect(x - w / 2 + (gw * i) / 4 - h * 0.04, y - h * 0.95, h * 0.08, h * 0.95);
+    });
+  },
+
+  // A dog lead hanging from a post: a loop and a clip.
+  leash(ctx, it, pen) {
+    const x = pen.X(it.x);
+    const y = pen.Y(it.y);
+    const s = pen.S(it.s ?? 0.06);
+    ctx.strokeStyle = pen.tone(it.color ?? '#c8333a');
+    ctx.lineWidth = Math.max(1.5, s * 0.08);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.bezierCurveTo(x - s * 0.4, y + s * 0.8, x + s * 0.4, y + s * 1.3, x + s * 0.05, y + s * 1.7);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(x, y + s * 0.1, s * 0.16, s * 0.24, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = pen.tone('#b8bcc4');
+    ctx.fillRect(x, y + s * 1.68, s * 0.12, s * 0.2);
+  },
+
+  // A cardboard box with its flaps open.
+  box(ctx, it, pen) {
+    const x = pen.X(it.x);
+    const y = pen.Y(it.y);
+    const w = pen.S(it.w ?? 0.1);
+    withRim(ctx, { color: '#b48552', ...it }, pen, (fill) => {
+      ctx.fillStyle = fill;
+      ctx.fillRect(x - w / 2, y - w * 0.7, w, w * 0.7);
+      ctx.beginPath();
+      ctx.moveTo(x - w / 2, y - w * 0.7);
+      ctx.lineTo(x - w * 0.75, y - w * 0.95);
+      ctx.lineTo(x - w * 0.25, y - w * 0.95);
+      ctx.closePath();
+      ctx.moveTo(x + w / 2, y - w * 0.7);
+      ctx.lineTo(x + w * 0.75, y - w * 0.95);
+      ctx.lineTo(x + w * 0.25, y - w * 0.95);
+      ctx.closePath();
+      ctx.fill();
+    });
+    ctx.fillStyle = pen.tone('#000000', 0, 0.12);
+    ctx.fillRect(x - w / 2, y - w * 0.7, w, w * 0.12);
+  },
+
   // A camp fire: logs, flames and a warm pool of light.
   fire(ctx, it, pen) {
     const x = pen.X(it.x);
