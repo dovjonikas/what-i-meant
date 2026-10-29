@@ -1,0 +1,70 @@
+<!doctype html>
+<!-- The first story, "Text me when you get home". js/main.js starts it; the folder's
+     README.md maps the files. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Text me when you get home · What I Meant</title>
+    <meta name="description" content="A life, while you wait for one text.">
+    <meta name="theme-color" content="#070b1c">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Text me when you get home">
+    <meta property="og:description" content="A story from What I Meant.">
+    <meta property="og:url" content="https://dovjonikas.github.io/what-i-meant/stories/text-me/">
+    <meta property="og:image" content="https://dovjonikas.github.io/what-i-meant/stories/text-me/cover.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="manifest" href="../../manifest.webmanifest">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="What I Meant">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icon-32.png">
+    <link rel="apple-touch-icon" href="../../assets/icon-180.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Recursive:slnt,wght,CASL,CRSV,MONO@-15..0,300..1000,0..1,0..1,0..1&display=swap">
+    <link rel="stylesheet" href="css/story.css">
+    <script type="module" src="js/main.js"></script>
+  </head>
+  <body class="is-gate">
+    <!-- The picture: painted scenes (js/stage.js), then the life lines over them. -->
+    <div id="stage" aria-hidden="true"></div>
+    <canvas id="lines" aria-hidden="true"></canvas>
+    <div class="scrim" aria-hidden="true"></div>
+    <!-- Frosted glass beside the phone-wide column on bigger screens, as on the menu. -->
+    <div class="glass" aria-hidden="true"></div>
+
+    <!-- Everything you read and tap lives in the phone-wide column. -->
+    <main class="column">
+      <header class="bar">
+        <a class="back" href="../../" aria-label="Back to the stories">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <button class="sound" type="button" aria-pressed="true" aria-label="Sound">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z" />
+            <path class="waves" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11" />
+            <path class="cross" d="M16 9.5l5 5M21 9.5l-5 5" />
+          </svg>
+        </button>
+      </header>
+    </main>
+
+    <!-- Chapter names, the title and the ending (js/ui.js fills it). -->
+    <div class="card" hidden></div>
+
+    <!-- The start screen. Sound can only start from a tap. -->
+    <div class="gate">
+      <p class="gate-kicker">What I Meant · 01</p>
+      <h1 class="gate-title">Text me when you get home</h1>
+      <p class="gate-note">Best with sound on. Tap to go on, hold to let the years run.</p>
+      <div class="gate-actions">
+        <button class="btn gate-start" type="button">Start</button>
+        <button class="btn is-quiet gate-over" type="button" hidden>Start over</button>
+      </div>
+      <p class="gate-draft">Draft: the words are placeholders.</p>
+    </div>
+
+    <noscript><p class="noscript">This story needs JavaScript.</p></noscript>
+  </body>
+</html>

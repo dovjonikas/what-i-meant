@@ -1,0 +1,62 @@
+# Text me when you get home
+
+The first story. A whole life, told while you wait for one text: it opens at the end, at
+night, when somebody has just driven off, and goes back to age 0. The art is flat layered
+landscapes drawn in code, the people have no faces, and the music is made live in the
+browser. Plain HTML, CSS and ES modules; nothing to build or install.
+
+**The text is a draft.** Every line in `js/script.js` was drafted so the story can be
+played from start to end. The author rewrites them; see the repo `CLAUDE.md`.
+
+## Run it
+
+From the repo root: `node tools/serve.mjs`, then open http://localhost:5173/stories/text-me/.
+The art alone: http://localhost:5173/stories/text-me/scenes.html (every scene, one at a
+time) and `scenes.html?check`, which lists anything that sticks out past the phone-wide
+column or is out of scale next to the people.
+
+## What is where
+
+| Path | What it is |
+|---|---|
+| `index.html` | The page: the picture layers, the column for words and phone, the start screen |
+| `css/story.css` | All styles: words, phone, cards, buttons, the side glass on computers |
+| `js/main.js` | Starts everything; starts the sound on the first tap |
+| `js/script.js` | The story, beat by beat, and who is in the life lines. Edit the text here |
+| `js/player.js` | Plays the script: taps, holds, choices, saving where the player stopped |
+| `js/scenes.js` | Every place in the story as data: colours, hills, houses, people, weather |
+| `js/painter.js` | Paints a scene: sky, mountains, mist, pines, water, roads |
+| `js/props.js` | Things in a scene: houses, flats, trees, pier, bus, car, lamps, desk |
+| `js/people.js` | The people: one colour and outfit each for life, faceless, lit from one side |
+| `js/fx.js` | What moves in a scene: stars, birds, smoke, rain, snow, the people breathing |
+| `js/stage.js` | Shows scenes: three layers drifting at their own speeds, cross-fades, camera push |
+| `js/lines.js` | The life lines: hold to let the years run; people join, drift, come back, end |
+| `js/phone.js` | The phone that slides up: messages, typing dots, replies that type themselves |
+| `js/captions.js` | The words, one line at a time |
+| `js/ui.js` | Chapter and title cards, the ending, choice buttons, the hold hint |
+| `js/score.js` | The music: one theme for the whole life, an act per part of it |
+| `js/sfx.js` | Phone sounds and the sound of each place |
+| `js/util.js` | Seeded random numbers, noise for hill edges, colour maths |
+| `js/check.js` | The art checks behind `scenes.html?check` |
+| `scenes.html` | The art work page described above; not linked from the story |
+
+## How the pieces connect
+
+`script.js` is a list of beats. `player.js` walks it: a scene beat goes to `stage.js`,
+which paints it with `painter.js`, `props.js` and `people.js` and animates it with
+`fx.js`; a line goes to `captions.js`; a chat to `phone.js`; a stretch of years to
+`lines.js`; music and place sounds to `score.js` and `sfx.js`. Choices are kept as flags,
+and any beat can depend on one (`if: { weekend: 'lake' }`).
+
+The player's place is saved in `localStorage` under `wim.text-me` at every beat marked
+`save`, with the choices and the life lines, so the start screen offers to continue.
+
+## Notes
+
+- Colours: each part of life has its own time of day (see the top of `js/scenes.js`).
+  Each person keeps one colour for life, used for their clothes and their line.
+- Sizes in `js/scenes.js` are fractions of the column width, positions fractions of the
+  column (x) and of the screen height (y). Keep people and props inside the column; run
+  `scenes.html?check` after moving anything.
+- Sound starts only after a tap. On iPhone the page asks for media playback so the silent
+  switch does not mute it.

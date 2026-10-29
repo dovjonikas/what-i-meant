@@ -1,0 +1,518 @@
+// scenes.js: every place the story shows, as data for painter.js and fx.js.
+//
+// A scene has: `sky` (colours top to horizon), `fog` (the colour far layers fade into),
+// `vibrance` (1 is full colour, lower drains it; the acts move this), `layers` (painted far
+// to near; `g` puts an item on the far 0, middle 1 or near 2 canvas so it drifts at its own
+// speed), `fx` (moving things, see fx.js) and `ambience` (see sfx.js).
+//
+// One colour plan runs through the whole life: dawn and morning for early childhood, a
+// bright noon for school summers, dusk and a drained blue night for leaving home, dawn again
+// for finding your feet, golden afternoon and autumn while the parents get old, and a clear
+// night with warm windows for the end. Grief scenes are near grey but keep their shapes.
+//
+// People are faceless on purpose. Items marked `bleed: true` are allowed past the column
+// edges (framing trees, the ground); everything else must stay inside it, which
+// scenes.html?check checks.
+
+// Palettes by time of day. sky: top to horizon; far, mid and near: the three hill layers;
+// ground: what people stand on; rim: the light edge on silhouettes; sun: the disc.
+const P = {
+  dawn: { sky: ['#2e3a5c', '#8a6f9e', '#e9a3a0', '#f6c6a4'], fog: '#e8b9b0', far: '#9a7f95', mid: '#6e5a7c', near: '#4a3d5e', ground: '#2a2540', ink: '#1b1729', rim: '#ffd9b0', sun: '#fff1d6' },
+  morning: { sky: ['#4f86c0', '#8fbde0', '#cfe6ee', '#f6efd6'], fog: '#cfe2e6', far: '#86a9bb', mid: '#4f7c7d', near: '#2f5752', ground: '#24443c', ink: '#16302b', rim: '#fff1c9', sun: '#fffbe8' },
+  noon: { sky: ['#2a72ba', '#5fa3d6', '#a6d1ea', '#e0f0f2'], fog: '#b3d6e6', far: '#7aa6bf', mid: '#3d7d68', near: '#24563f', ground: '#2d6a45', ink: '#173a2a', rim: '#fff6cf', sun: '#fffdf2' },
+  golden: { sky: ['#5f86ad', '#d4a57a', '#f2bf74', '#ffd990'], fog: '#efbb78', far: '#c08f6b', mid: '#8e5c45', near: '#5a3a2c', ground: '#43291d', ink: '#2a1912', rim: '#ffe2a2', sun: '#fff3cf' },
+  dusk: { sky: ['#2b2350', '#7d3d68', '#d2615a', '#f39a55'], fog: '#d8735a', far: '#93506a', mid: '#5e3050', near: '#3a2140', ground: '#24152b', ink: '#160c1c', rim: '#ffb070', sun: '#ffe2a8' },
+  blue: { sky: ['#121a40', '#283769', '#4a5f97', '#7c8fc2'], fog: '#4f6194', far: '#3d4d80', mid: '#29365f', near: '#1b2446', ground: '#121a36', ink: '#0a0f22', rim: '#9fb0e0', sun: '#e8eef7' },
+  night: { sky: ['#070b1c', '#10183a', '#24315a', '#3a4a78'], fog: '#2a3866', far: '#1f2a4c', mid: '#151d3a', near: '#0f1530', ground: '#0b1024', ink: '#05070f', rim: '#4a5b8c', sun: '#eef1fb' },
+  snow: { sky: ['#7d8ea5', '#a7b5c6', '#d3dbe4', '#e8edf2'], fog: '#dfe6ee', far: '#b3c0cf', mid: '#8a9aad', near: '#5d6a7b', ground: '#dfe5ec', ink: '#2c3440', rim: '#ffffff', sun: '#ffffff' },
+  autumn: { sky: ['#6f86a0', '#b9a690', '#e5c49b', '#f3d6a8'], fog: '#e2b98c', far: '#b48d74', mid: '#8a5a3c', near: '#5e3626', ground: '#45281b', ink: '#26150e', rim: '#ffe2b0', sun: '#fff1d6' },
+};
+
+/**
+ * The usual three hill layers with mist between them, plus sun, moon and stars. `h` is the
+ * horizon height; `peaks` how tall the far mountains are.
+ */
+function backdrop(p, o = {}) {
+  const h = o.h ?? 0.5;
+  const out = [];
+  if (o.stars) out.push({ kind: 'stars', count: o.stars, bottom: h - 0.05, g: 0 });
+  if (o.sun) out.push({ kind: 'sun', color: p.sun, glow: o.sun.glow ?? p.rim, r: 0.065, halo: 0.9, ...o.sun, g: 0 });
+  if (o.moon) out.push({ kind: 'moon', color: p.sun, glow: p.rim, r: 0.045, ...o.moon, g: 0 });
+  if (o.far !== false) {
+    out.push({ kind: 'ridge', y: h, amp: o.peaks ?? 0.42, freq: 1.05, ridged: true, sharp: 1.3, color: p.far, haze: 0.42, mist: 0.55, seed: o.seed ?? 4, g: 0 });
+    out.push({ kind: 'mist', y: h + 0.015, h: 0.05, alpha: 0.5, g: 0 });
+  }
+  if (o.mid !== false) {
+    out.push({ kind: 'ridge', y: h + 0.07, amp: 0.17, freq: 1.7, color: p.mid, haze: 0.22, mist: 0.5, seed: (o.seed ?? 4) + 5, trees: { h: 0.026 }, g: 1 });
+    out.push({ kind: 'mist', y: h + 0.085, h: 0.04, alpha: 0.42, g: 1 });
+  }
+  if (o.near !== false) {
+    out.push({ kind: 'ridge', y: h + 0.15, amp: 0.08, freq: 1.2, color: p.near, haze: 0.06, mist: 0.35, seed: (o.seed ?? 4) + 9, trees: { h: 0.055, gap: 0.03 }, g: 1 });
+  }
+  return out;
+}
+
+/** Ground for people to stand on, darker toward the bottom where the words go. */
+function ground(p, y = 0.72, seed = 2) {
+  return { kind: 'ground', y, color: p.ground, amp: 0.025, seed, mist: 0, hold: 0.2, g: 2, bleed: true };
+}
+
+/** A lines-view background: mostly sky, a low range far down. */
+function linesBack(p, o = {}) {
+  return {
+    sky: p.sky,
+    skyEnd: 0.95,
+    fog: p.fog,
+    vibrance: o.vibrance ?? 0.9,
+    ambience: o.ambience,
+    fx: o.fx ?? [],
+    layers: [
+      ...(o.stars ? [{ kind: 'stars', count: o.stars, bottom: 0.75, g: 0 }] : []),
+      ...(o.moon ? [{ kind: 'moon', color: p.sun, glow: p.rim, x: 0.8, y: 0.12, r: 0.035, g: 0 }] : []),
+      { kind: 'ridge', y: 0.9, amp: 0.2, freq: 1.2, ridged: true, color: p.far, haze: 0.55, mist: 0.6, seed: o.seed ?? 6, g: 0 },
+      { kind: 'mist', y: 0.9, h: 0.06, alpha: 0.5, g: 0 },
+      { kind: 'ridge', y: 0.97, amp: 0.07, freq: 1.6, color: p.mid, haze: 0.4, mist: 0.4, seed: (o.seed ?? 6) + 3, trees: { h: 0.02 }, g: 1 },
+    ],
+  };
+}
+
+export const SCENES = {
+  // The frame: an old house on a hill at night. Somebody just drove away down the valley.
+  porch: {
+    sky: P.night.sky,
+    fog: P.night.fog,
+    vibrance: 0.9,
+    ambience: 'night',
+    fx: [
+      { kind: 'stars', bottom: 0.4 },
+      { kind: 'taillights', at: 1, path: [[0.95, 0.655], [0.9, 0.61], [0.66, 0.6], [0.62, 0.575]], delay: 0.8, seconds: 12 },
+    ],
+    layers: [
+      ...backdrop(P.night, { h: 0.5, stars: 150, moon: { x: 0.24, y: 0.15 }, peaks: 0.36, seed: 4 }),
+      { kind: 'road', path: [[1.1, 0.7], [0.9, 0.6], [0.66, 0.6], [0.61, 0.57]], w0: 0.07, w1: 0.008, color: '#33406a', hazeFar: 0.5, g: 1 },
+      { kind: 'ground', y: 0.72, color: P.night.ground, amp: 0.03, seed: 2, mist: 0, g: 2, bleed: true },
+      { kind: 'glow', x: 0.42, y: 0.66, r: 0.55, color: '#ffb35c', alpha: 0.2, g: 2 },
+      { kind: 'house', x: 0.36, y: 0.75, w: 0.5, tall: 0.6, color: '#0b1020', rim: '#4a5b8c', lit: '#ffc46b', door: 0.12, doorLit: '#ffd38a', windows: [{ x: -0.36, s: 0.14 }, { x: 0.33, s: 0.12 }], g: 2 },
+      { kind: 'figure', who: 'me', x: 0.43, y: 0.748, h: 0.17, age: 'old', light: 0.32, rim: '#ffcf86', rimSide: -1, g: 2 },
+      { kind: 'pine', x: 0.95, y: 0.9, h: 0.78, color: '#05070f', seed: 31, g: 2, bleed: true },
+    ],
+  },
+
+  // The end of the frame: the same house later that night, kitchen light on, you at the window.
+  porchLate: {
+    sky: P.night.sky,
+    fog: P.night.fog,
+    vibrance: 0.85,
+    ambience: 'night',
+    fx: [{ kind: 'stars', bottom: 0.4 }],
+    layers: [
+      ...backdrop(P.night, { h: 0.5, stars: 170, moon: { x: 0.68, y: 0.12 }, peaks: 0.36, seed: 4 }),
+      { kind: 'road', path: [[1.1, 0.7], [0.9, 0.6], [0.66, 0.6], [0.61, 0.57]], w0: 0.07, w1: 0.008, color: '#33406a', hazeFar: 0.5, g: 1 },
+      { kind: 'ground', y: 0.72, color: P.night.ground, amp: 0.03, seed: 2, mist: 0, g: 2, bleed: true },
+      { kind: 'glow', x: 0.2, y: 0.62, r: 0.35, color: '#ffb35c', alpha: 0.16, g: 2 },
+      { kind: 'house', x: 0.36, y: 0.75, w: 0.5, tall: 0.6, color: '#0b1020', rim: '#4a5b8c', lit: '#ffc46b', door: 0.12, windows: [{ x: -0.36, s: 0.14, who: true }, { x: 0.33, s: 0.12, lit: null }], g: 2 },
+      { kind: 'pine', x: 0.95, y: 0.9, h: 0.78, color: '#05070f', seed: 31, g: 2, bleed: true },
+    ],
+  },
+
+  // Age 0 to 3: the family house in a valley at dawn.
+  dawnHouse: {
+    sky: P.dawn.sky,
+    fog: P.dawn.fog,
+    vibrance: 0.85,
+    ambience: 'morning',
+    fx: [{ kind: 'birds', count: 3, y: 0.2 }, { kind: 'smoke', at: 1, x: 0.6, y: 0.585 }],
+    layers: [
+      ...backdrop(P.dawn, { h: 0.5, sun: { x: 0.7, y: 0.36 }, seed: 21 }),
+      { kind: 'house', x: 0.55, y: 0.68, w: 0.3, color: '#2a2540', rim: '#ffd9b0', lit: '#ffcf7a', windows: [{ x: -0.26 }, { x: 0.12, lit: null }], g: 1 },
+      ground(P.dawn, 0.72, 5),
+      { kind: 'fence', x: 0.04, x2: 0.4, y: 0.735, h: 0.05, color: P.dawn.ink, g: 2 },
+      { kind: 'tree', x: 0.14, y: 0.75, h: 0.36, color: P.dawn.ink, rim: P.dawn.rim, seed: 4, g: 2 },
+      { kind: 'people', rim: P.dawn.rim, list: [
+        { who: 'mom', x: 0.6, y: 0.8, h: 0.22, pose: 'hand', face: -1 },
+        { who: 'me', x: 0.5, y: 0.8, h: 0.115, age: 'child', pose: 'walk' },
+      ], g: 2 },
+      { kind: 'pine', x: 1.04, y: 0.95, h: 0.8, color: '#141024', seed: 41, g: 2, bleed: true },
+    ],
+  },
+
+  // Age 6: grandma's garden on a summer morning. An apple tree, the jars.
+  garden: {
+    sky: P.morning.sky,
+    fog: P.morning.fog,
+    vibrance: 1,
+    ambience: 'morning',
+    fx: [{ kind: 'birds', count: 2, y: 0.16 }],
+    layers: [
+      ...backdrop(P.morning, { h: 0.52, sun: { x: 0.2, y: 0.18, r: 0.05, halo: 0.7 }, peaks: 0.3, seed: 33 }),
+      ground(P.morning, 0.72, 8),
+      { kind: 'house', x: 0.74, y: 0.73, w: 0.4, color: '#1d3a35', roof: '#7a3b2e', rim: P.morning.rim, windows: [{ x: -0.3 }], g: 2 },
+      { kind: 'tree', x: 0.3, y: 0.76, h: 0.5, color: '#1f4a3a', rim: P.morning.rim, fruit: '#d8463a', seed: 12, g: 2 },
+      { kind: 'fence', x: -0.1, x2: 0.62, y: 0.765, h: 0.055, color: P.morning.ink, g: 2, bleed: true },
+      { kind: 'people', rim: P.morning.rim, list: [
+        { who: 'grandma', x: 0.58, y: 0.82, h: 0.2, age: 'old', pose: 'reach', face: -1 },
+        { who: 'me', x: 0.45, y: 0.82, h: 0.135, age: 'child', pose: 'reach' },
+      ], g: 2 },
+    ],
+  },
+
+  // Age 7: dad running behind the bike, holding the seat.
+  bike: {
+    sky: P.golden.sky,
+    fog: P.golden.fog,
+    vibrance: 1,
+    ambience: 'summer',
+    fx: [{ kind: 'birds', count: 2, y: 0.22 }],
+    layers: [
+      ...backdrop(P.golden, { h: 0.5, sun: { x: 0.78, y: 0.4, r: 0.07 }, seed: 51 }),
+      { kind: 'ground', y: 0.66, color: P.golden.ground, amp: 0.02, seed: 7, mist: 0, g: 1, bleed: true },
+      { kind: 'road', path: [[0.5, 1.05], [0.42, 0.78], [0.62, 0.68], [0.55, 0.62]], w0: 0.7, w1: 0.02, color: '#a87a55', hazeFar: 0.7, g: 2, bleed: true },
+      { kind: 'tree', x: 0.18, y: 0.68, h: 0.4, color: P.golden.ink, rim: P.golden.rim, seed: 2, g: 2 },
+      { kind: 'figure', who: 'me', x: 0.52, y: 0.82, h: 0.155, age: 'child', pose: 'bike', rim: P.golden.rim, g: 2 },
+      { kind: 'figure', who: 'dad', x: 0.36, y: 0.83, h: 0.23, pose: 'push', bend: 0.55, stride: true, rim: P.golden.rim, g: 2 },
+    ],
+  },
+
+  // The same road a moment later: dad far behind, waving. You are on your own.
+  bikeAlone: {
+    sky: P.golden.sky,
+    fog: P.golden.fog,
+    vibrance: 1,
+    ambience: 'summer',
+    fx: [{ kind: 'birds', count: 2, y: 0.22 }],
+    layers: [
+      ...backdrop(P.golden, { h: 0.5, sun: { x: 0.78, y: 0.4, r: 0.07 }, seed: 51 }),
+      { kind: 'ground', y: 0.66, color: P.golden.ground, amp: 0.02, seed: 7, mist: 0, g: 1, bleed: true },
+      { kind: 'road', path: [[0.5, 1.05], [0.42, 0.78], [0.62, 0.68], [0.55, 0.62]], w0: 0.7, w1: 0.02, color: '#a87a55', hazeFar: 0.7, g: 2, bleed: true },
+      { kind: 'tree', x: 0.18, y: 0.68, h: 0.4, color: P.golden.ink, rim: P.golden.rim, seed: 2, g: 2 },
+      { kind: 'figure', who: 'dad', x: 0.585, y: 0.665, h: 0.07, pose: 'wave', rim: P.golden.rim, g: 2 },
+      { kind: 'figure', who: 'me', x: 0.42, y: 0.92, h: 0.17, age: 'child', pose: 'bike', rim: P.golden.rim, g: 2 },
+    ],
+  },
+
+  // Age 9 to 13: summers at the lake, the pier, the best friend.
+  lake: {
+    sky: P.noon.sky,
+    fog: P.noon.fog,
+    vibrance: 1.05,
+    ambience: 'lake',
+    fx: [{ kind: 'glints', at: 1, y0: 0.6, y1: 0.85, count: 40 }, { kind: 'birds', count: 2, y: 0.18 }],
+    layers: [
+      ...backdrop(P.noon, { h: 0.5, sun: { x: 0.8, y: 0.12, r: 0.05, halo: 0.6 }, near: false, seed: 61 }),
+      { kind: 'forest', y: 0.6, hMin: 0.06, hMax: 0.12, color: P.noon.near, haze: 0.1, mist: 0.2, depth: 0.02, seed: 8, g: 1, bleed: true },
+      { kind: 'water', y: 0.6, y2: 1, colors: ['#9fd0e8', '#4f97c4', '#2f6f9e'], streaks: 30, glint: { x: 0.8, color: '#ffffff', spread: 0.05 }, g: 1, bleed: true },
+      { kind: 'pier', x: 0.42, y: 0.9, len: 0.17, w: 0.36, lean: 0.06, color: '#3a2a1e', rim: '#ffe8b8', g: 2 },
+      { kind: 'people', rim: P.noon.rim, list: [
+        { who: 'me', x: 0.44, y: 0.78, h: 0.11, age: 'child', pose: 'sit' },
+        { who: 'friend', x: 0.56, y: 0.76, h: 0.12, age: 'child', pose: 'wave' },
+      ], g: 2 },
+      { kind: 'pine', x: -0.02, y: 0.98, h: 0.9, color: '#0f2a20', seed: 64, g: 2, bleed: true },
+    ],
+  },
+
+  // Age 15: a fire in the woods with friends. A phone lights up.
+  bonfire: {
+    sky: P.blue.sky,
+    fog: P.blue.fog,
+    vibrance: 0.95,
+    ambience: 'fire',
+    fx: [{ kind: 'stars', bottom: 0.35 }, { kind: 'sparks', x: 0.5, y: 0.76 }, { kind: 'fireflies', top: 0.6, bottom: 0.85, count: 8 }],
+    layers: [
+      { kind: 'stars', count: 160, bottom: 0.5, g: 0 },
+      { kind: 'ridge', y: 0.5, amp: 0.3, freq: 1, ridged: true, color: P.blue.far, haze: 0.4, mist: 0.5, seed: 71, g: 0 },
+      { kind: 'forest', y: 0.66, hMin: 0.3, hMax: 0.55, gap: 0.07, color: P.blue.near, haze: 0.1, mist: 0.3, seed: 72, clear: [[0.3, 0.7]], g: 1, bleed: true },
+      { kind: 'ground', y: 0.72, color: P.blue.ground, amp: 0.02, seed: 3, mist: 0, g: 2, bleed: true },
+      { kind: 'fire', x: 0.5, y: 0.78, s: 0.05, g: 2 },
+      { kind: 'people', rim: '#ffb070', list: [
+        { who: 'a', x: 0.3, y: 0.8, h: 0.17, pose: 'sit', rimSide: 1, light: 0.5 },
+        { who: 'b', x: 0.68, y: 0.8, h: 0.17, pose: 'sit', face: -1, rimSide: -1, light: 0.5 },
+        { who: 'me', x: 0.8, y: 0.83, h: 0.2, pose: 'phone', face: -1, rimSide: -1, light: 0.45 },
+        { who: 'c', x: 0.18, y: 0.83, h: 0.2, rimSide: 1, light: 0.45 },
+      ], g: 2 },
+    ],
+  },
+
+  // Two in the morning: the house, one kitchen window lit, someone standing in it.
+  kitchenNight: {
+    sky: P.night.sky,
+    fog: P.night.fog,
+    vibrance: 0.85,
+    ambience: 'night',
+    fx: [{ kind: 'stars', bottom: 0.4 }],
+    layers: [
+      ...backdrop(P.night, { h: 0.52, stars: 150, peaks: 0.3, seed: 81 }),
+      ground(P.night, 0.72, 4),
+      { kind: 'glow', x: 0.4, y: 0.6, r: 0.4, color: '#ffb35c', alpha: 0.2, g: 2 },
+      { kind: 'house', x: 0.5, y: 0.75, w: 0.66, tall: 0.6, color: '#0b1020', rim: '#4a5b8c', windows: [{ x: -0.32, s: 0.15, lit: '#ffc46b', who: true }, { x: 0.2, s: 0.13, lit: null }], door: 0.02, g: 2 },
+      { kind: 'lamp', x: 0.1, y: 0.8, h: 0.5, g: 2 },
+      { kind: 'figure', who: 'me', x: 0.84, y: 0.86, h: 0.2, pose: 'walk', face: -1, light: 0.4, rim: '#ffcf86', rimSide: -1, g: 2 },
+    ],
+  },
+
+  // Eighteen: the bus stop at dusk. One bag, one bus, two people waving.
+  busStop: {
+    sky: P.dusk.sky,
+    fog: P.dusk.fog,
+    vibrance: 0.95,
+    ambience: 'evening',
+    fx: [{ kind: 'birds', count: 4, y: 0.24, color: 'rgb(40 20 40 / 0.6)' }],
+    layers: [
+      ...backdrop(P.dusk, { h: 0.52, sun: { x: 0.28, y: 0.47, r: 0.08 }, seed: 91 }),
+      ground(P.dusk, 0.72, 9),
+      { kind: 'busstop', x: 0.2, y: 0.8, w: 0.3, color: P.dusk.ink, rim: P.dusk.rim, rimSide: -1, g: 2 },
+      { kind: 'bus', x: 0.66, y: 0.79, w: 0.6, color: '#1a0f20', rim: P.dusk.rim, rimSide: -1, g: 2 },
+      { kind: 'people', rim: P.dusk.rim, rimSide: -1, list: [
+        { who: 'mom', x: 0.13, y: 0.87, h: 0.22, pose: 'wave' },
+        { who: 'dad', x: 0.26, y: 0.87, h: 0.25 },
+      ], g: 2 },
+    ],
+  },
+
+  // Nineteen: the city at night in the rain. Walking home to a dark window.
+  cityNight: {
+    sky: ['#0c1022', '#151b33', '#232a45', '#2f3550'],
+    fog: '#2a3048',
+    vibrance: 0.45,
+    ambience: 'rain',
+    fx: [{ kind: 'rain', count: 140 }],
+    layers: [
+      { kind: 'city', y: 0.62, color: '#1a2036', haze: 0.35, hMin: 0.12, hMax: 0.42, lit: '#ffd9a0', litShare: 0.1, seed: 5, g: 0, bleed: true },
+      { kind: 'mist', y: 0.6, h: 0.08, alpha: 0.5, g: 0 },
+      { kind: 'flats', x: 0.33, y: 0.74, w: 0.56, h: 0.62, rows: 9, cols: 8, color: '#10141f', litShare: 0.3, lit: '#ffcf86', dark: [6, 2], seed: 9, g: 1 },
+      { kind: 'ground', y: 0.74, color: '#0b0d16', amp: 0.005, seed: 1, mist: 0, g: 2, bleed: true },
+      { kind: 'lamp', x: 0.72, y: 0.8, h: 0.5, g: 2 },
+      { kind: 'figure', who: 'me', x: 0.6, y: 0.87, h: 0.25, pose: 'phone', light: 0.42, rim: '#ffcf86', rimSide: 1, g: 2 },
+    ],
+  },
+
+  // A small rented room at night. The window, the moon, the laptop.
+  room: {
+    sky: P.night.sky,
+    fog: P.night.fog,
+    vibrance: 0.6,
+    ambience: 'room',
+    fx: [{ kind: 'stars', at: 0, bottom: 0.4 }],
+    layers: [
+      { kind: 'stars', count: 90, bottom: 0.5, g: 0 },
+      { kind: 'moon', x: 0.62, y: 0.2, r: 0.05, color: '#f4f2ea', glow: '#a9b8e0', g: 0 },
+      { kind: 'city', y: 0.48, color: '#141a30', haze: 0.2, hMin: 0.04, hMax: 0.16, lit: '#ffd9a0', litShare: 0.12, seed: 8, g: 0, bleed: true },
+      { kind: 'room', window: [0.2, 0.08, 0.9, 0.46], color: '#0a0c14', frame: '#06070c', g: 1, bleed: true },
+      { kind: 'desk', x: 0.54, y: 0.775, w: 0.42, legs: 0.27, screen: '#a8c8ff', g: 2 },
+      { kind: 'figure', who: 'me', x: 0.4, y: 0.88, h: 0.6, pose: 'sit', back: true, light: 0.35, rim: '#a8c8ff', rimSide: 1, g: 2 },
+    ],
+  },
+
+  // Twenty-five: a hill above the city at sunrise. Colour comes back.
+  hillDawn: {
+    sky: ['#3b4a78', '#a77b98', '#f2a08a', '#ffd6a0'],
+    fog: '#efb59c',
+    vibrance: 0.85,
+    ambience: 'morning',
+    fx: [{ kind: 'birds', count: 3, y: 0.3 }],
+    layers: [
+      { kind: 'sun', x: 0.5, y: 0.5, r: 0.08, color: '#fff3d6', glow: '#ffd9a8', halo: 1.1, g: 0 },
+      { kind: 'ridge', y: 0.55, amp: 0.18, freq: 1, ridged: true, color: '#a07a90', haze: 0.5, mist: 0.6, seed: 101, g: 0 },
+      { kind: 'city', y: 0.6, color: '#5e4566', haze: 0.35, hMin: 0.015, hMax: 0.06, gap: 0, seed: 4, g: 1, bleed: true },
+      { kind: 'mist', y: 0.6, h: 0.05, alpha: 0.7, g: 1 },
+      { kind: 'ridge', y: 0.73, amp: 0.03, freq: 0.6, oct: 2, color: '#2e2338', mist: 0, seed: 102, g: 2, bleed: true },
+      { kind: 'figure', who: 'me', x: 0.4, y: 0.722, h: 0.17, pose: 'sit', light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2 },
+      { kind: 'pine', x: 0.82, y: 0.735, h: 0.42, color: '#1a1222', rim: '#ffd6a0', rimSide: -1, seed: 9, g: 2 },
+    ],
+  },
+
+  // Choice A: grandma's house in the evening, jars on the step.
+  grandmaEvening: {
+    sky: P.golden.sky,
+    fog: P.golden.fog,
+    vibrance: 0.95,
+    ambience: 'evening',
+    fx: [{ kind: 'smoke', at: 2, x: 0.67, y: 0.475 }],
+    layers: [
+      ...backdrop(P.golden, { h: 0.5, sun: { x: 0.2, y: 0.42 }, seed: 111 }),
+      ground(P.golden, 0.72, 6),
+      { kind: 'tree', x: 0.17, y: 0.76, h: 0.44, color: P.golden.ink, rim: P.golden.rim, fruit: '#c8402e', seed: 12, g: 2 },
+      { kind: 'house', x: 0.62, y: 0.76, w: 0.5, color: P.golden.ink, roof: '#6b3020', rim: P.golden.rim, rimSide: -1, lit: '#ffcf7a', door: -0.05, doorLit: '#ffd38a', windows: [{ x: -0.36 }, { x: 0.22 }], g: 2 },
+      { kind: 'people', rim: P.golden.rim, rimSide: -1, list: [
+        { who: 'grandma', x: 0.6, y: 0.8, h: 0.19, age: 'old', pose: 'wave', face: -1 },
+        { who: 'me', x: 0.36, y: 0.84, h: 0.24, pose: 'walk' },
+      ], g: 2 },
+    ],
+  },
+
+  // Choice B: the lake with friends at sunset.
+  lakeFriends: {
+    sky: P.dusk.sky,
+    fog: P.dusk.fog,
+    vibrance: 1,
+    ambience: 'lake',
+    fx: [{ kind: 'glints', at: 1, y0: 0.6, y1: 0.8, count: 30, color: 'rgb(255 210 160' }, { kind: 'sparks', x: 0.72, y: 0.8 }],
+    layers: [
+      ...backdrop(P.dusk, { h: 0.5, sun: { x: 0.45, y: 0.5, r: 0.08 }, near: false, seed: 121 }),
+      { kind: 'forest', y: 0.6, hMin: 0.05, hMax: 0.1, color: P.dusk.near, haze: 0.1, mist: 0.2, depth: 0.02, seed: 9, g: 1, bleed: true },
+      { kind: 'water', y: 0.6, y2: 0.82, colors: ['#f2a060', '#a8506a', '#4a2a4a'], glint: { x: 0.45, color: '#ffd9a0', spread: 0.08 }, g: 1, bleed: true },
+      { kind: 'ground', y: 0.8, color: P.dusk.ground, amp: 0.02, seed: 4, mist: 0, g: 2, bleed: true },
+      { kind: 'fire', x: 0.72, y: 0.84, s: 0.04, g: 2 },
+      { kind: 'people', rim: '#ffb070', list: [
+        { who: 'a', x: 0.2, y: 0.86, h: 0.18, pose: 'sit' },
+        { who: 'me', x: 0.33, y: 0.87, h: 0.22, pose: 'wave' },
+        { who: 'd', x: 0.55, y: 0.86, h: 0.18, pose: 'sit', face: -1 },
+        { who: 'b', x: 0.86, y: 0.88, h: 0.22, face: -1, rimSide: -1 },
+      ], g: 2 },
+    ],
+  },
+
+  // Grandma's funeral: January, snow, nearly no colour.
+  snow: {
+    sky: P.snow.sky,
+    fog: P.snow.fog,
+    vibrance: 0.25,
+    ambience: 'wind',
+    fx: [{ kind: 'snow', count: 110 }],
+    layers: [
+      ...backdrop(P.snow, { h: 0.5, peaks: 0.3, seed: 131 }),
+      { kind: 'ground', y: 0.72, color: '#d4dbe3', amp: 0.02, seed: 5, mist: 0, g: 2, bleed: true },
+      { kind: 'pine', x: 0.12, y: 0.75, h: 0.5, color: '#3a4552', seed: 3, g: 2 },
+      { kind: 'pine', x: 0.84, y: 0.74, h: 0.6, color: '#3a4552', seed: 4, g: 2 },
+      { kind: 'figure', who: 'me', x: 0.5, y: 0.82, h: 0.22, look: { top: '#2f323c', coat: true, neck: '#e8913a' }, g: 2 },
+    ],
+  },
+
+  // Twenty-eight: a bench at golden hour. Somebody sat down and stayed.
+  bench: {
+    sky: P.golden.sky,
+    fog: P.golden.fog,
+    vibrance: 1.1,
+    ambience: 'summer',
+    fx: [{ kind: 'fireflies', top: 0.62, bottom: 0.8, count: 10 }, { kind: 'birds', count: 2, y: 0.25 }],
+    layers: [
+      ...backdrop(P.golden, { h: 0.52, sun: { x: 0.5, y: 0.46, r: 0.08 }, seed: 141 }),
+      ground(P.golden, 0.74, 3),
+      { kind: 'tree', x: 0.8, y: 0.77, h: 0.48, color: P.golden.ink, rim: P.golden.rim, rimSide: -1, seed: 22, g: 2 },
+      { kind: 'bench', x: 0.44, y: 0.82, w: 0.27, color: P.golden.ink, rim: P.golden.rim, g: 2 },
+      { kind: 'people', rim: P.golden.rim, list: [
+        { who: 'me', x: 0.36, y: 0.82, h: 0.22, pose: 'sit' },
+        { who: 'partner', x: 0.5, y: 0.82, h: 0.21, pose: 'sit', face: -1, rimSide: -1 },
+      ], g: 2 },
+    ],
+  },
+
+  // Thirty-four: a night drive with a big moon. A small voice from the back seat.
+  carMoon: {
+    sky: P.blue.sky,
+    fog: P.blue.fog,
+    vibrance: 0.95,
+    ambience: 'car',
+    fx: [{ kind: 'stars', bottom: 0.4 }],
+    layers: [
+      ...backdrop(P.blue, { h: 0.55, stars: 120, moon: { x: 0.7, y: 0.22, r: 0.1 }, peaks: 0.3, seed: 151 }),
+      { kind: 'ground', y: 0.74, color: P.blue.ground, amp: 0.01, seed: 2, mist: 0, g: 2, bleed: true },
+      { kind: 'road', path: [[-0.2, 0.86], [0.4, 0.8], [1.2, 0.79]], w0: 0.06, w1: 0.04, color: '#3c4a78', hazeFar: 0, g: 2, bleed: true },
+      { kind: 'car', x: 0.42, y: 0.83, w: 0.42, color: '#0a0f22', rim: '#9fb0e0', inside: '#ffcf86', lights: '#ff5040', g: 2 },
+    ],
+  },
+
+  // Forty-eight: dad's garden in autumn. Showing him the phone.
+  dadGarden: {
+    sky: P.autumn.sky,
+    fog: P.autumn.fog,
+    vibrance: 0.9,
+    ambience: 'wind',
+    fx: [{ kind: 'birds', count: 3, y: 0.2, color: 'rgb(60 40 30 / 0.6)' }],
+    layers: [
+      ...backdrop(P.autumn, { h: 0.5, sun: { x: 0.25, y: 0.3, r: 0.06 }, seed: 161 }),
+      ground(P.autumn, 0.72, 7),
+      { kind: 'tree', x: 0.18, y: 0.76, h: 0.46, color: '#b5502a', rim: '#ffd9a0', seed: 31, g: 2 },
+      { kind: 'tree', x: 0.82, y: 0.75, h: 0.44, color: '#d98a34', rim: '#ffe2b0', rimSide: -1, seed: 32, g: 2 },
+      { kind: 'fence', x: -0.1, x2: 1.1, y: 0.76, h: 0.05, color: P.autumn.ink, g: 2, bleed: true },
+      { kind: 'people', rim: P.autumn.rim, list: [
+        { who: 'dad', x: 0.44, y: 0.83, h: 0.23, age: 'old', pose: 'phone' },
+        { who: 'me', x: 0.6, y: 0.83, h: 0.24, pose: 'reach', face: -1, rimSide: -1 },
+      ], g: 2 },
+    ],
+  },
+
+  // Fifty-two: mom leaving after a weekend. A taxi at the gate, the porch light on.
+  momTaxi: {
+    sky: P.blue.sky,
+    fog: P.blue.fog,
+    vibrance: 0.9,
+    ambience: 'evening',
+    fx: [{ kind: 'stars', bottom: 0.3 }],
+    layers: [
+      ...backdrop(P.blue, { h: 0.5, stars: 80, peaks: 0.32, seed: 171 }),
+      ground(P.blue, 0.72, 5),
+      { kind: 'house', x: 0.3, y: 0.76, w: 0.46, color: P.blue.ink, rim: P.blue.rim, lit: '#ffc46b', door: 0.12, doorLit: '#ffd38a', g: 2 },
+      { kind: 'car', x: 0.68, y: 0.82, w: 0.44, color: '#0a0f22', rim: P.blue.rim, rimSide: -1, inside: '#ffe2a8', lights: '#ff5040', g: 2 },
+      { kind: 'people', rim: '#ffcf86', list: [
+        { who: 'me', x: 0.37, y: 0.765, h: 0.165, pose: 'wave', light: 0.5 },
+        { who: 'mom', x: 0.47, y: 0.83, h: 0.18, age: 'old', rimSide: -1, light: 0.5 },
+      ], g: 2 },
+    ],
+  },
+
+  // Forty-five: the same pier as the summers, in autumn. Two grown people sitting on it.
+  pierAutumn: {
+    sky: P.autumn.sky,
+    fog: P.autumn.fog,
+    vibrance: 0.95,
+    ambience: 'lake',
+    fx: [{ kind: 'glints', at: 1, y0: 0.6, y1: 0.85, count: 24, color: 'rgb(255 230 190' }],
+    layers: [
+      ...backdrop(P.autumn, { h: 0.5, sun: { x: 0.8, y: 0.34, r: 0.06 }, near: false, seed: 61 }),
+      { kind: 'forest', y: 0.6, hMin: 0.06, hMax: 0.12, color: '#8a4a2a', haze: 0.1, mist: 0.2, depth: 0.02, seed: 8, g: 1, bleed: true },
+      { kind: 'water', y: 0.6, y2: 1, colors: ['#e9c9a0', '#9a8a8a', '#4a5260'], glint: { x: 0.8, color: '#ffe8c0', spread: 0.06 }, g: 1, bleed: true },
+      { kind: 'pier', x: 0.42, y: 0.9, len: 0.17, w: 0.36, lean: 0.06, color: '#2e2018', rim: '#ffe2b0', g: 2 },
+      { kind: 'people', rim: P.autumn.rim, list: [
+        { who: 'me', x: 0.42, y: 0.79, h: 0.17, pose: 'sit' },
+        { who: 'friend', x: 0.54, y: 0.775, h: 0.17, pose: 'sit' },
+      ], g: 2 },
+      { kind: 'pine', x: -0.02, y: 0.98, h: 0.9, color: '#2a160e', seed: 64, g: 2, bleed: true },
+    ],
+  },
+
+  // Close-up, age 6: Grandma's hands passing you a jar of jam across the kitchen table.
+  jarHands: {
+    sky: ['#f6e2bf', '#ecc995', '#dcac72'],
+    skyEnd: 1,
+    fog: '#ecc995',
+    vibrance: 1,
+    light: 1,
+    ambience: 'morning',
+    layers: [
+      { kind: 'glow', x: 0.1, y: 0.12, r: 1, color: '#fff4d8', alpha: 0.55, g: 0 },
+      { kind: 'ground', y: 0.66, color: '#8a5634', amp: 0.004, seed: 3, g: 1, bleed: true },
+      { kind: 'jar', x: 0.47, y: 0.69, w: 0.26, g: 2 },
+      { kind: 'arm', who: 'grandma', from: [1.25, 0.4], to: [0.66, 0.57], size: 0.19, fingers: 'open', g: 2, bleed: true },
+      { kind: 'arm', who: 'me', from: [-0.2, 0.86], to: [0.26, 0.61], size: 0.13, fingers: 'open', g: 2, bleed: true },
+    ],
+  },
+
+  // Close-up, age 31: a newborn holding on to your finger.
+  babyHand: {
+    sky: ['#f7ecdd', '#efdcc4', '#e4c6a6'],
+    skyEnd: 1,
+    fog: '#efdcc4',
+    vibrance: 1,
+    light: 1,
+    ambience: 'room',
+    layers: [
+      { kind: 'glow', x: 0.85, y: 0.1, r: 1, color: '#fff6e6', alpha: 0.5, g: 0 },
+      { kind: 'ridge', y: 0.58, amp: 0.12, freq: 0.8, oct: 2, color: '#ead3b6', mist: 0.15, seed: 7, g: 0 },
+      { kind: 'ridge', y: 0.86, amp: 0.1, freq: 0.7, oct: 2, color: '#dfc19e', mist: 0.1, seed: 9, g: 1, bleed: true },
+      { kind: 'arm', who: 'me', from: [1.3, 0.55], to: [0.66, 0.5], size: 0.2, fingers: 'point', g: 2, bleed: true },
+      { kind: 'arm', who: 'kid', sleeve: '#f4f0e8', from: [-0.25, 0.7], to: [0.55, 0.49], size: 0.11, fingers: 'small', g: 2, bleed: true },
+      { kind: 'grip', who: 'kid', x: 0.535, y: 0.487, size: 0.03, g: 2 },
+    ],
+  },
+
+  // Backgrounds for the life lines view, one per part of the day.
+  linesDawn: linesBack(P.dawn, { ambience: 'morning', vibrance: 0.85 }),
+  linesMorning: linesBack(P.morning, { ambience: 'morning' }),
+  linesNoon: linesBack(P.noon, { ambience: 'summer' }),
+  linesDusk: linesBack(P.dusk, { ambience: 'evening' }),
+  linesNight: linesBack({ ...P.night, sky: ['#0c1022', '#151b33', '#232a45', '#2f3550'] }, { stars: 60, vibrance: 0.45, ambience: 'room' }),
+  linesSunrise: linesBack({ ...P.dawn, sky: ['#3b4a78', '#a77b98', '#f2a08a', '#ffd6a0'] }, { ambience: 'morning' }),
+  linesAfternoon: linesBack(P.autumn, { ambience: 'wind' }),
+  linesEnd: linesBack(P.night, { stars: 140, moon: true, ambience: 'night', fx: [{ kind: 'stars', bottom: 0.7 }] }),
+};
+

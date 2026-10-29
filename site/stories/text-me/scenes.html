@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- scenes.html: a work page for the art, not part of the story. It paints one scene from
+     js/scenes.js full screen, with its moving effects, so the art can be checked and tuned
+     without playing to that point. Open scenes.html?s=porch; with no ?s= it lists them all;
+     scenes.html?check lists every prop that reaches past the column or is out of
+     scale with the people next to it (see js/check.js). -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Scenes</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #0d1020; color: #efe9de; font: 15px/1.5 system-ui, sans-serif; }
+      #stage { position: fixed; inset: 0; overflow: hidden; }
+      #stage canvas { position: absolute; top: 0; left: 0; }
+      ul { padding: 24px; }
+      a { color: #f3b46a; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <script type="module">
+      import { SCENES } from './js/scenes.js';
+      import { Stage } from './js/stage.js';
+
+      const query = new URLSearchParams(location.search);
+      const id = query.get('s');
+      if (query.has('check')) {
+        const { checkScenes, checkScales } = await import('./js/check.js');
+        const problems = [...checkScenes(new Stage(document.getElementById('stage')).view()), ...checkScales()];
+        const report = problems.length ? problems.join('\n') : 'clean';
+        document.body.insertAdjacentHTML('beforeend', `<pre id="report">${report}</pre>`);
+      } else if (!id) {
+        document.body.insertAdjacentHTML('beforeend',
+          `<ul>${Object.keys(SCENES).map((k) => `<li><a href="?s=${k}">${k}</a></li>`).join('')}</ul>`);
+      } else {
+        const stage = new Stage(document.getElementById('stage'));
+        stage.show(id, { instant: true });
+      }
+    </script>
+  </body>
+</html>
