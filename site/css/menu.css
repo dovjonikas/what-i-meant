@@ -1,6 +1,8 @@
 /* menu.css: styles for the story menu (site/index.html).
+   The page is laid out for a phone at every screen size: on a computer it is a phone-wide
+   column in the middle, and the screen on both sides is frosted glass (.glass).
    Order: tokens, page and backdrop, header, title, cards, dots, start screen, page states,
-   wide screens, reduced motion. The page states are classes on <body>, set by js/main.js. */
+   the side glass, reduced motion. The page states are classes on <body>, set by js/main.js. */
 
 :root {
   /* Colours: a blue-hour night with one warm lamp. */
@@ -22,9 +24,11 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 
   --gutter: 20px;
-  --card-w: min(70vw, 320px);
+  --app-w: min(100vw, 430px); /* the phone-wide column everything is laid out in */
+  --card-w: calc(var(--app-w) * 0.7);
   --card-gap: 14px;
   --radius: 18px;
+  --lamp-size: 110vmax;
 
   color-scheme: dark;
 }
@@ -69,10 +73,11 @@ body::before {
 .lamp {
   position: fixed;
   z-index: -1;
-  top: -55vmax;
-  right: -50vmax;
-  width: 110vmax;
-  height: 110vmax;
+  /* Centred just inside the top right corner of the column. */
+  top: calc(var(--lamp-size) * -0.5);
+  right: calc((100% - var(--app-w)) / 2 - var(--lamp-size) * 0.45);
+  width: var(--lamp-size);
+  height: var(--lamp-size);
   pointer-events: none;
   background: radial-gradient(closest-side, rgb(243 180 106 / 0.34), rgb(243 180 106 / 0.1) 50%, transparent);
   opacity: 0.5;
@@ -92,6 +97,8 @@ body::after {
 
 /* Header: what this is, and the sound switch. */
 .bar {
+  width: var(--app-w);
+  margin-inline: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -161,6 +168,8 @@ body::after {
 }
 
 .title-wrap {
+  width: var(--app-w);
+  margin-inline: auto;
   padding: 0 var(--gutter);
 }
 
@@ -169,7 +178,7 @@ body::after {
 .title {
   width: fit-content;
   margin: 0;
-  font-size: clamp(56px, 17.5vw, 132px);
+  font-size: clamp(52px, calc(var(--app-w) * 0.175), 76px);
   font-weight: 400;
   line-height: 0.9;
   letter-spacing: -0.015em;
@@ -196,7 +205,8 @@ body::after {
   transition: font-variation-settings 900ms var(--ease-out) calc(250ms + var(--i) * 45ms);
 }
 
-/* Story cards. The row scrolls sideways on phones and snaps a card to the middle. */
+/* Story cards. The row scrolls sideways and snaps a card to the middle. It spans the whole
+   screen, so on a computer the cards beside the column show, blurred, under the glass. */
 .shelf {
   display: flex;
   gap: var(--card-gap);
@@ -457,39 +467,40 @@ body:not(.is-gate) .gate {
   }
 }
 
-/* Wide screens: all cards fit in one row, so the row stops scrolling and lines up with
-   the title in one centred column. */
-@media (min-width: 860px) {
+/* The side glass, on screens wider than a phone. It covers the whole screen, blurs what
+   is behind it and is cut away over the column by a mask; the mask fades in over 48px
+   past each edge, so the column runs into the blur smoothly. Taps pass through it, so
+   the blurred cards can still be clicked. */
+.glass {
+  --edge: calc((100% - var(--app-w)) / 2);
+  --fade: 48px;
+  --cutout: linear-gradient(
+    to right,
+    #000 calc(var(--edge) - var(--fade)),
+    transparent var(--edge),
+    transparent calc(100% - var(--edge)),
+    #000 calc(100% - var(--edge) + var(--fade))
+  );
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  display: none;
+  pointer-events: none;
+  background: rgb(18 26 44 / 0.3);
+  -webkit-backdrop-filter: blur(22px) saturate(115%);
+  backdrop-filter: blur(22px) saturate(115%);
+  -webkit-mask-image: var(--cutout);
+  mask-image: var(--cutout);
+}
+
+@media (min-width: 500px) {
   :root {
-    --gutter: 56px;
-    --card-w: 250px;
-    --card-gap: 28px;
-    --row: calc(var(--card-w) * 3 + var(--card-gap) * 2);
+    /* Sized by the screen height here, so the glow stays near the column. */
+    --lamp-size: 110vh;
   }
 
-  .bar {
-    width: min(100%, calc(var(--row) + var(--gutter) * 2));
-    margin-inline: auto;
-    padding-inline: var(--gutter);
-  }
-
-  .menu {
-    gap: 48px;
-  }
-
-  .title-wrap,
-  .shelf {
-    width: var(--row);
-    margin-inline: auto;
-    padding-inline: 0;
-  }
-
-  .shelf {
-    overflow: visible;
-  }
-
-  .dots {
-    display: none;
+  .glass {
+    display: block;
   }
 }
 

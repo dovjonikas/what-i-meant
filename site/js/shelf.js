@@ -1,8 +1,8 @@
 // shelf.js: builds the row of story cards and the dots under it.
 //
-// On phones the row scrolls sideways and snaps one card to the middle; the cards beside it
-// are drawn a little smaller and dimmer so the middle one reads as the one you are on.
-// On wide screens all cards fit, so nothing scrolls and every card is shown in full.
+// The row scrolls sideways and snaps one card to the middle; the cards beside it are drawn
+// a little smaller and dimmer so the middle one reads as the one you are on. Touch swipes
+// scroll it natively; on a computer the mouse wheel and the arrow keys move one card at a time.
 
 import { drawCover } from './covers.js';
 
@@ -26,7 +26,7 @@ export function renderShelf(list, dots, stories, { onLockedTap }) {
     if (cover.tagName === 'CANVAS') drawCover(cover, story.cover, i + 1);
 
     card.addEventListener('click', (event) => {
-      // On phones a card at the side is brought to the middle first; the tap does nothing else.
+      // A card at the side is brought to the middle first; the tap does nothing else.
       if (i !== current && isScrollable()) {
         event.preventDefault();
         scrollToCard(i);
@@ -95,6 +95,27 @@ export function renderShelf(list, dots, stories, { onLockedTap }) {
   list.addEventListener('scroll', scheduleFocus, { passive: true });
   window.addEventListener('resize', scheduleFocus);
   updateFocus();
+
+  // A wheel turned up or down moves one card; a short pause stops one wheel turn from
+  // skipping several cards. Sideways trackpad swipes are left to scroll natively.
+  let wheelPause = 0;
+  list.addEventListener('wheel', (event) => {
+    if (!isScrollable() || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+    event.preventDefault();
+    if (wheelPause || Math.abs(event.deltaY) < 4) return;
+    step(Math.sign(event.deltaY));
+    wheelPause = setTimeout(() => { wheelPause = 0; }, 450);
+  }, { passive: false });
+
+  document.addEventListener('keydown', (event) => {
+    if (list.inert) return; // the menu is not open yet
+    if (event.key === 'ArrowRight') step(1);
+    else if (event.key === 'ArrowLeft') step(-1);
+  });
+
+  function step(direction) {
+    scrollToCard(Math.min(cards.length - 1, Math.max(0, current + direction)));
+  }
 
   // A short sideways shake: the card heard the tap, the story just is not out yet.
   // Played with the Web Animations API, so a second tap restarts it cleanly.

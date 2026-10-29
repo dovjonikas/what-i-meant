@@ -16,7 +16,7 @@ browsers do not load ES modules from `file://` pages.
 
 | Path | What it is |
 |---|---|
-| `index.html` | The menu: start screen, title, story cards, sound switch |
+| `index.html` | The menu: start screen, title, story cards, sound switch. Laid out for a phone at every size; on a computer it is a phone-wide column with frosted glass on both sides |
 | `css/menu.css` | Menu styles: colours, fonts, layout, page states |
 | `js/main.js` | Entry point; wires everything below together |
 | `js/stories.js` | The list of stories the menu is built from. Edit this to add a story |
