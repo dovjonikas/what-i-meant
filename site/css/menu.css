@@ -310,7 +310,8 @@ body::after {
 
 .card-name {
   font-size: 26px;
-  line-height: 1;
+  line-height: 1.05;
+  text-wrap: balance;
   font-variation-settings: var(--name);
 }
 

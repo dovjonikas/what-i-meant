@@ -11,7 +11,7 @@
 // To add a story: add its folder under site/stories/, then set its entry here to 'out'.
 
 export const STORIES = [
-  { id: 'story-01', number: '01', status: 'soon', cover: 'pixel' },
-  { id: 'story-02', number: '02', status: 'soon', cover: 'photo' },
+  { id: 'text-me', number: '01', status: 'out', title: 'Text me when you get home', image: 'stories/text-me/cover.jpg' },
+  { id: 'story-02', number: '02', status: 'soon', cover: 'pixel' },
   { id: 'story-03', number: '03', status: 'soon', cover: 'ink' },
 ];
