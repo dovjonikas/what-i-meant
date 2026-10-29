@@ -48,6 +48,24 @@ export class Captions {
     await tap();
   }
 
+  /** Shows a line without waiting for a tap (used over the open phone); clear() hides it. */
+  show(text) {
+    const line = document.createElement('div');
+    line.className = 'line is-done';
+    const p = document.createElement('p');
+    p.className = 'line-text';
+    text.split(' ').forEach((w, i, all) => {
+      const span = document.createElement('span');
+      span.className = 'word';
+      span.textContent = w;
+      span.style.animationDelay = `${i * WORD_MS}ms`;
+      p.append(span, i < all.length - 1 ? ' ' : '');
+    });
+    line.append(p);
+    this.clear();
+    this.el.append(line);
+  }
+
   clear() {
     for (const old of this.el.querySelectorAll('.line')) {
       old.classList.add('is-gone');

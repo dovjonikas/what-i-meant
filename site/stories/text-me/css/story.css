@@ -450,6 +450,22 @@ button {
   overflow: hidden;
 }
 
+/* Words the player types by hand wait in grey after the caret. */
+.phone-ghost {
+  color: rgb(255 255 255 / 0.32);
+}
+
+.is-typing-by-hand .phone-field::after {
+  content: "tap to type";
+  position: absolute;
+  right: 54px;
+  bottom: 64px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+  animation: breathe 1.8s ease-in-out infinite;
+}
+
 .phone-caret {
   display: inline-block;
   width: 2px;
@@ -801,6 +817,30 @@ body:not(.is-gate) .gate {
   margin: 0;
   color: var(--dim);
   font-size: 15px;
+  line-height: 1.45;
+}
+
+.gate-about {
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.gate-about summary {
+  width: fit-content;
+  padding: 6px 0;
+  cursor: pointer;
+  list-style: none;
+  text-decoration: underline;
+  text-decoration-color: rgb(243 238 229 / 0.3);
+  text-underline-offset: 4px;
+}
+
+.gate-about summary::-webkit-details-marker {
+  display: none;
+}
+
+.gate-about p {
+  margin: 4px 0 6px;
   line-height: 1.45;
 }
 

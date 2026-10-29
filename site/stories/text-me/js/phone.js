@@ -15,6 +15,9 @@
 //   { erase: true }             deletes what is typed
 //   { status: 'Delivered' }     a small label under your last message
 //   { wait: ms, typing }        a pause; `typing` shows the other side typing meanwhile
+//   { note: 'line', ms }        a line of narration over the phone while it stays open
+// `byHand: true` on a pick or a type step lets the player type the words: each tap types
+// the next letters (they type themselves if the player waits).
 // Any step may carry `if: { flag: value }`, and `music` to change the score when it lands.
 
 const TYPE_MS = 45; // per character when a reply types itself
@@ -84,6 +87,10 @@ export class Phone {
     } else if (s.wait) {
       if (s.typing) await this.typing(s.wait);
       else await sleep(s.wait);
+    } else if (s.note) {
+      ctx.note?.(s.note);
+      await sleep(s.ms ?? 4200);
+      ctx.note?.(null);
     } else if (s.pick) {
       const picked = await this.choose(s.pick);
       const text = picked.text ?? picked;
@@ -92,7 +99,7 @@ export class Phone {
         // Nothing is sent: the phone just goes back in the pocket.
         await sleep(400);
       } else {
-        await this.typeOut(text);
+        await this.typeOut(text, false, s.byHand);
         await this.sendNow();
       }
     } else if (s.draft) {
@@ -103,7 +110,7 @@ export class Phone {
       this.send.classList.remove('is-ready');
       await this.sendNow();
     } else if (s.type) {
-      await this.typeOut(s.type, s.unsendable);
+      await this.typeOut(s.type, s.unsendable, s.byHand);
       if (s.ask) {
         const choice = await this.choose(s.ask);
         if (s.set) ctx.flags[s.set] = choice;
@@ -181,12 +188,36 @@ export class Phone {
     });
   }
 
-  async typeOut(text, unsendable = false) {
+  async typeOut(text, unsendable = false, byHand = false) {
     this.el.classList.toggle('is-unsendable', unsendable);
-    for (const ch of text) {
-      this.text.textContent += ch;
-      this.ctx.sfx?.tick();
-      await sleep(TYPE_MS + Math.random() * 40);
+    if (byHand) {
+      // The words wait in grey; each tap types the next letters, as if on a keyboard.
+      // Waiting a few seconds types them anyway, so nobody gets stuck.
+      const ghost = document.createElement('span');
+      ghost.className = 'phone-ghost';
+      this.el.querySelector('.phone-caret').after(ghost);
+      this.el.classList.add('is-typing-by-hand');
+      let i = 0;
+      while (i < text.length) {
+        ghost.textContent = text.slice(i);
+        const tapped = await Promise.race([this.ctx.tap().then(() => true), sleep(2600).then(() => false)]);
+        if (!tapped) this.ctx.untap?.();
+        const n = tapped ? 2 : text.length - i;
+        for (const ch of text.slice(i, i + n)) {
+          this.text.textContent += ch;
+          this.ctx.sfx?.tick();
+          await sleep(35);
+        }
+        i += n;
+      }
+      ghost.remove();
+      this.el.classList.remove('is-typing-by-hand');
+    } else {
+      for (const ch of text) {
+        this.text.textContent += ch;
+        this.ctx.sfx?.tick();
+        await sleep(TYPE_MS + Math.random() * 40);
+      }
     }
     this.send.disabled = unsendable;
   }

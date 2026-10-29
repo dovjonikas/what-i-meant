@@ -160,6 +160,7 @@ export class Player {
       tap: () => this.tap(),
       sfx: this.sound,
       music: (act) => this.music(act),
+      note: (text) => (text ? this.captions.show(text) : this.captions.clear()),
       // Drops a waiting tap when the phone closed by itself, so a late tap does not skip
       // the line that comes next.
       untap: () => {
@@ -200,11 +201,17 @@ export class Player {
     this.ui.hint(h.hint);
     let done = 0;
     let last = performance.now();
+    let taps = this.downAt;
     await new Promise((resolve) => {
       const step = (now) => {
         if (this.holding) {
           done += now - last;
           this.sound?.step?.(done);
+        }
+        // Tapping works too, a step at a time, for anyone who cannot hold.
+        if (this.downAt !== taps) {
+          taps = this.downAt;
+          done += h.ms * 0.08;
         }
         last = now;
         this.ui.progress(done / h.ms);

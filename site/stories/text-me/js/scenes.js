@@ -236,6 +236,26 @@ export const SCENES = {
     ],
   },
 
+  // Age 16: the evening before the vet comes. Holding walks you both slowly to the gate,
+  // where he sits down one more time.
+  lastWalk: {
+    sky: P.dusk.sky,
+    fog: P.dusk.fog,
+    vibrance: 0.85,
+    ambience: 'evening',
+    fx: [{ kind: 'birds', count: 2, y: 0.22, color: 'rgb(40 20 40 / 0.5)' }],
+    layers: [
+      ...backdrop(P.dusk, { h: 0.5, sun: { x: 0.3, y: 0.47, r: 0.08 }, seed: 57 }),
+      ground(P.dusk, 0.72, 13),
+      { kind: 'house', x: 0.72, y: 0.74, w: 0.42, color: P.dusk.ink, roof: '#4a1e2a', rim: P.dusk.rim, rimSide: -1, lit: '#ffc46b', windows: [{ x: -0.3 }, { x: 0.18 }], g: 2 },
+      { kind: 'gate', x: 0.42, y: 0.79, h: 0.075, from: -0.1, to: 1.1, color: '#1e1424', rim: P.dusk.rim, rimSide: -1, g: 2, bleed: true },
+      { kind: 'people', rim: P.dusk.rim, rimSide: -1, list: [
+        { who: 'me', x: 0.7, y: 0.88, h: 0.21, pose: 'walk', face: -1, track: [[0.7, 0.88, 0.21], [0.6, 0.87, 0.21], [0.5, 0.86, 0.21]], poses: [[0.98, 'stand']] },
+        { who: 'dog', age: 'old', x: 0.78, y: 0.875, h: 0.055, face: -1, turn: true, track: [[0.78, 0.875, 0.055], [0.62, 0.86, 0.055], [0.44, 0.845, 0.055]], poses: [[0.97, 'sit']] },
+      ], g: 2 },
+    ],
+  },
+
   // Age 16: the next day. Nobody at the gate, the lead on the post.
   gateEmpty: {
     sky: ['#1b2348', '#3d4a7a', '#7d7fa6', '#b39aa8'],
