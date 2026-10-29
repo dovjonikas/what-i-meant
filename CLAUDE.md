@@ -1,25 +1,18 @@
-# What I Meant - project instructions
+# What I Meant
 
-A public collection of interactive stories by Dovydas: his thoughts, made visual. Each story is its
-own small game with its own visual style and its own way to play, told in episodes, chosen from one
-menu. Played in the browser, phones first. Everything in this repo is in English.
+Notes for coding agents working in this repo.
 
-## This repo is public
-- Nothing private goes in: no real names of the people in his life, nothing from his journal, unless
-  he decides it himself, piece by piece.
-- His voice: the story text is his own sentences. Never write lines for him in his name; draft only
-  when he asks, and mark drafts as drafts.
+## Rules
+- README.md is not edited unless the author asks.
+- Story text is written by the author. Do not write story lines. Drafts only on request, marked DRAFT.
+- Nothing private: no real names, nothing from the author's private notes unless the author adds it.
+- Code: someone new must find their way without help. Each folder has a short README, each file
+  starts with a comment on what it is for, comments explain why, names are plain, files stay small.
+- Commits: English, imperative, one change each.
 
-## How the work is done (his calls)
-- **README.md stays exactly as it is until he says to change it** (10-29: the stories and the research come first).
-- **Professional, as a programmer would on GitHub** (10-29): someone who sits down and has never seen
-  the project knows what is where and what to fix. Every folder has a short README; every file opens
-  with a comment saying what it is for; comments explain why, not what the line says; clear names;
-  small focused files; commits in English, imperative, one change each.
-
-## Memory lives in the journal (read-only from here)
-- `D:/Claude Code/Interactive_Journal/projects/what-i-meant/README.md` - the plan, his calls, the state.
-Never write into the journal from this project.
+## Context
+The author's private notes live outside this repo (read-only):
+`D:/Claude Code/Interactive_Journal/projects/what-i-meant/README.md`
 
 ## Docs
-- `docs/reports/` - research reports. `docs/research_notes/` - the notes behind them.
+- `docs/reports/` research reports. `docs/research_notes/` the notes behind them.
