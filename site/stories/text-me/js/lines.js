@@ -79,6 +79,12 @@ export class Lines {
     }
   }
 
+  /** Gives somebody on the lines a new name (the dog, once the player has named him). */
+  rename(id, label) {
+    const p = this.people.get(id);
+    if (p) p.label = label;
+  }
+
   /** The whole state, for saving; load() puts it back. */
   save() {
     return { age: this.age, people: [...this.people].map(([key, p]) => ({ ...p, key, trail: thin(p.trail) })) };

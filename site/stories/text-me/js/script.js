@@ -22,7 +22,7 @@
 // Any beat, and any event in the life lines, can carry `if: { flag: value }`; it plays only
 // when the flag has that value (or, for a list such as `picks`, contains it). The choices
 // come back later this way: what you told Mom at sixteen, who you kept close, the weekend,
-// whether you wrote to your best friend, and your last reply.
+// whether you wrote to your best friend, and your last reply; the dog's name is yours too.
 //
 // The thread through it: it opens on somebody's phone one night long ago, typing dots that
 // stop and a question typed and deleted, with no names. At nineteen, in the city, you type
@@ -89,12 +89,14 @@ export const SCRIPT = [
   { say: 'Dad says you get that from Mom.' },
   { say: "Mom doesn't say anything. Which is also a no." },
   { lines: { scene: 'linesMorning', to: 5.6, events: [
-    { at: 5, join: 'dog', label: 'Biscuit', x: 0.58, from: 'fade' },
+    { at: 5, join: 'dog', label: 'puppy', x: 0.58, from: 'fade' },
   ] } },
   { scene: 'puppy', push: 1.04, save: true },
   { say: 'Dad comes home with a box that is moving.' },
   { say: 'Mom says absolutely not.' },
-  { say: 'You call him Biscuit. Mom says absolutely not to that too.' },
+  { say: 'He needs a name. Dad says it is your call.' },
+  { choose: 'dog', options: [{ text: 'Biscuit', value: 'Biscuit' }, { text: 'Bear', value: 'Bear' }, { text: 'Pepper', value: 'Pepper' }] },
+  { say: 'You call him {dog}. Mom says absolutely not to that too.' },
   { say: 'He smells of milk and grass and he sleeps on your bed that night, and every night after.' },
   { say: 'He steals one shoe from every pair in the house.' },
   { lines: { scene: 'linesMorning', to: 6, events: [] } },
@@ -148,7 +150,7 @@ export const SCRIPT = [
   { say: "You don't text him when you get there." },
   { say: 'He never brings it up. He just asks again the next time.' },
   { scene: 'dogGate', push: 1.03 },
-  { say: "Every day after school Biscuit's at the gate before you come round the corner." },
+  { say: "Every day after school {dog}'s at the gate before you come round the corner." },
   { say: "Nobody tells him what time you'll be home. He just knows." },
   { lines: { scene: 'linesNoon', to: 14, events: [
     { at: 11.8, say: 'The curl breaks halfway. He laughs, and then he looks at it for a while.' },
@@ -160,7 +162,7 @@ export const SCRIPT = [
     { at: 14.3, leave: 'friend', side: 'left', slow: true },
   ] } },
   { scene: 'dogOld', music: 'evening', push: 1.04 },
-  { say: "One day Biscuit isn't at the gate." },
+  { say: "One day {dog} isn't at the gate." },
   { say: "You find him asleep by the door. He didn't hear you." },
   { say: "After that you're the one who checks on him." },
   { scene: 'bonfire', music: 'noon', push: 1.04, save: true },

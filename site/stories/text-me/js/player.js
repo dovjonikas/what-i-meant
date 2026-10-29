@@ -4,6 +4,7 @@
 // to do for each beat. Beat types are listed at the top of script.js.
 
 import { SCRIPT, CAST } from './script.js';
+import { setName } from './fx.js';
 import { matches, sleep } from './phone.js';
 
 const SAVE_KEY = 'wim.text-me';
@@ -101,6 +102,7 @@ export class Player {
     if (saved) {
       this.i = saved.i;
       this.flags = saved.flags ?? {};
+      if (this.flags.dog) setName('dog', this.flags.dog);
       this.lines.load(saved.lines);
       if (saved.scene) await this.stage.show(saved.scene, { instant: true });
       if (saved.act) this.music(saved.act);
@@ -139,7 +141,7 @@ export class Player {
       return;
     }
     if (b.music) return this.music(b.music);
-    if (b.say) return this.captions.say(b.say, b.by, tap);
+    if (b.say) return this.captions.say(this.fill(b.say), b.by, tap);
     if (b.wait) return sleep(b.wait);
     if (b.phone) return this.runPhone(b.phone);
     if (b.lines) return this.runLines(b.lines);
@@ -147,10 +149,19 @@ export class Player {
       this.captions.clear();
       const value = await this.ui.choose(b.options);
       this.flags[b.choose] = value;
+      if (b.choose === 'dog') {
+        setName('dog', value);
+        this.lines.rename('dog', value);
+      }
       return;
     }
     if (b.hold) return this.runHold(b.hold);
     if (b.now) return this.backToNow(b.now);
+  }
+
+  /** Puts the player's own choices into a line: {dog} is the dog's name. */
+  fill(text) {
+    return text.split('{dog}').join(this.flags.dog ?? 'Biscuit');
   }
 
   music(act) {
@@ -186,7 +197,7 @@ export class Player {
     this.ui.when('');
     this.lines.show(true);
     await this.lines.run(seg, {
-      say: (text, by) => this.captions.say(text, by, () => this.tap()),
+      say: (text, by) => this.captions.say(this.fill(text), by, () => this.tap()),
       phone: (spec) => this.runPhone(spec),
       music: (act) => this.music(act),
       pick: (spec, toggle) => {

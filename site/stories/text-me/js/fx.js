@@ -12,7 +12,13 @@ import { drawPerson, markOf } from './people.js';
 
 // Who is who: as a scene comes in, each person you know gets their name above them for a
 // few seconds, in their own colour, then it fades. People passing through get none.
-const NAMES = { me: 'you', mom: 'mom', dad: 'dad', grandma: 'grandma', grandpa: 'grandpa', friend: 'best friend', partner: 'partner', kid: 'your kid', dog: 'Biscuit' };
+// The dog is 'puppy' until the player names him (setName).
+const NAMES = { me: 'you', mom: 'mom', dad: 'dad', grandma: 'grandma', grandpa: 'grandpa', friend: 'best friend', partner: 'partner', kid: 'your kid', dog: 'puppy' };
+
+/** Changes the name shown over a person, once the player has chosen it. */
+export function setName(id, name) {
+  NAMES[id] = name;
+}
 const NAME_IN = 0.5;
 const NAME_HOLD = 3.4;
 const NAME_OUT = 1.2;
