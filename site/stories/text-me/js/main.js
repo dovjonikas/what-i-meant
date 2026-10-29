@@ -24,6 +24,9 @@ const soundButton = document.querySelector('.sound');
 
 registerWorker('../../');
 
+// ?check turns on the glitch checks in audit.js (for testing; players never see them).
+if (new URLSearchParams(location.search).has('check')) import('./audit.js').then((m) => m.startAudit());
+
 const saved = Player.saved();
 stage.show('porch', { instant: true });
 
@@ -77,6 +80,7 @@ function startAudio() {
     whoosh: () => sfx.whoosh(),
     tick: () => sfx.tick(),
     step: (ms) => sfx.step(ms),
+    clock: (on) => sfx.clock(on),
   };
 }
 

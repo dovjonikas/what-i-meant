@@ -1,20 +1,27 @@
 // lines.js: the life lines. Every person is a dot on the "now" line with a trail running
 // down the screen behind them: lower is longer ago, and the past fades into the hills.
-// While the player holds a finger down, the years run; people join, walk beside you,
-// drift off to the side, come back, or stop, leaving a small ring where their line ended.
+// The years run by themselves and stop wherever something happens, so nobody has to
+// guess how long to hold; a tap goes on from there, and holding a finger down only makes
+// the years go faster. People join, walk beside you, drift off to the side, come back,
+// or stop, leaving a small ring where their line ended.
 // Each person's line has their colour from people.js, so the dot is somebody you know.
 //
 // run(segment, hooks) plays one stretch of years from script.js and resolves at its end.
-// Event fields: at (age), join, label, x, from ('left', 'right', 'fade', 'birth'),
+// Event fields: at (age), join, label, look (whose colour, from people.js), x, from
+// ('left', 'right', 'fade', 'birth'),
 // dashed, move + x, leave + side ('left', 'right', 'fade') + slow, back + x, end, cross
-// (a list of strangers), and things to do on the way: say, phone, music, pick.
+// (a list of strangers), and things to do on the way: say (with `by` for a spoken line),
+// phone, music, pick.
 
 import { markOf } from './people.js';
-import { hexToRgb, rgbToCss, mix } from './util.js';
+import { hexToRgb, rgbToCss, mix, vivid, readable } from './util.js';
 
-const RATE = 1.15; // years per second while held
+const RATE = 0.9; // years per second on their own
+const FAST = 2.4; // how much faster while a finger is held down
 const STEP = 0.1; // years between stored trail points
 const PAPER = '#efe9de';
+// People whose names come first when there is room for only some.
+const IMPORTANT = new Set(['partner', 'kid', 'friend', 'dog', 'goose']);
 
 export class Lines {
   constructor(canvas) {
@@ -85,28 +92,33 @@ export class Lines {
   async run(seg, hooks) {
     const events = [...(seg.events ?? [])].sort((a, b) => a.at - b.at);
     let i = 0;
-    hooks.hint(seg.hint ?? 'hold');
+    this.auto = true;
+    hooks.hint(null);
     for (;;) {
       while (i < events.length && events[i].at <= this.age + 1e-6) {
         const ev = events[i++];
+        if (ev.if && !hooks.matches?.(ev.if)) continue;
         this.apply(ev, hooks);
         if (ev.music) hooks.music(ev.music);
         if (ev.say || ev.phone || ev.pick) {
           this.paused = true;
           this.holding = false;
           hooks.hint(null);
-          if (ev.say) await hooks.say(ev.say);
+          if (ev.say) await hooks.say(ev.say, ev.by);
           if (ev.phone) await hooks.phone(ev.phone);
-          if (ev.pick) this.settlePick(ev.pick, await hooks.pick(ev.pick));
+          if (ev.pick) {
+            const chosen = await hooks.pick(ev.pick);
+            this.settlePick(ev.pick, chosen);
+            hooks.flag?.(ev.pick.set ?? 'picks', chosen);
+          }
           this.paused = false;
-          hooks.hint('hold');
         }
       }
       if (this.age >= seg.to - 1e-6) break;
       const next = Math.min(seg.to, i < events.length ? events[i].at : Infinity);
       await new Promise((resolve) => this.waiters.push({ age: next, resolve }));
     }
-    hooks.hint(null);
+    this.auto = false;
   }
 
   /** Applies an event at once. Used while playing and to rebuild a saved game. */
@@ -114,7 +126,7 @@ export class Lines {
     const p = this.people.get(ev.join ?? ev.move ?? ev.leave ?? ev.back ?? ev.end);
     if (ev.join) {
       const me = this.people.get('me');
-      const person = p ?? { id: ev.join, label: ev.label, color: markOf(ev.join), trail: [] };
+      const person = p ?? { id: ev.join, label: ev.label, color: markOf(ev.look ?? ev.join), trail: [] };
       const start = { left: -0.3, right: 1.3, birth: me?.x }[ev.from] ?? ev.x ?? person.x;
       Object.assign(person, {
         label: ev.label ?? person.label, x: start, tx: ev.x ?? person.x, state: 'here',
@@ -163,7 +175,7 @@ export class Lines {
       const x = keep ? me.x + side * (0.1 + (n % 3) * 0.05) : 0.7 + n * 0.06;
       side = -side;
       this.people.set(`pick-${o.id}`, {
-        id: o.id, label: keep ? 'friend' : '', color: markOf(looks[n]), x: 1.2 + n * 0.08, tx: keep ? x : 1.6,
+        id: o.id, label: '', color: markOf(looks[n]), x: 1.2 + n * 0.08, tx: keep ? x : 1.6,
         state: keep ? 'here' : 'leaving', alpha: keep ? 1 : 0.5, speed: keep ? 1 : 0.5, faint: !keep,
         trail: [[this.age, 1.2 + n * 0.08]],
       });
@@ -173,9 +185,9 @@ export class Lines {
   tick(now) {
     const dt = this.last ? Math.min(0.05, (now - this.last) / 1000) : 0;
     this.last = now;
-    if (this.visible && this.holding && !this.paused) {
+    if (this.visible && (this.auto || this.holding) && !this.paused) {
       const target = this.waiters.length ? Math.min(...this.waiters.map((w) => w.age)) : Infinity;
-      const step = Math.min(dt * RATE, target - this.age);
+      const step = Math.min(dt * RATE * (this.holding ? FAST : 1), target - this.age);
       if (step > 0) this.advance(step);
       this.waiters = this.waiters.filter((w) => {
         if (this.age >= w.age - 1e-6) w.resolve();
@@ -221,10 +233,13 @@ export class Lines {
     const X = (u) => this.colX + u * this.colW;
     const Y = (age) => now + (this.age - age) * perYear;
 
-    ctx.fillStyle = rgbToCss(hexToRgb(PAPER), 0.9);
+    const ageY = h * 0.17;
+    const ageFill = readable(hexToRgb(PAPER), this.skyAt(ageY - 10));
+    ctx.fillStyle = rgbToCss(ageFill, 0.92);
     ctx.font = '300 30px Recursive, system-ui, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`age ${Math.floor(this.age + 1e-6)}`, w / 2, h * 0.17);
+    ctx.fillText(`age ${Math.floor(this.age + 1e-6)}`, w / 2, ageY);
+    this.ageLayout = { fill: ageFill, back: this.skyAt(ageY - 10) };
 
     const edge = ctx.createLinearGradient(X(0), 0, X(1), 0);
     edge.addColorStop(0, 'rgb(239 233 222 / 0)');
@@ -277,31 +292,35 @@ export class Lines {
     }
 
     dots.sort((a, b) => a.x - b.x);
-    // Labels go on up to three rows above the line. Your own label takes its place first;
-    // any other label that fits on no row is left off (the dot still shows) until there
-    // is room, so names never sit on top of each other.
-    const rows = [[], [], []];
+    // Names. A person's name shows only once they have stopped moving (a name sliding
+    // across others reads as a glitch), on one of two rows above the line, never on top
+    // of another name. Your own name is placed first; when two dots sit on the same spot
+    // only one of them is named. Each name's colour is adjusted until it reads clearly on
+    // the sky behind it.
+    const rows = [[], []];
+    const layout = [];
+    const lineH = 15;
     const span = (p, x) => {
       ctx.font = `${p.me ? 560 : 440} 14px Recursive, system-ui, sans-serif`;
       const half = ctx.measureText(p.label).width / 2 + 5;
       const lx = Math.min(this.colX + this.colW - half, Math.max(this.colX + half, x));
       return [lx - half, lx + half, lx];
     };
-    const place = (s) => rows.findIndex((row) => row.every(([a, b]) => s[1] <= a || s[0] >= b));
+    const free = (row, s) => rows[row].every(([a, b]) => s[1] <= a || s[0] >= b);
+    const settled = (p) => Math.max(0, 1 - Math.abs(p.tx - p.x) / 0.06) * (p.state === 'here' ? 1 : 0);
+    const rank = (p) => (p.me ? 3 : p.since !== undefined || IMPORTANT.has(p.id) ? 2 : 1);
+    const order = [...dots].sort((a, b) => rank(b.p) - rank(a.p));
     const labels = new Map();
-    const me = dots.find((d) => d.p.me);
-    if (me) {
-      const s = span(me.p, me.x);
-      rows[0].push(s);
-      labels.set(me.p, [s[2], 0]);
-    }
-    for (const { p, x } of dots) {
-      if (!p.label || p.me) continue;
+    const named = [];
+    for (const { p, x } of order) {
+      if (!p.label || (!p.me && settled(p) < 0.05)) continue;
+      if (named.some((nx) => Math.abs(nx - x) < 14)) continue;
       const s = span(p, x);
-      const row = place(s);
+      const row = free(0, s) ? 0 : free(1, s) && !dots.some((d) => d.p !== p && Math.abs(d.x - s[2]) < 10) ? 1 : -1;
       if (row === -1) continue;
       rows[row].push(s);
-      labels.set(p, [s[2], row]);
+      named.push(x);
+      labels.set(p, [s[2], row, p.me ? 1 : settled(p)]);
     }
 
     for (const { p, x, rgb } of dots) {
@@ -318,10 +337,30 @@ export class Lines {
       ctx.fill();
       const label = labels.get(p);
       if (!label) continue;
+      const ly = now - 17 - label[1] * lineH;
+      const back = this.skyAt(ly);
+      const fill = readable(mix(rgb, hexToRgb(PAPER), p.me ? 0.1 : 0.3), back);
       ctx.font = `${p.me ? 560 : 440} 14px Recursive, system-ui, sans-serif`;
-      ctx.fillStyle = rgbToCss(mix(rgb, hexToRgb(PAPER), p.me ? 0.15 : 0.55), a);
-      ctx.fillText(p.label, label[0], now - 17 - label[1] * 16);
+      ctx.fillStyle = rgbToCss(fill, a * label[2]);
+      ctx.fillText(p.label, label[0], ly);
+      if (label[2] > 0.9) layout.push({ label: p.label, x: label[0], y: ly, w: ctx.measureText(p.label).width, dot: x, fill, back });
     }
+    // Kept on the canvas element for the checks in audit.js.
+    this.canvas.layout = { labels: layout, colX: this.colX, colW: this.colW, age: this.ageLayout };
+  }
+
+  /** The colour of the background sky at screen height `y`, as painted by the stage. */
+  skyAt(y) {
+    const sky = this.backdrop?.sky ?? ['#202840', '#202840'];
+    const end = (this.backdrop?.skyEnd ?? 0.75) * this.h;
+    const k = Math.min(1, Math.max(0, y / end)) * (sky.length - 1);
+    const i = Math.min(sky.length - 2, Math.floor(k));
+    return vivid(mix(sky[i], sky[i + 1], k - i), this.backdrop?.vibrance ?? 1);
+  }
+
+  /** The stage tells the lines which scene is behind them, so names can stay readable. */
+  setBackdrop(scene) {
+    this.backdrop = scene;
   }
 }
 

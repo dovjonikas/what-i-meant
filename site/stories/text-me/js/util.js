@@ -78,3 +78,30 @@ export function lerp(a, b, t) {
 }
 
 export const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+
+/** WCAG relative luminance of an [r, g, b] colour, 0 for black to 1 for white. */
+export function luminance([r, g, b]) {
+  const f = (v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+
+/** WCAG contrast ratio between two [r, g, b] colours: 1 is none, 21 is black on white. */
+export function contrast(a, b) {
+  const la = luminance(a);
+  const lb = luminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+/** Moves a colour toward dark or light until it reads on `back` (contrast of at least 3.5). */
+export function readable(rgb, back) {
+  // Go toward whichever end, dark or light, can stand out more from this background.
+  const dark = [20, 24, 38];
+  const light = [252, 249, 242];
+  const toward = contrast(dark, back) >= contrast(light, back) ? dark : light;
+  let c = rgb;
+  for (let i = 0; i < 12 && contrast(c, back) < 3.5; i += 1) c = mix(c, toward, 0.15);
+  return c;
+}
