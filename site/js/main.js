@@ -16,6 +16,9 @@ import { registerWorker, offerInstall } from './install.js';
 
 const SOUND_KEY = 'wim.sound';
 registerWorker();
+// The home screen offer comes up on the start screen already, so whoever opens the link
+// sees it straight away (js/install.js).
+offerInstall();
 
 const ENTER_MS = 1800; // how long is-entering lasts; matches the delays in menu.css
 
@@ -103,7 +106,6 @@ function enterMenu() {
 
   setTimeout(() => {
     body.classList.replace('is-entering', 'is-live');
-    offerInstall();
   }, ENTER_MS);
 }
 

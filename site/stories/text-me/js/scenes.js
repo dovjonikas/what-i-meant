@@ -915,9 +915,9 @@ export const SCENES = {
       { kind: 'ridge', y: 0.58, amp: 0.12, freq: 0.8, oct: 2, color: '#ead3b6', mist: 0.15, seed: 7, g: 0 },
       { kind: 'ridge', y: 0.86, amp: 0.1, freq: 0.7, oct: 2, color: '#dfc19e', mist: 0.1, seed: 9, g: 1, bleed: true },
       // The baby in a blanket, a small head in a hat, one arm out, the fist round your finger.
-      { kind: 'arm', who: 'kid', sleeve: '#f0c4a2', from: [0.41, 0.6], to: [0.53, 0.485], size: 0.085, fingers: 'small', g: 2 },
-      { kind: 'swaddle', x: 0.2, y: 0.76, w: 0.86, head: true, color: '#d7e3f0', fold: '#a9b9cc', g: 2, bleed: true },
-      { kind: 'arm', who: 'me', from: [1.3, 0.55], to: [0.66, 0.5], size: 0.2, fingers: 'point', g: 2, bleed: true },
+      { kind: 'arm', who: 'kid', sleeve: '#f0c4a2', from: [0.5, 0.57], to: [0.53, 0.485], size: 0.085, fingers: 'small', g: 2 },
+      { kind: 'swaddle', x: 0.36, y: 0.7, w: 0.85, tilt: -0.35, head: true, color: '#d7e3f0', fold: '#a9b9cc', g: 2, bleed: true },
+      { kind: 'arm', who: 'me', from: [2.2, 0.6], to: [0.66, 0.5], size: 0.2, fingers: 'point', g: 2, bleed: true },
       { kind: 'grip', who: 'kid', x: 0.535, y: 0.474, size: 0.02, g: 2 },
     ],
   },

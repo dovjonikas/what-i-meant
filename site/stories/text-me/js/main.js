@@ -11,7 +11,7 @@ import { Player } from './player.js';
 import { History } from './history.js';
 import { createScore } from './score.js';
 import { createSfx } from './sfx.js';
-import { registerWorker } from '../../../js/install.js';
+import { registerWorker, offerInstall, closeInstall } from '../../../js/install.js';
 
 const SOUND_KEY = 'wim.sound'; // shared with the menu, so the choice carries over
 
@@ -30,6 +30,8 @@ captions.onLine = (by, text) => history.add(by ?? '', text);
 phone.onMessage = (who, text) => history.add(who, text);
 
 registerWorker('../../');
+// The home screen offer, on the start screen only (js/install.js).
+offerInstall('../../', () => document.body.classList.contains('is-gate'));
 
 // ?check turns on the glitch checks in audit.js (for testing; players never see them).
 if (new URLSearchParams(location.search).has('check')) import('./audit.js').then((m) => m.startAudit());
@@ -55,6 +57,7 @@ let audio = null;
 
 async function begin(from) {
   audio = startAudio();
+  closeInstall();
   document.body.classList.remove('is-gate');
   const player = new Player({ stage, captions, phone, lines, sound: audio, ui });
   await player.start(from);
