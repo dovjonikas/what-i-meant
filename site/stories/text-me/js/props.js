@@ -1484,6 +1484,306 @@ const PROPS = {
   trainer,
   swaddle,
 
+  // The small things that make a room somebody's home, each placed by the scene: a plant
+  // in a pot ('plant', `tall` for one with long leaves), a picture on the wall ('frame',
+  // `pic` [sky, hill], or `paper` for a child's drawing pinned up), a shelf of books
+  // ('shelf'), a mug with steam ('mug'), a rug ('rug'), a string of small warm lights
+  // ('lights'), coats on hooks ('hooks', each coat in its owner's colour), a bedside lamp
+  // ('lamp'), a window box of flowers ('flowers'). `dim` (0 to 1) sinks them toward `shade`
+  // for a room at night. Sizes are in column widths.
+  cozy(ctx, it, pen) {
+    const dim = it.dim ?? 0;
+    const c = (hex, alpha = 1) => pen.tone(mixHex(hex, it.shade ?? '#0b0f1c', dim), it.haze ?? 0, alpha);
+    const r = rng(it.seed ?? 5);
+    for (const thing of it.items) {
+      const x = pen.X(thing.x);
+      // `up` (column widths) lifts a thing off a floor line: onto a desk, a sill, a table.
+      const y = pen.Y(thing.y) - pen.S(thing.up ?? 0);
+      const S = (v) => pen.S(v);
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      switch (thing.is) {
+        case 'plant': {
+          // The pot, its rim, then the leaves fanning up from the soil.
+          const sz = S(thing.s ?? 0.08);
+          const leafs = thing.tall ? ['#3f7a4f', '#5b9a62', '#2f6545'] : ['#3f7a4f', '#5b9a62', '#76ad6c', '#2f6545'];
+          const n = thing.tall ? 6 : 9;
+          for (let i = 0; i < n; i += 1) {
+            const a = -Math.PI / 2 + (i / (n - 1) - 0.5) * (thing.tall ? 0.9 : 2.3) + (r() - 0.5) * 0.25;
+            const len = sz * (thing.tall ? 0.95 + r() * 0.5 : 0.45 + r() * 0.3);
+            ctx.save();
+            ctx.translate(x, y - sz * 0.5);
+            ctx.rotate(a + Math.PI / 2);
+            ctx.fillStyle = c(leafs[i % leafs.length]);
+            ctx.beginPath();
+            ctx.ellipse(0, -len / 2, thing.tall ? sz * 0.07 : sz * 0.16, len / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+          ctx.fillStyle = c(thing.pot ?? '#b5643c');
+          ctx.beginPath();
+          ctx.moveTo(x - sz * 0.32, y - sz * 0.5);
+          ctx.lineTo(x + sz * 0.32, y - sz * 0.5);
+          ctx.lineTo(x + sz * 0.24, y);
+          ctx.lineTo(x - sz * 0.24, y);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = c(mixHex(thing.pot ?? '#b5643c', '#000000', 0.22));
+          ctx.fillRect(x - sz * 0.35, y - sz * 0.56, sz * 0.7, sz * 0.1);
+          break;
+        }
+        case 'frame': {
+          const w = S(thing.w ?? 0.1);
+          const h = S(thing.h ?? 0.08);
+          ctx.fillStyle = 'rgb(0 0 0 / 0.18)';
+          ctx.fillRect(x - w / 2 + 2, y - h / 2 + 3, w, h);
+          if (thing.paper) {
+            // A child's drawing pinned up: a sun, a house, a person, in crayon.
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(thing.tilt ?? 0);
+            ctx.fillStyle = c('#f8f3e6');
+            ctx.fillRect(-w / 2, -h / 2, w, h);
+            const [a, b2] = thing.pic ?? ['#e8a33c', '#5b8fd0'];
+            ctx.fillStyle = c(a);
+            ctx.beginPath();
+            ctx.arc(-w * 0.22, -h * 0.18, Math.min(w, h) * 0.14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = c(b2);
+            ctx.fillRect(w * 0.02, -h * 0.02, w * 0.3, h * 0.3);
+            ctx.beginPath();
+            ctx.moveTo(-w * 0.02, -h * 0.02);
+            ctx.lineTo(w * 0.17, -h * 0.22);
+            ctx.lineTo(w * 0.36, -h * 0.02);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = c('#5aa04e');
+            ctx.lineWidth = Math.max(1, h * 0.05);
+            line(ctx, -w * 0.42, h * 0.34, w * 0.42, h * 0.34);
+            ctx.fillStyle = c('#c9473f');
+            ctx.beginPath();
+            ctx.arc(0, -h * 0.5, Math.max(1, w * 0.04), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            break;
+          }
+          ctx.fillStyle = c(thing.frame ?? '#4a3322');
+          ctx.fillRect(x - w / 2, y - h / 2, w, h);
+          ctx.fillStyle = c('#efe6d4');
+          const m = Math.max(1.5, w * 0.08);
+          ctx.fillRect(x - w / 2 + m, y - h / 2 + m, w - m * 2, h - m * 2);
+          const [sky, hill] = thing.pic ?? ['#9cc4e0', '#5b9a62'];
+          const ix = x - w / 2 + m * 1.8;
+          const iy = y - h / 2 + m * 1.8;
+          const iw = w - m * 3.6;
+          const ih = h - m * 3.6;
+          ctx.fillStyle = c(sky);
+          ctx.fillRect(ix, iy, iw, ih);
+          ctx.fillStyle = c(hill);
+          ctx.beginPath();
+          ctx.moveTo(ix, iy + ih);
+          ctx.lineTo(ix, iy + ih * 0.62);
+          ctx.quadraticCurveTo(ix + iw * 0.4, iy + ih * 0.3, ix + iw, iy + ih * 0.66);
+          ctx.lineTo(ix + iw, iy + ih);
+          ctx.closePath();
+          ctx.fill();
+          if (thing.sun) {
+            ctx.fillStyle = c(thing.sun);
+            ctx.beginPath();
+            ctx.arc(ix + iw * 0.72, iy + ih * 0.3, Math.max(1, ih * 0.14), 0, Math.PI * 2);
+            ctx.fill();
+          }
+          break;
+        }
+        case 'shelf': {
+          const w = S(thing.w ?? 0.26);
+          const t = Math.max(2, S(0.012));
+          const book = ['#c9473f', '#2f5a4e', '#e0a83e', '#5b8fd0', '#7b5b8e', '#d6d0c4', '#8b6a4b'];
+          let bx = x - w / 2 + S(0.01);
+          const n = thing.books ?? 7;
+          for (let i = 0; i < n; i += 1) {
+            const bw = S(0.014 + r() * 0.01);
+            const bh = S(0.045 + r() * 0.025);
+            ctx.fillStyle = c(book[(i + (thing.seed ?? 0)) % book.length]);
+            if (i === n - 1) {
+              // The last one leans.
+              ctx.save();
+              ctx.translate(bx, y);
+              ctx.rotate(0.3);
+              ctx.fillRect(0, -bh, bw, bh);
+              ctx.restore();
+            } else ctx.fillRect(bx, y - bh, bw, bh);
+            ctx.fillStyle = c('#ffffff', 0.25);
+            if (i !== n - 1) ctx.fillRect(bx + bw * 0.2, y - bh * 0.8, bw * 0.6, Math.max(0.6, bh * 0.06));
+            bx += bw + 0.6;
+          }
+          ctx.fillStyle = c(thing.wood ?? '#6b4a2e');
+          ctx.fillRect(x - w / 2, y, w, t);
+          ctx.fillStyle = 'rgb(0 0 0 / 0.16)';
+          ctx.fillRect(x - w / 2, y + t, w, t * 0.8);
+          ctx.fillStyle = c(thing.wood ?? '#6b4a2e');
+          for (const side of [-1, 1]) ctx.fillRect(x + side * w * 0.36 - t * 0.4, y + t, t * 0.8, t * 2.2);
+          break;
+        }
+        case 'mug': {
+          const sz = S(thing.s ?? 0.035);
+          ctx.strokeStyle = c(thing.color ?? '#e9e2d4');
+          ctx.lineWidth = Math.max(1, sz * 0.14);
+          ctx.beginPath();
+          ctx.arc(x + sz * 0.5, y - sz * 0.5, sz * 0.24, -Math.PI / 2, Math.PI / 2);
+          ctx.stroke();
+          ctx.fillStyle = c(thing.color ?? '#e9e2d4');
+          ctx.fillRect(x - sz * 0.45, y - sz, sz * 0.9, sz);
+          if (thing.steam !== false) {
+            ctx.strokeStyle = c('#ffffff', 0.5);
+            ctx.lineWidth = Math.max(0.8, sz * 0.1);
+            for (const dx of [-0.15, 0.18]) {
+              ctx.beginPath();
+              ctx.moveTo(x + sz * dx, y - sz * 1.2);
+              ctx.quadraticCurveTo(x + sz * (dx - 0.25), y - sz * 1.6, x + sz * dx, y - sz * 2);
+              ctx.quadraticCurveTo(x + sz * (dx + 0.25), y - sz * 2.4, x + sz * dx, y - sz * 2.8);
+              ctx.stroke();
+            }
+          }
+          break;
+        }
+        case 'rug': {
+          const w = S(thing.w ?? 0.5);
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.scale(1, thing.flat ?? 0.2);
+          ctx.fillStyle = c(thing.color ?? '#b5643c');
+          ctx.beginPath();
+          ctx.ellipse(0, 0, w / 2, w / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = c(mixHex(thing.color ?? '#b5643c', '#f6ead2', 0.45));
+          ctx.lineWidth = w * 0.03;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, w * 0.4, w * 0.4, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.lineWidth = w * 0.015;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, w * 0.28, w * 0.28, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+          break;
+        }
+        case 'lights': {
+          // A cord hanging in a curve, small bulbs along it, each with its own warm glow.
+          const x2 = pen.X(thing.x2);
+          const y2 = pen.Y(thing.y2 ?? thing.y);
+          const sag = pen.Y(thing.sag ?? 0.04);
+          const at = (t) => [x + (x2 - x) * t, y + (y2 - y) * t + Math.sin(Math.PI * t) * sag];
+          ctx.strokeStyle = c('#1c1612', 0.8);
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (let i = 0; i <= 24; i += 1) {
+            const [px, py] = at(i / 24);
+            if (i) ctx.lineTo(px, py);
+            else ctx.moveTo(px, py);
+          }
+          ctx.stroke();
+          const n = thing.n ?? 9;
+          for (let i = 0; i < n; i += 1) {
+            const [px, py] = at((i + 0.5) / n);
+            ctx.globalCompositeOperation = 'screen';
+            glow(ctx, px, py + 3, S(0.05), pen.tone(thing.color ?? '#ffcf86', 0, 0.42), pen.tone(thing.color ?? '#ffcf86', 0, 0));
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = pen.tone(thing.color ?? '#ffe2a8');
+            ctx.beginPath();
+            ctx.ellipse(px, py + 3, 1.8, 2.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          break;
+        }
+        case 'hooks': {
+          // A rail with pegs, and on them the coats of the people who live here.
+          const coats = thing.coats ?? [];
+          const gap = S(0.08);
+          const w = gap * (coats.length + 0.6);
+          ctx.fillStyle = c('#6b4a2e');
+          ctx.fillRect(x - w / 2, y - S(0.008), w, S(0.016));
+          coats.forEach((hex, i) => {
+            const cx = x - w / 2 + gap * (i + 0.8);
+            ctx.fillStyle = c('#3a2a1e');
+            ctx.fillRect(cx - 1, y - S(0.004), 2, S(0.018));
+            if (!hex) return;
+            const long = S(i % 2 ? 0.17 : 0.2);
+            ctx.fillStyle = c(hex);
+            ctx.beginPath();
+            ctx.moveTo(cx - S(0.012), y + S(0.012));
+            ctx.quadraticCurveTo(cx - S(0.04), y + S(0.02), cx - S(0.04), y + S(0.05));
+            ctx.lineTo(cx - S(0.034), y + long);
+            ctx.lineTo(cx + S(0.034), y + long);
+            ctx.lineTo(cx + S(0.04), y + S(0.05));
+            ctx.quadraticCurveTo(cx + S(0.04), y + S(0.02), cx + S(0.012), y + S(0.012));
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = c(mixHex(hex, '#000000', 0.25));
+            ctx.fillRect(cx - 0.5, y + S(0.03), 1, long - S(0.035));
+            ctx.fillRect(cx - S(0.034), y + long - S(0.01), S(0.068), S(0.01));
+          });
+          break;
+        }
+        case 'lamp': {
+          // A bedside table with a lamp on it, its light on the wall.
+          const sz = S(thing.s ?? 0.16);
+          ctx.globalCompositeOperation = 'screen';
+          glow(ctx, x, y - sz * 0.95, sz * 1.2, pen.tone('#ffb35c', 0, 0.3), pen.tone('#ffb35c', 0, 0));
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.fillStyle = c('#5a3d28');
+          ctx.fillRect(x - sz * 0.42, y - sz * 0.5, sz * 0.84, sz * 0.5);
+          ctx.fillStyle = c('#4a3020');
+          ctx.fillRect(x - sz * 0.46, y - sz * 0.54, sz * 0.92, sz * 0.06);
+          ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
+          ctx.fillRect(x - sz * 0.3, y - sz * 0.3, sz * 0.6, 1);
+          ctx.fillStyle = c('#d8cbb4');
+          ctx.fillRect(x - sz * 0.04, y - sz * 0.82, sz * 0.08, sz * 0.28);
+          ctx.fillStyle = pen.tone('#ffd9a0');
+          ctx.beginPath();
+          ctx.moveTo(x - sz * 0.14, y - sz * 1.12);
+          ctx.lineTo(x + sz * 0.14, y - sz * 1.12);
+          ctx.lineTo(x + sz * 0.24, y - sz * 0.82);
+          ctx.lineTo(x - sz * 0.24, y - sz * 0.82);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
+        case 'flowers': {
+          // A window box: the planter, leaves, and flowers in a few colours.
+          const w = S(thing.w ?? 0.5);
+          const h = S(0.04);
+          const blooms = thing.colors ?? ['#e86a6a', '#f4d35e', '#f6f0e6', '#d784b8'];
+          for (let i = 0; i < w / 4; i += 1) {
+            const fx = x - w / 2 + r() * w;
+            const fy = y - h * (0.6 + r() * 0.9);
+            ctx.fillStyle = c(r() < 0.5 ? '#3f7a4f' : '#5b9a62');
+            ctx.beginPath();
+            ctx.ellipse(fx, fy + h * 0.4, S(0.008), S(0.016), (r() - 0.5) * 1.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          for (let i = 0; i < w / 7; i += 1) {
+            const fx = x - w / 2 + S(0.01) + r() * (w - S(0.02));
+            const fy = y - h * (0.7 + r() * 0.9);
+            ctx.fillStyle = c(blooms[Math.floor(r() * blooms.length)]);
+            ctx.beginPath();
+            ctx.arc(fx, fy, Math.max(1.2, S(0.0085)), 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.fillStyle = c(thing.box ?? '#7a4e30');
+          ctx.fillRect(x - w / 2, y - h * 0.5, w, h);
+          ctx.fillStyle = 'rgb(0 0 0 / 0.2)';
+          ctx.fillRect(x - w / 2, y + h * 0.5, w, h * 0.3);
+          break;
+        }
+        default:
+          throw new Error(`Unknown cozy thing: ${thing.is}`);
+      }
+      ctx.restore();
+    }
+  },
+
   figure(ctx, it, pen) {
     drawPerson(ctx, it, pen);
   },
