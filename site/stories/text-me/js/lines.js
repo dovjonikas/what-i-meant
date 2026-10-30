@@ -35,6 +35,10 @@ const PICK_LOOKS = ['a', 'b', 'c', 'd', 'stranger', 'friend'];
 const PAPER = '#efe9de';
 // People whose names come first when there is room for only some.
 const IMPORTANT = new Set(['partner', 'kid', 'friend', 'dog', 'goose']);
+// Names that always lie flat over their dot, whatever their length; and how wide an
+// upright name is across.
+const FLAT = new Set(['mom', 'dad', 'kid']);
+const UPRIGHT = 16;
 
 export class Lines {
   constructor(canvas) {
@@ -454,6 +458,10 @@ export class Lines {
     };
     // Three rows of names, and a name may sit a little to either side of its dot, so a
     // crowded line still names everyone; a name never sits over somebody else's dot.
+    // Short names (you, Mom, Dad, kid) lie flat. Longer ones stand upright on their dot and
+    // read from it upward, like the spine of a book, so however crowded the line, each one
+    // is right above its own person; one with no room to stand lies flat instead.
+    const upright = (p) => !p.me && !FLAT.has(p.id) && p.label.length > 5;
     const rows = [[], [], []];
     const SHIFTS = [0, -14, 14, -26, 26];
     const layout = [];
@@ -465,7 +473,8 @@ export class Lines {
       return [lx - half, lx + half, lx];
     };
     const free = (row, s) => rows[row].every(([a, b]) => s[1] <= a || s[0] >= b);
-    const rank = (p) => (p.me ? 3 : p.since !== undefined || IMPORTANT.has(p.id) ? 2 : 1);
+    // You first, then the family whose names lie flat, then the people who matter most.
+    const rank = (p) => (p.me ? 4 : FLAT.has(p.id) ? 3 : p.since !== undefined || IMPORTANT.has(p.id) ? 2 : 1);
     // A name already on screen keeps its place; somebody new finds room around it.
     const order = [...dots].sort((a, b) => rank(b.p) - rank(a.p) || ((b.p.la ?? 0) > 0) - ((a.p.la ?? 0) > 0));
     const labels = new Map();
@@ -477,9 +486,21 @@ export class Lines {
         p.la = 0;
         continue;
       }
+      if (upright(p)) {
+        const c = [x - UPRIGHT / 2, x + UPRIGHT / 2, x];
+        if ([0, 1, 2].every((r) => free(r, c))) {
+          if (p.spot && p.spot[0] !== 'up') p.la = 0;
+          p.spot = ['up'];
+          p.la = Math.min(goal, (p.la ?? 0) + dt * 4);
+          for (const r of rows) r.push(c);
+          named.push(x);
+          labels.set(p, [x, 'up', p.la]);
+          continue;
+        }
+      }
       // Tries the spot this name had last frame first, so names do not jump about.
       const spots = [];
-      if (p.spot) spots.push(p.spot);
+      if (p.spot && p.spot[0] !== 'up') spots.push(p.spot);
       for (const r of [0, 1, 2]) for (const dx of SHIFTS) spots.push([r, dx]);
       let s;
       let row;
@@ -537,6 +558,28 @@ export class Lines {
       ctx.fill();
       const label = labels.get(p);
       if (!label) continue;
+      if (label[1] === 'up') {
+        ctx.font = `520 14px Recursive, system-ui, sans-serif`;
+        const len = ctx.measureText(p.label).width;
+        const foot = now - 13;
+        const back = this.skyAt(foot - len / 2);
+        const fill = readable(mix(rgb, hexToRgb(PAPER), 0.3), back);
+        const la = label[2] * (d.end === undefined ? p.alpha * (p.faint ? 0.6 : 1) : 1);
+        ctx.save();
+        ctx.translate(label[0], foot);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = rgbToCss(back, 0.7 * la);
+        ctx.strokeText(p.label, 0, 0.5);
+        ctx.fillStyle = rgbToCss(fill, la);
+        ctx.fillText(p.label, 0, 0.5);
+        ctx.restore();
+        if (label[2] > 0.9) layout.push({ label: p.label, x: label[0], y: foot, w: len, dot: x, fill, back, up: true });
+        continue;
+      }
       const ly = now - 17 - label[1] * lineH;
       const back = this.skyAt(ly);
       const fill = readable(mix(rgb, hexToRgb(PAPER), p.me ? 0.1 : 0.3), back);

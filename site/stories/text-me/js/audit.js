@@ -62,11 +62,12 @@ function checkLines() {
   const canvas = document.getElementById('lines');
   if (!canvas.classList.contains('is-on') || !canvas.layout) return;
   const { labels, colX, colW, age } = canvas.layout;
-  const box = (l) => [l.x - l.w / 2, l.y - 12, l.x + l.w / 2, l.y + 3];
+  // A flat name's box, or an upright one's: a narrow column standing on its foot.
+  const box = (l) => (l.up ? [l.x - 7, l.y - l.w, l.x + 7, l.y] : [l.x - l.w / 2, l.y - 12, l.x + l.w / 2, l.y + 3]);
   for (const l of labels) {
     const [x0, , x1] = box(l);
     if (x0 < colX - 0.5 || x1 > colX + colW + 0.5) warn(`life lines: "${l.label}" sticks out of the column`);
-    const edge = l.x - l.w / 2 - colX < 8 || colX + colW - (l.x + l.w / 2) < 8;
+    const edge = x0 - colX < 8 || colX + colW - x1 < 8;
     if (Math.abs(l.x - l.dot) > 40 && !edge) warn(`life lines: "${l.label}" is ${Math.round(Math.abs(l.x - l.dot))}px from its dot`);
     const c = contrast(l.fill, l.back);
     if (c < 3) warn(`life lines: "${l.label}" is hard to read (contrast ${c.toFixed(1)})`);

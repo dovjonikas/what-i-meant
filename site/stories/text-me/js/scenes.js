@@ -672,7 +672,7 @@ export const SCENES = {
       { kind: 'city', y: 0.62, color: '#241c46', haze: 0.35, hMin: 0.12, hMax: 0.42, lit: '#ffd9a0', litShare: 0.1, seed: 5, g: 0, bleed: true },
       { kind: 'mist', y: 0.6, h: 0.08, alpha: 0.5, g: 0 },
       { kind: 'flats', x: 0.33, y: 0.74, w: 0.56, h: 0.62, rows: 9, cols: 8, color: '#140f2a', litShare: 0.3, lit: '#ffcf86', dark: [6, 2], seed: 9, g: 1 },
-      { kind: 'ground', y: 0.74, color: P.city.ground, amp: 0.005, seed: 1, mist: 0, g: 2, bleed: true },
+      { kind: 'ground', y: 0.74, color: P.city.ground, amp: 0.005, seed: 1, mist: 0, tufts: false, g: 2, bleed: true },
       { kind: 'lamp', x: 0.72, y: 0.8, h: 0.5, g: 2 },
       { kind: 'figure', who: 'me', x: 0.62, y: 0.88, h: 0.25, pose: 'walk', face: -1, track: [[0.62, 0.88, 0.25], [0.52, 0.82, 0.21], [0.44, 0.775, 0.18]], poses: [[0.98, 'phone']], light: 0.42, rim: '#ffcf86', rimSide: -1, g: 2 },
     ],
@@ -767,7 +767,7 @@ export const SCENES = {
     fx: [{ kind: 'snow', count: 110 }],
     layers: [
       ...backdrop(P.snow, { h: 0.5, peaks: 0.3, seed: 131 }),
-      { kind: 'ground', y: 0.72, color: '#dfe3e8', amp: 0.02, seed: 6, mist: 0, g: 2, bleed: true },
+      { kind: 'ground', y: 0.72, color: '#dfe3e8', amp: 0.02, seed: 6, mist: 0, tufts: false, g: 2, bleed: true },
       { kind: 'tree', x: 0.17, y: 0.76, h: 0.44, color: '#5a5664', rim: '#ffffff', seed: 12, g: 2 },
       { kind: 'house', x: 0.62, y: 0.76, w: 0.5, color: '#4a4652', roof: '#eceaf0', rim: '#ffffff', rimSide: -1, lit: null, door: -0.05, windows: [{ x: -0.36, lit: null }, { x: 0.22, lit: null }], g: 2 },
       { kind: 'people', rim: '#ffffff', rimSide: -1, list: [
@@ -787,7 +787,7 @@ export const SCENES = {
     ambience: 'room',
     layers: [
       { kind: 'glow', x: 0.5, y: 0.08, r: 1, color: '#f4fbff', alpha: 0.5, g: 0 },
-      { kind: 'ground', y: 0.66, color: '#bcc8d4', amp: 0.002, seed: 3, g: 1, bleed: true },
+      { kind: 'ground', y: 0.66, color: '#bcc8d4', amp: 0.002, seed: 3, tufts: false, g: 1, bleed: true },
       { kind: 'jar', x: 0.5, y: 0.69, w: 0.26, g: 2 },
     ],
   },
@@ -895,7 +895,7 @@ export const SCENES = {
     ambience: 'morning',
     layers: [
       { kind: 'glow', x: 0.1, y: 0.12, r: 1, color: '#fff4d8', alpha: 0.55, g: 0 },
-      { kind: 'ground', y: 0.66, color: '#8a5634', amp: 0.004, seed: 3, g: 1, bleed: true },
+      { kind: 'ground', y: 0.66, color: '#8a5634', amp: 0.004, seed: 3, tufts: false, g: 1, bleed: true },
       { kind: 'jar', x: 0.47, y: 0.69, w: 0.26, g: 2 },
       { kind: 'arm', who: 'grandma', from: [1.25, 0.4], to: [0.66, 0.57], size: 0.19, fingers: 'open', g: 2, bleed: true },
       { kind: 'arm', who: 'me', from: [-0.2, 0.86], to: [0.26, 0.61], size: 0.13, fingers: 'open', g: 2, bleed: true },

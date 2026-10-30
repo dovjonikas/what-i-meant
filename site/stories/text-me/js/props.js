@@ -1,12 +1,15 @@
 // props.js: the things standing in a scene: houses, blocks of flats, trees, a pier, cars,
 // lamps; people.js draws the people.
-// Every prop draws as a flat silhouette; `rim` adds a thin light edge on the side the light
-// comes from, which is most of what makes a flat shape look lit.
+// Every prop draws as a flat shape with a few tones of its own colour on it (planks, trim,
+// shade: see tint()), and a soft shadow on the ground under it where it stands; `rim` adds
+// a thin light edge on the side the light comes from, which is most of what makes a flat
+// shape look lit. Small irregularities (a seam with a gap, a picket a little taller) are
+// on purpose: they keep the scenes looking made by hand.
 //
 // drawProp(ctx, item, pen) picks the function by item.kind. Positions and sizes follow the
 // rules at the top of painter.js; `y` is where the prop stands.
 
-import { rng } from './util.js';
+import { rng, mix, rgbToCss } from './util.js';
 import { pinePath } from './painter.js';
 import { drawPerson, LOOKS } from './people.js';
 import { jar, arm, grip, album, trainer, swaddle } from './closeups.js';
@@ -30,6 +33,41 @@ function withRim(ctx, it, pen, shape) {
   shape(pen.tone(it.color ?? '#141826', it.haze ?? 0));
 }
 
+/**
+ * The prop's own colour, lightened toward its light (k > 0, toward the rim colour) or
+ * darkened (k < 0): the few extra tones that give a flat shape its planks, trim and shade.
+ */
+function tint(pen, it, k, alpha = 1, hex = it.color ?? '#141826') {
+  const base = pen.rgb(hex, it.haze ?? 0);
+  const to = k > 0 ? pen.rgb(it.rim ?? '#ffffff') : [0, 0, 0];
+  return rgbToCss(mix(base, to, Math.abs(k)), alpha);
+}
+
+/** A soft shadow on the ground under something standing there, `w` wide. */
+function footShadow(ctx, x, y, w, alpha = 0.3) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1, 0.14);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, w / 2);
+  g.addColorStop(0, `rgb(0 0 0 / ${alpha})`);
+  g.addColorStop(1, 'rgb(0 0 0 / 0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(-w / 2, -w / 2, w, w);
+  ctx.restore();
+}
+
+/** Light lying on the ground in front of a lit window or door: a flat, soft pool. */
+function spill(ctx, x, y, w, css0, css1) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.translate(x, y);
+  ctx.scale(1, 0.18);
+  glow(ctx, 0, 0, w / 2, css0, css1);
+  ctx.restore();
+}
+
+const mixHex = (a, b, t) => '#' + mix(a, b, t).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+
 function glow(ctx, x, y, r, css0, css1) {
   const g = ctx.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, css0);
@@ -45,83 +83,314 @@ const PROPS = {
     glow(ctx, pen.X(it.x), pen.Y(it.y), pen.S(it.r ?? 0.2), pen.tone(it.color, 0, it.alpha ?? 0.5), pen.tone(it.color, 0, 0));
   },
 
+  // A pine, darker on the side away from the light.
   pine(ctx, it, pen) {
-    const rand = rng(it.seed ?? 5);
+    const x = pen.X(it.x);
+    const y = pen.Y(it.y);
     const h = pen.S(it.h);
+    const w = h * (it.width ?? 0.3);
+    const side = it.rimSide ?? 1;
+    const shape = () => pinePath(ctx, x, y, h, w, rng(it.seed ?? 5));
     withRim(ctx, it, pen, (fill) => {
       ctx.fillStyle = fill;
-      pinePath(ctx, pen.X(it.x), pen.Y(it.y), h, h * (it.width ?? 0.3), rng(it.seed ?? 5));
+      shape();
       ctx.fill();
     });
-    rand();
+    ctx.save();
+    shape();
+    ctx.clip();
+    const g = ctx.createLinearGradient(x + side * w * 0.5, 0, x - side * w * 0.5, 0);
+    g.addColorStop(0.35, 'rgb(0 0 0 / 0)');
+    g.addColorStop(1, 'rgb(0 0 0 / 0.28)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - w, y - h, w * 2, h);
+    ctx.restore();
   },
 
-  // A leafy tree: a trunk and a crown of overlapping circles.
+  // A leafy tree: a trunk that forks up into the crown, and a crown of leafy clumps, lit
+  // on top and on the side the light comes from, darker underneath, with small dabs of
+  // leaves painted over it. `fruit` hangs apples in it.
   tree(ctx, it, pen) {
     const x = pen.X(it.x);
     const y = pen.Y(it.y);
     const h = pen.S(it.h);
-    withRim(ctx, it, pen, (fill) => {
-      const rand = rng(it.seed ?? 9);
-      ctx.fillStyle = fill;
-      ctx.fillRect(x - h * 0.025, y - h * 0.5, h * 0.05, h * 0.5);
-      for (let i = 0; i < 9; i++) {
-        const a = rand() * Math.PI * 2;
-        const d = rand() * h * 0.18;
+    const side = it.rimSide ?? 1;
+    const top = y - h * 0.68;
+    // The crown's clumps, picked once so every pass below draws the same shape.
+    const rand = rng(it.seed ?? 9);
+    const clumps = [];
+    for (let i = 0; i < 9; i++) {
+      const a = rand() * Math.PI * 2;
+      const d = rand() * h * 0.18;
+      clumps.push([x + Math.cos(a) * d * 1.3, top + Math.sin(a) * d, h * (0.14 + rand() * 0.1)]);
+    }
+    // Smaller bumps along the top give the outline its leaves.
+    for (const [cx, cy, r] of clumps.slice(0, 9)) {
+      if (cy > top + h * 0.02) continue;
+      const a = -Math.PI * (0.25 + rand() * 0.5);
+      clumps.push([cx + Math.cos(a) * r * 0.8, cy + Math.sin(a) * r * 0.8, r * 0.32]);
+    }
+    const lean = (rand() - 0.5) * h * 0.04;
+    const trunk = () => {
+      ctx.beginPath();
+      ctx.moveTo(x - h * 0.034, y);
+      ctx.quadraticCurveTo(x - h * 0.02, y - h * 0.3, x + lean - h * 0.016, y - h * 0.5);
+      ctx.lineTo(x + lean + h * 0.016, y - h * 0.5);
+      ctx.quadraticCurveTo(x + h * 0.02, y - h * 0.3, x + h * 0.034, y);
+      ctx.closePath();
+      ctx.fill();
+      // Two branches forking off into the crown.
+      ctx.lineCap = 'round';
+      ctx.lineWidth = h * 0.02;
+      for (const dir of [-1, 1]) {
         ctx.beginPath();
-        ctx.arc(x + Math.cos(a) * d * 1.3, y - h * 0.68 + Math.sin(a) * d, h * (0.14 + rand() * 0.1), 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(x + lean * 0.6, y - h * 0.36);
+        ctx.quadraticCurveTo(x + dir * h * 0.05, y - h * 0.45, x + dir * h * 0.12, top + h * 0.06);
+        ctx.stroke();
       }
+    };
+    const crown = () => {
+      ctx.beginPath();
+      for (const [cx, cy, r] of clumps) {
+        ctx.moveTo(cx + r, cy);
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      }
+    };
+    footShadow(ctx, x, y, h * 0.42, 0.22);
+    withRim(ctx, it, pen, (fill) => {
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = fill;
+      trunk();
+      crown();
+      ctx.fill();
     });
+    // The trunk in bark brown, under the crown.
+    const bark = it.trunk ? pen.tone(it.trunk, it.haze ?? 0) : rgbToCss(mix(pen.rgb(it.color, it.haze ?? 0), [44, 30, 24], 0.45));
+    ctx.fillStyle = bark;
+    ctx.strokeStyle = bark;
+    trunk();
+    ctx.fillStyle = pen.tone(it.color, it.haze ?? 0);
+    crown();
+    ctx.fill();
+    // Inside the crown, clump by clump from the top down: each lower clump laps over the
+    // ones above it and catches the light along its upper edge, which shows the crown's
+    // shape the way a painter would. Then shade underneath, and a few flecks of leaves.
+    ctx.save();
+    crown();
+    ctx.clip();
+    const lit = tint(pen, it, 0.14);
+    const body = pen.tone(it.color, it.haze ?? 0);
+    for (const [cx, cy, r] of [...clumps].sort((a, b) => a[1] - b[1])) {
+      ctx.fillStyle = lit;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.arc(cx - side * r * 0.16, cy + r * 0.2, r * 0.97, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const under = ctx.createLinearGradient(0, top - h * 0.1, 0, top + h * 0.3);
+    under.addColorStop(0, 'rgb(0 0 0 / 0)');
+    under.addColorStop(1, 'rgb(0 0 0 / 0.3)');
+    ctx.fillStyle = under;
+    ctx.fillRect(x - h, top - h * 0.5, h * 2, h);
+    const dabs = rng((it.seed ?? 9) + 5);
+    for (let i = 0; i < 18; i++) {
+      const [cx, cy, r] = clumps[Math.floor(dabs() * clumps.length)];
+      const a = -Math.PI * (0.15 + dabs() * 0.7);
+      const d = r * (0.55 + dabs() * 0.35);
+      ctx.fillStyle = tint(pen, it, 0.2, 0.5);
+      ctx.beginPath();
+      ctx.ellipse(cx + Math.cos(a) * d, cy + Math.sin(a) * d, h * (0.01 + dabs() * 0.008), h * 0.006, side * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
     if (it.fruit) {
       const rand = rng((it.seed ?? 9) + 1);
-      ctx.fillStyle = pen.tone(it.fruit);
       for (let i = 0; i < 10; i++) {
+        const fx = x + (rand() - 0.5) * h * 0.5;
+        const fy = top + (rand() - 0.5) * h * 0.35;
+        const r = h * 0.019;
+        ctx.fillStyle = pen.tone(it.fruit);
         ctx.beginPath();
-        ctx.arc(x + (rand() - 0.5) * h * 0.5, y - h * 0.68 + (rand() - 0.5) * h * 0.35, h * 0.018, 0, Math.PI * 2);
+        ctx.arc(fx, fy, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgb(255 245 225 / 0.55)';
+        ctx.beginPath();
+        ctx.arc(fx + side * r * 0.35, fy - r * 0.35, r * 0.32, 0, Math.PI * 2);
         ctx.fill();
       }
     }
   },
 
-  // A small country house: walls, a pitched roof, a chimney, one or two windows.
+  // A small country house, gable end on: plank walls on a low stone base, a roof edge
+  // with its shadow under it, a chimney with a cap, framed windows with sills, a door on a
+  // step, and a small window up in the gable. Lit windows glow and light the ground in
+  // front of them. `roof` colours the roof edge.
   house(ctx, it, pen) {
     const x = pen.X(it.x);
     const y = pen.Y(it.y);
     const w = pen.S(it.w ?? 0.3);
     const h = w * (it.tall ?? 0.55);
     const roofH = w * 0.38;
+    const top = y - h;
+    const side = it.rimSide ?? 1;
+    const thin = Math.max(0.7, w * 0.005);
+    const chimney = [x + w * 0.18, top - roofH * 0.95, w * 0.07, roofH * 0.6];
+    const gable = () => {
+      ctx.beginPath();
+      ctx.moveTo(x - w / 2, y);
+      ctx.lineTo(x - w / 2, top);
+      ctx.lineTo(x, top - roofH);
+      ctx.lineTo(x + w / 2, top);
+      ctx.lineTo(x + w / 2, y);
+      ctx.closePath();
+    };
+    footShadow(ctx, x, y, w * 1.2, 0.3);
     withRim(ctx, it, pen, (fill) => {
       ctx.fillStyle = fill;
-      ctx.fillRect(x - w / 2, y - h, w, h);
+      // The walls reach up under the roof, so no seam shows between them.
+      ctx.fillRect(x - w / 2, top - 2, w, h + 2);
       ctx.beginPath();
-      ctx.moveTo(x - w * 0.58, y - h);
-      ctx.lineTo(x, y - h - roofH);
-      ctx.lineTo(x + w * 0.58, y - h);
+      ctx.moveTo(x - w * 0.58, top);
+      ctx.lineTo(x, top - roofH);
+      ctx.lineTo(x + w * 0.58, top);
       ctx.closePath();
       ctx.fill();
-      ctx.fillRect(x + w * 0.18, y - h - roofH * 0.95, w * 0.07, roofH * 0.6);
+      ctx.fillRect(...chimney);
+      ctx.fillRect(chimney[0] - w * 0.012, chimney[1] - w * 0.016, chimney[2] + w * 0.024, w * 0.022);
     });
-    if (it.roof) {
-      ctx.fillStyle = pen.tone(it.roof, it.haze ?? 0);
-      ctx.beginPath();
-      ctx.moveTo(x - w * 0.58, y - h);
-      ctx.lineTo(x, y - h - roofH);
-      ctx.lineTo(x + w * 0.58, y - h);
-      ctx.lineTo(x + w * 0.5, y - h + w * 0.03);
-      ctx.lineTo(x, y - h - roofH + w * 0.05);
-      ctx.lineTo(x - w * 0.5, y - h + w * 0.03);
-      ctx.closePath();
-      ctx.fill();
+    // On the wall and gable: shade on the side away from the light, the planks, and the
+    // shadow the roof edge throws.
+    ctx.save();
+    gable();
+    ctx.clip();
+    const shade = ctx.createLinearGradient(x + side * w * 0.5, 0, x - side * w * 0.5, 0);
+    shade.addColorStop(0, 'rgb(0 0 0 / 0)');
+    shade.addColorStop(1, 'rgb(0 0 0 / 0.2)');
+    ctx.fillStyle = shade;
+    ctx.fillRect(x - w / 2, top - roofH, w, h + roofH);
+    const rand = rng(it.seed ?? Math.round(it.x * 997));
+    ctx.fillStyle = tint(pen, it, -0.32, 0.55);
+    const plank = Math.max(3.5, h / 12);
+    for (let py = y - plank; py > top - roofH; py -= plank) {
+      // Each plank seam drawn in a few pieces, as a hand would, with small gaps.
+      for (let px = x - w / 2; px < x + w / 2; ) {
+        const run = w * (0.15 + rand() * 0.35);
+        ctx.fillRect(px, py + (rand() - 0.5) * 0.4, run - (rand() < 0.3 ? 2 : 0), thin);
+        px += run;
+      }
     }
-    for (const [i, win] of (it.windows ?? [{ x: -0.22 }, { x: 0.18 }]).entries()) {
+    ctx.strokeStyle = 'rgb(0 0 0 / 0.32)';
+    ctx.lineWidth = w * 0.045;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.6, top + w * 0.035);
+    ctx.lineTo(x, top - roofH + w * 0.035);
+    ctx.lineTo(x + w * 0.6, top + w * 0.035);
+    ctx.stroke();
+    ctx.restore();
+    // The stone base, and the corner boards.
+    ctx.fillStyle = tint(pen, it, -0.28);
+    ctx.fillRect(x - w / 2, y - h * 0.07, w, h * 0.07);
+    ctx.fillStyle = tint(pen, it, 0.07);
+    ctx.fillRect(x - w / 2, top, w * 0.03, h * 0.93);
+    ctx.fillRect(x + w / 2 - w * 0.03, top, w * 0.03, h * 0.93);
+    // The chimney's shaded side.
+    ctx.fillStyle = 'rgb(0 0 0 / 0.22)';
+    ctx.fillRect(side > 0 ? chimney[0] : chimney[0] + chimney[2] / 2, chimney[1], chimney[2] / 2, chimney[3]);
+    // The roof edge: a band along both slopes, with the tiles' ends ticked along it.
+    const edge = it.roof ? pen.tone(it.roof, it.haze ?? 0) : tint(pen, it, -0.2);
+    ctx.fillStyle = edge;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.6, top + w * 0.008);
+    ctx.lineTo(x, top - roofH - w * 0.012);
+    ctx.lineTo(x + w * 0.6, top + w * 0.008);
+    ctx.lineTo(x + w * 0.5, top + w * 0.035);
+    ctx.lineTo(x, top - roofH + w * 0.045);
+    ctx.lineTo(x - w * 0.5, top + w * 0.035);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgb(0 0 0 / 0.25)';
+    ctx.lineWidth = thin;
+    for (const dir of [-1, 1]) {
+      for (let t = 0.08; t < 0.98; t += 0.07) {
+        const ex = x + dir * w * 0.6 * t;
+        const ey = top - roofH + (roofH + w * 0.008) * t;
+        line(ctx, ex, ey - w * 0.012, ex + dir * w * 0.012, ey + w * 0.03);
+      }
+    }
+    ctx.strokeStyle = it.roof ? pen.tone(it.roof, 0.15, 0.9) : tint(pen, it, 0.15);
+    ctx.lineWidth = Math.max(0.8, w * 0.008);
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.6, top + w * 0.008);
+    ctx.lineTo(x, top - roofH - w * 0.012);
+    ctx.lineTo(x + w * 0.6, top + w * 0.008);
+    ctx.stroke();
+    // The small window up in the gable.
+    const gs = w * 0.07;
+    ctx.fillStyle = tint(pen, it, 0.1);
+    ctx.fillRect(x - gs / 2 - thin * 1.5, top - roofH * 0.48 - thin * 1.5, gs + thin * 3, gs + thin * 3);
+    ctx.fillStyle = it.attic ? pen.tone(it.attic) : pen.tone(it.dark ?? '#0b0e18', it.haze ?? 0, 0.6);
+    ctx.fillRect(x - gs / 2, top - roofH * 0.48, gs, gs);
+    // The door, on a step, with its frame and handle.
+    if (it.door) {
+      const dw = w * 0.14;
+      const dx = x + it.door * w;
+      const dh = h * 0.62;
+      if (it.doorLit) {
+        glow(ctx, dx + dw / 2, y - h * 0.3, w * 0.5, pen.tone(it.doorLit, 0, 0.3), pen.tone(it.doorLit, 0, 0));
+        spill(ctx, dx + dw / 2, y, dw * 2.6, pen.tone(it.doorLit, 0, 0.3), pen.tone(it.doorLit, 0, 0));
+      }
+      ctx.fillStyle = tint(pen, it, 0.1);
+      ctx.fillRect(dx - thin * 2, y - dh - thin * 2, dw + thin * 4, dh + thin * 2);
+      ctx.fillStyle = it.doorLit ? pen.tone(it.doorLit) : tint(pen, it, -0.35);
+      ctx.fillRect(dx, y - dh, dw, dh);
+      if (!it.doorLit) {
+        ctx.fillStyle = 'rgb(0 0 0 / 0.18)';
+        ctx.fillRect(dx + dw * 0.18, y - dh * 0.88, dw * 0.64, dh * 0.3);
+        ctx.fillRect(dx + dw * 0.18, y - dh * 0.5, dw * 0.64, dh * 0.38);
+        ctx.fillStyle = tint(pen, it, 0.3);
+        ctx.beginPath();
+        ctx.arc(dx + dw * 0.8, y - dh * 0.48, Math.max(0.8, dw * 0.06), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = tint(pen, it, 0.05);
+      ctx.fillRect(dx - dw * 0.15, y - h * 0.035, dw * 1.3, h * 0.035);
+    }
+    for (const win of it.windows ?? [{ x: -0.22 }, { x: 0.18 }]) {
       const wx = x + win.x * w;
       const ws = w * (win.s ?? 0.16);
       const wy = y - h * 0.62;
       const lit = win.lit ?? it.lit;
-      if (lit) glow(ctx, wx + ws / 2, wy + ws / 2, ws * 2.6, pen.tone(lit, 0, 0.35), pen.tone(lit, 0, 0));
-      ctx.fillStyle = lit ? pen.tone(lit) : pen.tone(it.dark ?? '#0b0e18', it.haze ?? 0, 0.6);
+      if (lit) {
+        glow(ctx, wx + ws / 2, wy + ws / 2, ws * 2.6, pen.tone(lit, 0, 0.35), pen.tone(lit, 0, 0));
+        spill(ctx, wx + ws / 2, y + h * 0.02, ws * 3, pen.tone(lit, 0, 0.16), pen.tone(lit, 0, 0));
+      }
+      // The frame, then the glass: warm and brighter low down where a lamp is, or dark
+      // with a pale streak of reflected sky.
+      const f = Math.max(1.2, ws * 0.09);
+      ctx.fillStyle = tint(pen, it, 0.12);
+      ctx.fillRect(wx - f, wy - f, ws + f * 2, ws + f * 2);
+      if (lit) {
+        const g = ctx.createLinearGradient(0, wy, 0, wy + ws);
+        g.addColorStop(0, pen.tone(lit, 0.06));
+        g.addColorStop(1, pen.tone(mixHex(lit, '#fff8e6', 0.45)));
+        ctx.fillStyle = g;
+      } else {
+        ctx.fillStyle = pen.tone(it.dark ?? '#0b0e18', it.haze ?? 0, 0.75);
+      }
       ctx.fillRect(wx, wy, ws, ws);
+      if (!lit) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(wx, wy, ws, ws);
+        ctx.clip();
+        ctx.strokeStyle = tint(pen, it, 0.5, 0.18);
+        ctx.lineWidth = ws * 0.18;
+        line(ctx, wx + ws * 0.1, wy + ws * 1.1, wx + ws * 0.9, wy - ws * 0.1);
+        ctx.restore();
+      }
       if (win.who) {
         // Somebody standing at the window, seen from outside: head and shoulders.
         ctx.fillStyle = pen.tone(it.color ?? '#141826');
@@ -132,16 +401,14 @@ const PROPS = {
         ctx.ellipse(wx + ws * 0.5, wy + ws * 1.02, ws * 0.32, ws * 0.36, 0, Math.PI, 0);
         ctx.fill();
       }
-      ctx.fillStyle = pen.tone(it.color ?? '#141826', it.haze ?? 0);
-      ctx.fillRect(wx + ws / 2 - 0.6, wy, 1.2, ws);
-      ctx.fillRect(wx, wy + ws / 2 - 0.6, ws, 1.2);
-      if (i === 0 && it.door) {
-        const dw = w * 0.14;
-        const dx = x + it.door * w;
-        if (it.doorLit) glow(ctx, dx + dw / 2, y - h * 0.3, w * 0.5, pen.tone(it.doorLit, 0, 0.3), pen.tone(it.doorLit, 0, 0));
-        ctx.fillStyle = it.doorLit ? pen.tone(it.doorLit) : pen.tone(it.dark ?? '#0b0e18', 0, 0.7);
-        ctx.fillRect(dx, y - h * 0.62, dw, h * 0.62);
-      }
+      ctx.fillStyle = tint(pen, it, 0.12);
+      ctx.fillRect(wx + ws / 2 - f * 0.4, wy, f * 0.8, ws);
+      ctx.fillRect(wx, wy + ws / 2 - f * 0.4, ws, f * 0.8);
+      // The sill, a little wider than the frame, with its shadow under it.
+      ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
+      ctx.fillRect(wx - f * 1.6, wy + ws + f * 1.9, ws + f * 3.2, f * 0.9);
+      ctx.fillStyle = tint(pen, it, 0.18);
+      ctx.fillRect(wx - f * 1.8, wy + ws + f * 0.8, ws + f * 3.6, f * 1.1);
     }
   },
 
@@ -160,11 +427,28 @@ const PROPS = {
     const cols = it.cols ?? 8;
     const cw = w / cols;
     const rh = h / rows;
+    ctx.fillStyle = tint(pen, it, 0.12);
+    ctx.fillRect(x - w / 2 - 2, y - h - 3, w + 4, 3);
     for (let r = 0; r < rows; r++) {
+      ctx.fillStyle = tint(pen, it, 0.07);
+      ctx.fillRect(x - w / 2, y - h + (r + 1) * rh - 1, w, 1.2);
       for (let c = 0; c < cols; c++) {
         const on = rand() < (it.litShare ?? 0.25);
-        ctx.fillStyle = on ? pen.tone(it.lit ?? '#ffcf7a', 0, 0.85) : pen.tone('#000000', 0, 0.25);
-        ctx.fillRect(x - w / 2 + c * cw + cw * 0.28, y - h + r * rh + rh * 0.3, cw * 0.44, rh * 0.4);
+        const wx = x - w / 2 + c * cw + cw * 0.28;
+        const wy = y - h + r * rh + rh * 0.3;
+        if (on) {
+          // A lit window: warm, a little brighter at the bottom, one side half drawn.
+          const g = ctx.createLinearGradient(0, wy, 0, wy + rh * 0.4);
+          g.addColorStop(0, pen.tone(it.lit ?? '#ffcf7a', 0, 0.75));
+          g.addColorStop(1, pen.tone(mixHex(it.lit ?? '#ffcf7a', '#fff6e0', 0.4), 0, 0.95));
+          ctx.fillStyle = g;
+          ctx.fillRect(wx, wy, cw * 0.44, rh * 0.4);
+          ctx.fillStyle = 'rgb(60 30 20 / 0.35)';
+          ctx.fillRect(rand() < 0.5 ? wx : wx + cw * 0.3, wy, cw * 0.14, rh * 0.4);
+        } else {
+          ctx.fillStyle = pen.tone('#000000', 0, 0.25);
+          ctx.fillRect(wx, wy, cw * 0.44, rh * 0.4);
+        }
       }
     }
     if (it.dark !== undefined) {
@@ -210,6 +494,10 @@ const PROPS = {
     const wNear = pen.S(it.w ?? 0.32);
     const wFar = wNear * 0.45;
     const lean = pen.S(it.lean ?? 0.08);
+    const at = (t) => [x + lean * t, y - len * t, wNear + (wFar - wNear) * t];
+    // The posts' dark reflections in the water.
+    ctx.fillStyle = 'rgb(0 0 0 / 0.2)';
+    for (const dir of [-1, 1]) ctx.fillRect(x + dir * wNear / 2 - (dir > 0 ? 3 : 0), y, 3, pen.S(0.09));
     withRim(ctx, it, pen, (fill) => {
       ctx.fillStyle = fill;
       ctx.beginPath();
@@ -228,17 +516,38 @@ const PROPS = {
         ctx.fillRect(px + pw / 2 - 2, py, 2.4 - t, pen.S(0.04) * (1 - t * 0.6));
       }
     });
+    // Boards across the deck, closer together further out.
+    ctx.strokeStyle = tint(pen, it, -0.35, 0.6);
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 16; i += 1) {
+      const t = 1 - (1 - i / 16) ** 1.25;
+      const [px, py, pw] = at(t);
+      line(ctx, px - pw / 2 + 1, py, px + pw / 2 - 1, py);
+    }
+    ctx.strokeStyle = tint(pen, it, 0.18, 0.35);
+    for (let i = 1; i < 16; i += 2) {
+      const t = 1 - (1 - i / 16) ** 1.25 + 0.004;
+      const [px, py, pw] = at(t);
+      line(ctx, px - pw / 2 + 1, py + 1, px + pw / 2 - 1, py + 1);
+    }
+    // The edge of the deck facing us.
+    ctx.fillStyle = tint(pen, it, -0.4);
+    ctx.fillRect(x - wNear / 2, y, wNear, pen.S(0.012));
   },
 
-  // A bus stop shelter: a roof on two posts and a sign.
+  // A bus stop shelter: a roof on two posts, a glass back with a bench in front of it, and
+  // the stop's sign on its own pole.
   busstop(ctx, it, pen) {
     const x = pen.X(it.x);
     const y = pen.Y(it.y);
     const w = pen.S(it.w ?? 0.22);
     const h = w * 0.75;
+    // The glass, faintly lit by the sky.
+    ctx.fillStyle = tint(pen, it, 0.35, 0.16);
+    ctx.fillRect(x - w / 2, y - h, w, h * 0.96);
     withRim(ctx, it, pen, (fill) => {
       ctx.fillStyle = fill;
-      ctx.fillRect(x - w / 2, y - h, w, w * 0.06);
+      ctx.fillRect(x - w / 2 - w * 0.02, y - h - w * 0.02, w * 1.04, w * 0.07);
       ctx.fillRect(x - w / 2, y - h, w * 0.04, h);
       ctx.fillRect(x + w / 2 - w * 0.04, y - h, w * 0.04, h);
       ctx.fillRect(x - w / 2, y - h * 0.38, w, w * 0.03);
@@ -247,25 +556,70 @@ const PROPS = {
       ctx.arc(x + w * 0.635, y - h * 1.15, w * 0.07, 0, Math.PI * 2);
       ctx.fill();
     });
+    // The roof's lit edge, and the sign's face.
+    ctx.fillStyle = tint(pen, it, 0.3);
+    ctx.fillRect(x - w / 2 - w * 0.02, y - h - w * 0.02, w * 1.04, Math.max(0.8, w * 0.012));
+    ctx.fillStyle = tint(pen, it, 0.45);
+    ctx.beginPath();
+    ctx.arc(x + w * 0.635, y - h * 1.15, w * 0.045, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = tint(pen, it, -0.2);
+    ctx.fillRect(x + w * 0.635 - w * 0.025, y - h * 1.15 - w * 0.006, w * 0.05, w * 0.012);
   },
 
-  // A bus seen from the side, windows lit from inside.
+  // A bus seen from the side, its front to the left: a sloped windscreen, the folding
+  // door behind it, a row of windows lit from inside, a stripe along its side, and wheels
+  // in their arches.
   bus(ctx, it, pen) {
     const x = pen.X(it.x);
     const y = pen.Y(it.y);
     const w = pen.S(it.w ?? 0.6);
     const h = w * 0.3;
+    const bottom = y - w * 0.03;
+    const left = x - w / 2;
+    footShadow(ctx, x, y, w * 1.05, 0.32);
     withRim(ctx, it, pen, (fill) => {
       ctx.fillStyle = fill;
-      roundRect(ctx, x - w / 2, y - h - w * 0.03, w, h, w * 0.03);
+      roundRect(ctx, left, bottom - h, w, h, w * 0.03);
       ctx.fill();
     });
-    ctx.fillStyle = pen.tone(it.lit ?? '#ffe2a8', 0, 0.8);
-    for (let i = 0; i < 7; i++) ctx.fillRect(x - w / 2 + w * (0.05 + i * 0.13), y - h * 0.92, w * 0.1, h * 0.38);
-    ctx.fillStyle = pen.tone('#07090f');
+    const lit = pen.tone(it.lit ?? '#ffe2a8', 0, 0.8);
+    // The windscreen, then the door, then the passenger windows.
+    ctx.fillStyle = lit;
+    ctx.beginPath();
+    ctx.moveTo(left + w * 0.012, bottom - h * 0.48);
+    ctx.lineTo(left + w * 0.02, bottom - h * 0.92);
+    ctx.lineTo(left + w * 0.06, bottom - h * 0.92);
+    ctx.lineTo(left + w * 0.06, bottom - h * 0.48);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = pen.tone(it.lit ?? '#ffe2a8', 0, 0.55);
+    ctx.fillRect(left + w * 0.075, bottom - h * 0.9, w * 0.075, h * 0.82);
+    ctx.fillStyle = tint(pen, it, -0.3);
+    ctx.fillRect(left + w * 0.111, bottom - h * 0.9, Math.max(1, w * 0.004), h * 0.82);
+    ctx.fillStyle = lit;
+    for (let i = 0; i < 6; i++) ctx.fillRect(left + w * (0.18 + i * 0.13), bottom - h * 0.9, w * 0.11, h * 0.38);
+    // The stripe, the destination sign over the windscreen, and the lamps.
+    ctx.fillStyle = tint(pen, it, 0.22, 0.85);
+    ctx.fillRect(left + w * 0.16, bottom - h * 0.4, w * 0.83, h * 0.06);
+    ctx.fillStyle = pen.tone('#ffb84a', 0, 0.9);
+    ctx.fillRect(left + w * 0.015, bottom - h * 0.97, w * 0.05, h * 0.04);
+    ctx.fillStyle = pen.tone('#fff1c8');
+    ctx.fillRect(left + w * 0.004, bottom - h * 0.24, w * 0.01, h * 0.08);
+    ctx.fillStyle = pen.tone('#c8333a');
+    ctx.fillRect(left + w - w * 0.012, bottom - h * 0.32, w * 0.01, h * 0.1);
     for (const dx of [-0.32, 0.3]) {
+      ctx.fillStyle = pen.tone('#05070d', 0, 0.85);
       ctx.beginPath();
-      ctx.arc(x + dx * w, y - w * 0.03, w * 0.05, 0, Math.PI * 2);
+      ctx.arc(x + dx * w, bottom, w * 0.064, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = pen.tone('#07090f');
+      ctx.beginPath();
+      ctx.arc(x + dx * w, bottom, w * 0.05, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = tint(pen, it, 0.35, 0.6);
+      ctx.beginPath();
+      ctx.arc(x + dx * w, bottom, w * 0.02, 0, Math.PI * 2);
       ctx.fill();
     }
   },
@@ -424,26 +778,63 @@ const PROPS = {
     const w = pen.S(it.w ?? 0.2);
     const seat = it.seat ? pen.S(it.seat) : w * 0.22;
     const plank = Math.max(2, Math.min(w * 0.05, seat * 0.2));
+    footShadow(ctx, x, y, w * 1.1, 0.26);
     withRim(ctx, it, pen, (fill) => {
       ctx.fillStyle = fill;
       ctx.fillRect(x - w / 2, y - seat, w, plank);
       ctx.fillRect(x - w / 2, y - seat * 1.8, w, plank);
+      ctx.fillRect(x - w / 2 + plank * 0.3, y - seat * 1.5, w - plank * 0.6, plank * 0.7);
       ctx.fillRect(x - w * 0.45, y - seat * 1.8, plank * 0.8, seat * 1.8);
       ctx.fillRect(x + w * 0.45 - plank * 0.8, y - seat * 1.8, plank * 0.8, seat * 1.8);
+      // The front legs, splayed a little.
+      for (const dir of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(x + dir * w * 0.38, y - seat);
+        ctx.lineTo(x + dir * (w * 0.38 + plank * 0.7), y - seat);
+        ctx.lineTo(x + dir * (w * 0.41 + plank * 0.7), y);
+        ctx.lineTo(x + dir * w * 0.41, y);
+        ctx.closePath();
+        ctx.fill();
+      }
     });
+    // The light along the top of the seat and the back, and the grain of the wood.
+    ctx.fillStyle = tint(pen, it, 0.3, 0.8);
+    ctx.fillRect(x - w / 2, y - seat, w, Math.max(0.8, plank * 0.25));
+    ctx.fillRect(x - w / 2, y - seat * 1.8, w, Math.max(0.8, plank * 0.25));
+    ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
+    ctx.fillRect(x - w / 2, y - seat + plank * 0.7, w, Math.max(0.6, plank * 0.3));
   },
 
+  // A picket fence from `x` to `x2`: two rails, and pointed pickets in front of them, each
+  // a little different, as if set by hand.
   fence(ctx, it, pen) {
     const x0 = pen.X(it.x);
     const x1 = pen.X(it.x2);
     const y = pen.Y(it.y);
     const h = pen.S(it.h ?? 0.05);
+    const pw = h * 0.13;
     withRim(ctx, it, pen, (fill) => {
+      const rand = rng(it.seed ?? 17);
       ctx.fillStyle = fill;
-      for (let x = x0; x <= x1; x += h * 0.45) ctx.fillRect(x, y - h, h * 0.12, h);
       ctx.fillRect(x0, y - h * 0.75, x1 - x0, h * 0.1);
       ctx.fillRect(x0, y - h * 0.35, x1 - x0, h * 0.1);
+      for (let x = x0; x <= x1; x += h * 0.45) {
+        const ph = h * (0.93 + rand() * 0.08);
+        const tilt = (rand() - 0.5) * h * 0.04;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + tilt, y - ph + pw * 0.6);
+        ctx.lineTo(x + pw / 2 + tilt, y - ph);
+        ctx.lineTo(x + pw + tilt, y - ph + pw * 0.6);
+        ctx.lineTo(x + pw, y);
+        ctx.closePath();
+        ctx.fill();
+      }
     });
+    // The rails sit behind the pickets: a little shadow where they meet.
+    ctx.fillStyle = 'rgb(0 0 0 / 0.22)';
+    ctx.fillRect(x0, y - h * 0.65, x1 - x0, Math.max(0.6, h * 0.03));
+    ctx.fillRect(x0, y - h * 0.25, x1 - x0, Math.max(0.6, h * 0.03));
   },
 
   // A garden gate between two fence runs; `x` is the gate's middle, `open` swings it.
@@ -642,18 +1033,50 @@ const PROPS = {
   band(ctx, it, pen) {
     const y0 = pen.Y(it.y);
     const y1 = pen.Y(it.y2 ?? 1);
+    const rand = rng(it.seed ?? Math.round(it.y * 1000) + 11);
     ctx.fillStyle = pen.tone(it.color);
     ctx.fillRect(0, y0, pen.right, y1 - y0);
+    if (it.planks) {
+      // Floorboards: each row of boards a shade lighter or darker than the next, the
+      // seams between the rows, and the joints where one board ends and the next begins.
+      const seams = [y0];
+      for (let i = 1; i <= it.planks; i += 1) seams.push(y0 + (y1 - y0) * (i / (it.planks + 1)) ** 1.6);
+      seams.push(y1);
+      for (let i = 0; i < seams.length - 1; i += 1) {
+        const [a, b] = [seams[i], seams[i + 1]];
+        ctx.fillStyle = rand() < 0.5 ? 'rgb(255 245 230 / 0.035)' : 'rgb(0 0 0 / 0.05)';
+        ctx.fillRect(0, a, pen.right, b - a);
+        ctx.fillStyle = 'rgb(0 0 0 / 0.14)';
+        for (let x = rand() * 120; x < pen.right; x += 70 + rand() * 120) ctx.fillRect(x, a, 1, b - a);
+        if (i > 0) {
+          ctx.fillStyle = 'rgb(0 0 0 / 0.16)';
+          ctx.fillRect(0, a, pen.right, 1);
+          ctx.fillStyle = 'rgb(255 245 230 / 0.06)';
+          ctx.fillRect(0, a + 1, pen.right, 1);
+        }
+      }
+    } else if (y1 - y0 > pen.view.h * 0.2) {
+      // A wall: a little darker low down, away from the ceiling light, with the faint
+      // up-and-down strokes of a painted wall.
+      const g = ctx.createLinearGradient(0, y0, 0, y1);
+      g.addColorStop(0, 'rgb(255 248 235 / 0.05)');
+      g.addColorStop(1, 'rgb(0 0 0 / 0.08)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y0, pen.right, y1 - y0);
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 40; i += 1) {
+        const x = rand() * pen.right;
+        const y = y0 + rand() * (y1 - y0);
+        ctx.strokeStyle = rand() < 0.5 ? 'rgb(255 248 235 / 0.035)' : 'rgb(0 0 0 / 0.03)';
+        ctx.lineWidth = 2 + rand() * 4;
+        line(ctx, x, y, x + (rand() - 0.5) * 6, y + 30 + rand() * 90);
+      }
+    }
     if (it.trim) {
       ctx.fillStyle = pen.tone(it.trim);
       ctx.fillRect(0, y0 - Math.max(2, pen.S(0.008)), pen.right, Math.max(2, pen.S(0.012)));
-    }
-    if (it.planks) {
-      ctx.fillStyle = pen.tone('#000000', 0, 0.16);
-      for (let i = 1; i <= it.planks; i += 1) {
-        const k = (i / (it.planks + 1)) ** 1.6;
-        ctx.fillRect(0, y0 + (y1 - y0) * k, pen.right, 1);
-      }
+      ctx.fillStyle = 'rgb(255 248 235 / 0.18)';
+      ctx.fillRect(0, y0 - Math.max(2, pen.S(0.008)), pen.right, 1);
     }
   },
 
@@ -955,13 +1378,31 @@ const PROPS = {
       for (const side of [0, 1]) {
         if ((it.gone?.[i] ?? 0) === side) continue;
         const sx = pen.X(it.x) + step * (i + 0.3 + side * 0.42);
+        // A trainer side on, toe to the right: the upper, the opening at the heel, a few
+        // laces, and the pale sole.
+        ctx.fillStyle = 'rgb(0 0 0 / 0.25)';
+        ctx.beginPath();
+        ctx.ellipse(sx, y, s * 0.5, s * 0.06, 0, 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = pen.tone(color);
         ctx.beginPath();
-        ctx.ellipse(sx, y - s * 0.22, s * 0.42, s * 0.24, 0, Math.PI, 0);
+        ctx.moveTo(sx - s * 0.42, y - s * 0.06);
+        ctx.lineTo(sx + s * 0.44, y - s * 0.06);
+        ctx.quadraticCurveTo(sx + s * 0.5, y - s * 0.2, sx + s * 0.18, y - s * 0.24);
+        ctx.lineTo(sx - s * 0.1, y - s * 0.36);
+        ctx.lineTo(sx - s * 0.38, y - s * 0.36);
+        ctx.quadraticCurveTo(sx - s * 0.46, y - s * 0.2, sx - s * 0.42, y - s * 0.06);
+        ctx.closePath();
         ctx.fill();
-        ctx.fillRect(sx - s * 0.42, y - s * 0.24, s * 0.84, s * 0.16);
+        ctx.fillStyle = 'rgb(0 0 0 / 0.35)';
+        ctx.beginPath();
+        ctx.ellipse(sx - s * 0.24, y - s * 0.35, s * 0.13, s * 0.035, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = pen.tone('#f4efe6', 0.1, 0.8);
+        ctx.lineWidth = Math.max(0.7, s * 0.03);
+        for (let l = 0; l < 3; l += 1) line(ctx, sx - s * 0.04 + l * s * 0.09, y - s * 0.33 + l * s * 0.04, sx + s * 0.02 + l * s * 0.09, y - s * 0.27 + l * s * 0.04);
         ctx.fillStyle = pen.tone('#e9e3d8', 0.1);
-        ctx.fillRect(sx - s * 0.44, y - s * 0.08, s * 0.88, s * 0.08);
+        ctx.fillRect(sx - s * 0.44, y - s * 0.08, s * 0.9, s * 0.08);
       }
     });
   },

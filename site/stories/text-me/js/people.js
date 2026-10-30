@@ -6,8 +6,9 @@
 // life lines view draws their line in the same colour, so a dot there is a person you know.
 //
 // Figures are drawn flat with a soft shadow side and a light edge on the side the light
-// comes from. At night they sink toward the scene's dark colour, so a person under a lamp
-// still reads as a person and a person in the dark reads as a silhouette.
+// comes from, arms and legs narrowing to the wrist and ankle, and a soft shadow on the
+// ground under them. At night they sink toward the scene's dark colour, so a person under a
+// lamp still reads as a person and a person in the dark reads as a silhouette.
 
 import { hexToRgb, mix, rgbToCss, vivid } from './util.js';
 
@@ -74,6 +75,7 @@ export function drawPerson(ctx, it, pen, t = 0, step = 0, moving = false) {
     step,
     moving,
     litSide,
+    light,
     child: it.age === 'child',
     old: it.age === 'old',
     look,
@@ -152,9 +154,10 @@ function standing(ctx, k, it, pose) {
   const leg = (hx, foot, dark) => {
     const hip = [hx + sway, b.hipY + bob + drop];
     const knee = [(hip[0] + foot[0]) / 2 + squat * h * 0.15, (hip[1] + foot[1]) / 2 - squat * h * 0.02];
-    limb(ctx, k, k.look.legs, hip, knee, b.limb * 1.15, dark, foot);
+    limb(ctx, k, k.look.legs, hip, knee, b.limb * 1.3, dark, foot);
     shoe(ctx, k, foot);
   };
+  if (!it.noShadow) groundShadow(ctx, k, sway, h * (moving || pose === 'walk' || it.stride ? 0.48 : 0.34));
   leg(-h * 0.03, legs[0], 0.25);
   leg(h * 0.03, legs[1], 0);
 
@@ -168,7 +171,7 @@ function standing(ctx, k, it, pose) {
   }
   limb(ctx, k, k.look.top, arms.back[0], arms.back[1], b.limb, 0.28, arms.back[2]);
   hand(ctx, k, arms.back[2] ?? arms.back[1], 0.25);
-  torso(ctx, k, b, sy);
+  torso(ctx, k, b, sy, it.back);
   head(ctx, k, b, sy, it);
   limb(ctx, k, k.look.top, arms.front[0], arms.front[1], b.limb, 0, arms.front[2]);
   hand(ctx, k, arms.front[2] ?? arms.front[1], 0);
@@ -188,7 +191,12 @@ function standing(ctx, k, it, pose) {
 function armPose(pose, k, b, sy, t) {
   const { h } = k;
   const s = b.shoulderW * 0.82;
-  const down = (side, dx = 0) => [[side * s, sy + h * 0.02], [side * (s + h * 0.02) + dx, h * 0.07]];
+  // At rest an arm hangs with a soft bend: the elbow a little back, the hand a little forward.
+  const down = (side, dx = 0) => [
+    [side * s, sy + h * 0.02],
+    [side * (s + h * 0.012) - h * 0.008, sy + (h * 0.07 - sy) * 0.47],
+    [side * (s + h * 0.016) + h * 0.012 + dx, h * 0.065],
+  ];
   switch (pose) {
     case 'wave': {
       const a = Math.sin(t * 5) * 0.28;
@@ -243,28 +251,54 @@ function blendArms(a, b, k) {
   return { back: mixArm(a.back, b.back), front: mixArm(a.front, b.front) };
 }
 
-function torso(ctx, k, b, sy) {
+function torso(ctx, k, b, sy, back = false) {
   const { h, look } = k;
   const coat = look.coat ? h * 0.2 : 0;
   const hw = look.coat ? b.hipW * 1.3 : b.hipW;
+  const hem = h * 0.02 + coat;
+  // The top narrows a little at the waist and sits out again over the hips.
+  const shape = () => {
+    ctx.beginPath();
+    ctx.moveTo(-b.shoulderW, sy + h * 0.04);
+    ctx.quadraticCurveTo(-b.shoulderW, sy, -b.shoulderW + h * 0.04, sy);
+    ctx.lineTo(b.shoulderW - h * 0.04, sy);
+    ctx.quadraticCurveTo(b.shoulderW, sy, b.shoulderW, sy + h * 0.04);
+    ctx.quadraticCurveTo(b.shoulderW * 0.86, sy * 0.45, hw, hem);
+    ctx.lineTo(-hw, hem);
+    ctx.quadraticCurveTo(-b.shoulderW * 0.86, sy * 0.45, -b.shoulderW, sy + h * 0.04);
+    ctx.closePath();
+  };
   ctx.fillStyle = k.fill(look.top);
-  ctx.beginPath();
-  ctx.moveTo(-b.shoulderW, sy + h * 0.04);
-  ctx.quadraticCurveTo(-b.shoulderW, sy, -b.shoulderW + h * 0.04, sy);
-  ctx.lineTo(b.shoulderW - h * 0.04, sy);
-  ctx.quadraticCurveTo(b.shoulderW, sy, b.shoulderW, sy + h * 0.04);
-  ctx.lineTo(hw, h * 0.02 + coat);
-  ctx.lineTo(-hw, h * 0.02 + coat);
-  ctx.closePath();
+  shape();
   ctx.fill();
+  // A little shade along the hem, where the cloth turns under.
+  const fold = ctx.createLinearGradient(0, hem - h * 0.07, 0, hem);
+  fold.addColorStop(0, 'rgb(0 0 0 / 0)');
+  fold.addColorStop(1, 'rgb(0 0 0 / 0.2)');
+  ctx.fillStyle = fold;
+  shape();
+  ctx.fill();
+  if (look.coat && !back) {
+    // A coat's front edge, from the collar down.
+    ctx.strokeStyle = k.paint(look.top, 0.35);
+    ctx.lineWidth = Math.max(0.7, h * 0.008);
+    line(ctx, h * 0.012, sy + h * 0.035, h * 0.022, hem - h * 0.005);
+  }
   if (k.rim) {
     // Relative to the alpha already set, so a faded figure (a memory) stays faded.
     const a0 = ctx.globalAlpha;
     ctx.globalAlpha = a0 * 0.5;
+    ctx.save();
+    shape();
+    ctx.clip();
+    ctx.beginPath();
+    ctx.rect(k.litSide > 0 ? b.shoulderW * 0.35 : -h, sy, h - b.shoulderW * 0.35, hem - sy - h * 0.025);
+    ctx.clip();
     ctx.strokeStyle = k.rim;
-    ctx.lineWidth = Math.max(1, h * 0.012);
-    const e = b.shoulderW * k.litSide;
-    line(ctx, e, sy + h * 0.05, hw * k.litSide, h * 0.01 + coat);
+    ctx.lineWidth = Math.max(2, h * 0.026);
+    shape();
+    ctx.stroke();
+    ctx.restore();
     ctx.globalAlpha = a0;
   }
   if (look.neck) {
@@ -369,28 +403,73 @@ function head(ctx, k, b, sy, it) {
   }
 }
 
+/**
+ * An arm or a leg from `from` through `to` (and on to `end`), a little thicker than
+ * `width` at the top and narrower at the wrist or ankle, with rounded joints: one filled
+ * shape, so a faded figure has no darker overlaps at the elbow or knee.
+ */
 function limb(ctx, k, hex, from, to, width, dark, end) {
-  ctx.strokeStyle = k.paint(hex, dark + 0.06);
-  ctx.lineWidth = width;
+  const pts = end ? [from, to, end] : [from, to];
+  const n = pts.length - 1;
+  const half = (i) => (width * (1.12 - 0.34 * (i / n))) / 2;
+  ctx.fillStyle = k.paint(hex, dark + 0.06);
   ctx.beginPath();
-  ctx.moveTo(from[0], from[1]);
-  ctx.lineTo(to[0], to[1]);
-  if (end) ctx.lineTo(end[0], end[1]);
-  ctx.stroke();
+  for (let i = 0; i < n; i += 1) {
+    const [ax, ay] = pts[i];
+    const [bx, by] = pts[i + 1];
+    const len = Math.hypot(bx - ax, by - ay) || 1;
+    const nx = -(by - ay) / len;
+    const ny = (bx - ax) / len;
+    const ra = half(i);
+    const rb = half(i + 1);
+    // Every piece is wound the same way as the round joints, so they fill as one shape.
+    ctx.moveTo(ax - nx * ra, ay - ny * ra);
+    ctx.lineTo(bx - nx * rb, by - ny * rb);
+    ctx.lineTo(bx + nx * rb, by + ny * rb);
+    ctx.lineTo(ax + nx * ra, ay + ny * ra);
+    ctx.closePath();
+  }
+  pts.forEach(([px, py], i) => {
+    ctx.moveTo(px + half(i), py);
+    ctx.arc(px, py, half(i), 0, Math.PI * 2);
+  });
+  ctx.fill('nonzero');
 }
 
 function hand(ctx, k, [x, y], dark) {
   ctx.fillStyle = k.paint(k.look.skin, dark + 0.05);
   ctx.beginPath();
-  ctx.arc(x, y, k.h * (k.child ? 0.038 : 0.03), 0, Math.PI * 2);
+  ctx.ellipse(x, y + k.h * 0.006, k.h * (k.child ? 0.027 : 0.02), k.h * (k.child ? 0.032 : 0.027), 0, 0, Math.PI * 2);
   ctx.fill();
 }
 
+/** A shoe, toe forward: a flat sole and a rounded toe, a little lighter along the sole. */
 function shoe(ctx, k, [x, y]) {
+  const l = k.h * (k.child ? 0.05 : 0.056);
+  const t = k.h * (k.child ? 0.028 : 0.026);
   ctx.fillStyle = k.paint('#22222a', 0.1);
   ctx.beginPath();
-  ctx.ellipse(x + k.h * 0.02, y - k.h * 0.012, k.h * 0.045, k.h * 0.022, 0, 0, Math.PI * 2);
+  ctx.moveTo(x - l * 0.42, y);
+  ctx.lineTo(x + l * 0.92, y);
+  ctx.quadraticCurveTo(x + l * 1.02, y - t * 0.85, x + l * 0.4, y - t);
+  ctx.quadraticCurveTo(x - l * 0.3, y - t * 1.25, x - l * 0.42, y - t * 0.5);
+  ctx.closePath();
   ctx.fill();
+  ctx.fillStyle = k.paint('#5a5660', 0.1);
+  ctx.fillRect(x - l * 0.42, y - Math.max(0.6, t * 0.18), l * 1.32, Math.max(0.6, t * 0.18));
+}
+
+/** The soft shadow on the ground under somebody, `w` wide, so nobody floats. */
+function groundShadow(ctx, k, x, w) {
+  ctx.save();
+  ctx.translate(x, 0);
+  ctx.scale(1, 0.13);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, w / 2);
+  g.addColorStop(0, `rgb(0 0 0 / ${0.12 + 0.2 * k.light})`);
+  g.addColorStop(1, 'rgb(0 0 0 / 0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(-w / 2, -w / 2, w, w);
+  ctx.restore();
 }
 
 function phone(ctx, k, [x, y]) {
@@ -422,12 +501,13 @@ function sitting(ctx, k, it) {
   const knee = on === 'ground' ? [h * 0.13, -h * 0.17] : on === 'ledge' ? [h * 0.15, -h * 0.01] : [h * 0.2, seat];
   const foot = on === 'ground' ? [h * 0.23, 0] : on === 'ledge' ? [h * 0.17, h * 0.19] : [h * 0.22, 0];
   const breathe = Math.sin(t * 1.7 + (it.x ?? 0) * 9) * h * 0.004;
+  if (on !== 'ledge' && !it.noShadow) groundShadow(ctx, k, h * 0.08, h * 0.5);
   if (!it.back) {
     // Seen from behind, the legs are hidden under the desk or the bench.
-    limb(ctx, k, k.look.legs, [-h * 0.02, seat], knee, b.limb * 1.2, 0.2, foot);
+    limb(ctx, k, k.look.legs, [-h * 0.02, seat], knee, b.limb * 1.3, 0.2, foot);
     shoe(ctx, k, foot);
     const near = [foot[0] + h * 0.03, foot[1]];
-    limb(ctx, k, k.look.legs, [0, seat], [knee[0] + h * 0.02, knee[1] - h * 0.01], b.limb * 1.2, 0, near);
+    limb(ctx, k, k.look.legs, [0, seat], [knee[0] + h * 0.02, knee[1] - h * 0.01], b.limb * 1.3, 0, near);
     shoe(ctx, k, near);
   }
   // Where the hands rest, measured from the hips: on the lap, or on the knees on the ground.
@@ -443,7 +523,7 @@ function sitting(ctx, k, it) {
   const backHand = peel ? apple : [lap[0] - h * 0.05, lap[1] + h * 0.01];
   const frontHand = peel ? [h * 0.25, sy + h * 0.21 + Math.sin(t * 2.4) * h * 0.008] : lap;
   limb(ctx, k, k.look.top, [-b.shoulderW * 0.7, sy + h * 0.02], peel ? [h * 0.02, sy + h * 0.24] : backHand, b.limb, 0.25, peel ? backHand : null);
-  torso(ctx, k, b, sy);
+  torso(ctx, k, b, sy, it.back);
   head(ctx, k, b, sy, it);
   // `curlSeconds`: the peel grows while you watch, as long as that takes.
   if (peel) curl(ctx, k, apple, it.curlSeconds ? Math.min(1, t / it.curlSeconds) : it.curl ?? 1, t);
@@ -488,6 +568,7 @@ function onBike(ctx, k, it) {
   const b = body(k);
   const wr = h * 0.2;
   const metal = k.paint('#2a2f3a');
+  if (!it.noShadow) groundShadow(ctx, k, 0, h * 1.0);
   for (const dx of [-h * 0.34, h * 0.34]) {
     ctx.strokeStyle = metal;
     ctx.lineWidth = Math.max(1.4, h * 0.022);
@@ -506,7 +587,7 @@ function onBike(ctx, k, it) {
   // A leg from the hip to a pedal, the knee pushed forward and up.
   const leg = (p, dark) => {
     const knee = [(hip[0] + p[0]) / 2 + h * 0.08, (hip[1] + p[1]) / 2 - h * 0.03];
-    limb(ctx, k, k.look.legs, hip, knee, b.limb * 1.1, dark, p);
+    limb(ctx, k, k.look.legs, hip, knee, b.limb * 1.2, dark, p);
   };
   leg(pedal(step + Math.PI), 0.25);
   ctx.strokeStyle = k.paint('#c8473e');

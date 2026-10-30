@@ -1,7 +1,8 @@
 // painter.js: paints one scene from scenes.js into three canvases (far, middle, near) in a
 // flat, layered style. Two rules make the depth: a layer farther away takes more
-// of the scene's fog colour, and the bottom of every layer dissolves into mist. A scene is
-// painted once when it opens; js/fx.js animates the few things that move, on top.
+// of the scene's fog colour, and the bottom of every layer dissolves into mist. Last, every
+// layer gets the grain of paper (paper()), so it reads as a painting, not a screen fill. A
+// scene is painted once when it opens; js/fx.js animates the few things that move, on top.
 //
 // Coordinates in scenes.js: x is a fraction of the phone-wide column (0 left edge, 1 right
 // edge; below 0 or above 1 reaches into the sides a computer shows), y is a fraction of
@@ -25,7 +26,65 @@ export function paintScene(scene, view) {
     if (LAYERS[item.kind]) LAYERS[item.kind](ctx, item, pen);
     else drawProp(ctx, item, pen);
   }
+  groups.forEach((g, i) => paper(g.ctx, pen, i));
   return groups.map((g) => g.canvas);
+}
+
+/**
+ * The paper the scene is painted on: a fine grain of lighter and darker specks over
+ * everything already painted (and nothing else, so the layers stay see-through), with a
+ * few broad patches where the paint lies a little thicker or thinner. It keeps flat colour
+ * from looking like a screen fill, and stops the soft sky gradients from banding.
+ */
+function paper(ctx, pen, layer) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  const shift = layer * 61;
+  ctx.translate(-shift, -shift);
+  ctx.fillStyle = ctx.createPattern(grainTile(), 'repeat');
+  ctx.fillRect(0, 0, pen.right + shift, pen.view.h + shift);
+  ctx.restore();
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  const rand = rng(97 + layer * 13 + (pen.scene.seed ?? 0));
+  for (let i = 0; i < 9; i++) {
+    const x = rand() * pen.right;
+    const y = rand() * pen.view.h;
+    const r = pen.S(0.25 + rand() * 0.45);
+    const tone = rand() < 0.5 ? '255 250 240' : '20 14 30';
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgb(${tone} / 0.035)`);
+    g.addColorStop(1, `rgb(${tone} / 0)`);
+    ctx.fillStyle = g;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  ctx.restore();
+}
+
+let grain = null;
+
+/** One square of paper grain, made once and tiled: one speck per CSS pixel. */
+function grainTile() {
+  if (grain) return grain;
+  const size = 160;
+  grain = document.createElement('canvas');
+  grain.width = size;
+  grain.height = size;
+  const ctx = grain.getContext('2d');
+  const img = ctx.createImageData(size, size);
+  const rand = rng(2024);
+  for (let i = 0; i < size * size; i++) {
+    const v = rand();
+    const light = v > 0.5;
+    const a = Math.abs(v - 0.5) * 2;
+    img.data[i * 4] = light ? 255 : 18;
+    img.data[i * 4 + 1] = light ? 250 : 12;
+    img.data[i * 4 + 2] = light ? 238 : 28;
+    // Most specks are faint; a few stand out, like the tooth of real paper.
+    img.data[i * 4 + 3] = Math.round(a ** 3 * 22);
+  }
+  ctx.putImageData(img, 0, 0);
+  return grain;
 }
 
 function makeCanvas(view) {
@@ -176,6 +235,7 @@ export const LAYERS = {
       pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
       ctx.stroke();
     }
+    return pts;
   },
 
   // A row of pines standing on a gently uneven line, filled solid below.
@@ -236,9 +296,12 @@ export const LAYERS = {
     }
   },
 
-  // Flat ground with a gentle edge: the nearest layer most scenes stand on.
+  // Flat ground with a gentle edge: the nearest layer most scenes stand on. Grass grows
+  // along its edge and in tufts across it, bigger nearer the bottom of the screen, with a
+  // few dry brush strokes; `tufts: false` leaves it bare (a street, snow).
   ground(ctx, it, pen) {
-    LAYERS.ridge(ctx, { amp: 0.03, freq: 0.8, oct: 2, mist: 0, depth: 0.3, ...it }, pen);
+    const pts = LAYERS.ridge(ctx, { amp: 0.03, freq: 0.8, oct: 2, mist: 0, depth: 0.3, ...it }, pen);
+    if (it.tufts !== false) grass(ctx, it, pen, pts);
   },
 
   // A road from the bottom of the screen winding into the distance.
@@ -267,6 +330,67 @@ export const LAYERS = {
     ctx.fill();
   },
 };
+
+/**
+ * Grass for a ground layer whose top edge is `pts`: blades along the edge (in the ground's
+ * own colour, so the edge itself turns grassy, with a few catching the light), tufts
+ * scattered below that grow as they come nearer, and some dry brush strokes.
+ */
+function grass(ctx, it, pen, pts) {
+  const rand = rng((it.seed ?? 2) * 17 + 3);
+  const base = pen.rgb(it.color, it.haze ?? 0);
+  const sky = pen.rgb(pen.scene.sky[pen.scene.sky.length - 1]);
+  const light = rgbToCss(mix(base, sky, 0.22));
+  const lighter = rgbToCss(mix(base, sky, 0.12), 0.7);
+  const darker = rgbToCss(mix(base, [0, 0, 0], 0.28), 0.6);
+  const edge = (x) => pts[Math.max(0, Math.min(pts.length - 1, Math.round((x - pts[0][0]) / 3)))][1];
+  const blades = (x, y, len, n, spread) => {
+    ctx.beginPath();
+    for (let b = 0; b < n; b++) {
+      const dx = (b - (n - 1) / 2) * spread;
+      const lean = (rand() - 0.5) * len * 0.7 + dx * 0.6;
+      const tall = len * (0.6 + rand() * 0.5);
+      ctx.moveTo(x + dx - 0.5, y);
+      ctx.quadraticCurveTo(x + dx + lean * 0.2, y - tall * 0.6, x + dx + lean, y - tall);
+      ctx.quadraticCurveTo(x + dx + lean * 0.3, y - tall * 0.5, x + dx + 0.6, y);
+    }
+    ctx.fill();
+  };
+  ctx.save();
+  // Along the edge.
+  for (let x = pen.left; x < pen.right; x += 3 + rand() * 5) {
+    ctx.fillStyle = rand() < 0.18 ? light : rgbToCss(base);
+    blades(x, edge(x) + 1.5, 2.5 + rand() * 3, 2 + Math.floor(rand() * 2), 1.2);
+  }
+  // Across the ground, nearer and bigger toward the bottom.
+  const bottom = pen.view.h;
+  const count = Math.round((pen.right / 400) * 70);
+  for (let i = 0; i < count; i++) {
+    const x = pen.left + rand() * (pen.right - pen.left);
+    const top = edge(x) + 6;
+    if (top >= bottom) continue;
+    const t = rand() ** 1.4;
+    const y = top + (bottom - top) * t;
+    ctx.fillStyle = rand() < 0.55 ? lighter : darker;
+    blades(x, y, 2.5 + t * 6, 3, 1.4 + t * 1.2);
+  }
+  // Dry brush: a few long, faint, slightly bent strokes.
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 16; i++) {
+    const x = pen.left + rand() * (pen.right - pen.left);
+    const top = edge(x) + 8;
+    if (top >= bottom) continue;
+    const y = top + (bottom - top) * rand() ** 1.2;
+    const len = 25 + rand() * 110;
+    ctx.strokeStyle = rand() < 0.5 ? rgbToCss(mix(base, sky, 0.18), 0.09) : rgbToCss(mix(base, [0, 0, 0], 0.3), 0.1);
+    ctx.lineWidth = 1 + rand() * 1.8;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x + len / 2, y + (rand() - 0.5) * 3, x + len, y + (rand() - 0.5) * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 
 /** One stylised pine: a thin top, tiers of drooping branches, a short trunk. */
 export function pinePath(ctx, x, base, h, w, rand) {
