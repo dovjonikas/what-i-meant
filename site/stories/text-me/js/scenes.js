@@ -270,7 +270,7 @@ export const SCENES = {
       { kind: 'room', window: [0.22, 0.1, 0.84, 0.42], color: '#1b2340', frame: '#2c3760', g: 1, bleed: true },
       { kind: 'cozy', g: 1, dim: 0.55, shade: '#1b2340', items: [
         { is: 'frame', x: 0.64, y: 0.56, w: 0.1, h: 0.08, paper: true, tilt: -0.06 },
-        { is: 'frame', x: 0.78, y: 0.54, w: 0.08, h: 0.1, pic: ['#9cc4e0', '#5b9a62'] },
+        { is: 'frame', x: 0.78, y: 0.54, w: 0.1, h: 0.085, photo: [['mom'], ['me', 'child'], ['dad']] },
         { is: 'lamp', x: 0.15, y: 0.84, s: 0.17 },
         { is: 'rug', x: 0.5, y: 0.965, w: 0.6, color: '#b08ac0' },
       ] },
@@ -298,18 +298,18 @@ export const SCENES = {
       { kind: 'band', y: 0, y2: 0.64, color: '#d9b98a', g: 1, bleed: true },
       { kind: 'band', y: 0.64, y2: 1, color: '#8a5a36', planks: 6, trim: '#6b4428', g: 1, bleed: true },
       { kind: 'door', x: 0.78, y: 0.64, w: 0.3, h: 0.78, pane: '#fff3d6', g: 1 },
-      { kind: 'stairs', x: 0.58, x2: -0.12, y: 0.64, top: 0.1, steps: 9, g: 1, bleed: true },
+      // On the wall, so drawn before the stairs: the banister passes in front of them.
       { kind: 'cozy', g: 1, items: [
-        { is: 'hooks', x: 0.42, y: 0.32, coats: ['#c9473f', '#2f5a4e', '#d9772e'] },
-        { is: 'frame', x: 0.12, y: 0.22, w: 0.09, h: 0.11, pic: ['#f2d9b0', '#c9473f'] },
-        { is: 'frame', x: 0.26, y: 0.17, w: 0.08, h: 0.07, pic: ['#9cc4e0', '#5b9a62'] },
-        { is: 'rug', x: 0.68, y: 0.86, w: 0.42, color: '#8a3a3a', flat: 0.14 },
+        { is: 'hooks', x: 0.45, y: 0.64, up: 0.6, coats: ['#c9473f', '#2f5a4e', '#d9772e'] },
+        { is: 'frame', x: 0.78, y: 0.64, up: 0.79, w: 0.15, h: 0.1, photo: [['mom'], ['me', 'child'], ['dad']] },
+        { is: 'rug', x: 0.72, y: 0.775, w: 0.5, color: '#8a3a3a', flat: 0.2 },
       ] },
+      { kind: 'stairs', x: 0.58, x2: -0.12, y: 0.64, top: 0.1, steps: 9, g: 1, bleed: true },
       { kind: 'shoes', x: 0.5, x2: 1.02, y: 0.71, s: 0.1, list: ['#2f5a4e', '#8a2a3a', '#b8473a'], gone: [0, 1, 1], g: 2 },
       { kind: 'people', list: [
-        { who: 'dog', age: 'puppy', x: 0.4, y: 0.8, h: 0.1, turn: true, ...timed([
-          [0, 0.13, 0.65, 0.085], [0.9, 0.13, 0.65, 0.085], [2.4, 0.36, 0.78, 0.098], [2.8, 0.4, 0.8, 0.1], [12, 0.4, 0.8, 0.1],
-        ], [[0, 'stand', { shoe: true, wag: 0.5, light: 0.12 }], [1.3, 'stand', { shoe: true, wag: 0.9, light: 0.45 }], [1.8, 'stand', { shoe: true, wag: 1 }], [2.8, 'front', { shoe: true, wag: 1 }]]) },
+        { who: 'dog', age: 'puppy', x: 0.6, y: 0.785, h: 0.1, turn: true, ...timed([
+          [0, 0.13, 0.65, 0.085], [0.9, 0.13, 0.65, 0.085], [2.4, 0.46, 0.77, 0.098], [3, 0.6, 0.785, 0.1], [12, 0.6, 0.785, 0.1],
+        ], [[0, 'stand', { shoe: true, wag: 0.5, light: 0.12 }], [1.3, 'stand', { shoe: true, wag: 0.9, light: 0.45 }], [1.8, 'stand', { shoe: true, wag: 1 }], [3, 'front', { shoe: true, wag: 1 }]]) },
       ], g: 2 },
     ],
   },
@@ -334,10 +334,14 @@ export const SCENES = {
       { kind: 'band', y: 0.7, y2: 1, color: '#7a5233', planks: 6, trim: '#5a3b24', g: 1, bleed: true },
       { kind: 'board', x: 0.69, y: 0.47, w: 0.48, h: 0.22, g: 1 },
       { kind: 'cozy', g: 1, items: [
-        { is: 'frame', x: 0.5, y: 0.22, w: 0.1, h: 0.08, paper: true, tilt: -0.05 },
-        { is: 'frame', x: 0.64, y: 0.19, w: 0.09, h: 0.07, paper: true, tilt: 0.06, pic: ['#f4d35e', '#c9473f'] },
-        { is: 'frame', x: 0.78, y: 0.22, w: 0.1, h: 0.08, paper: true, tilt: -0.03, pic: ['#e8a33c', '#2f5a4e'] },
-        { is: 'frame', x: 0.91, y: 0.19, w: 0.08, h: 0.07, paper: true, tilt: 0.05, pic: ['#f4d35e', '#7b5b8e'] },
+        // The class's drawings, pinned up round the board.
+        { is: 'frame', x: 0.5, y: 0.28, w: 0.1, h: 0.08, paper: true, tilt: -0.05, draw: 'family' },
+        { is: 'frame', x: 0.615, y: 0.262, w: 0.1, h: 0.08, paper: true, tilt: 0.05, draw: 'dog' },
+        { is: 'frame', x: 0.73, y: 0.285, w: 0.1, h: 0.08, paper: true, tilt: -0.03, draw: 'rainbow' },
+        { is: 'frame', x: 0.845, y: 0.267, w: 0.09, h: 0.08, paper: true, tilt: 0.04, draw: 'house', pic: ['#f4d35e', '#c9473f'] },
+        { is: 'frame', x: 0.945, y: 0.29, w: 0.08, h: 0.075, paper: true, tilt: -0.06, draw: 'flower' },
+        { is: 'frame', x: 0.405, y: 0.4, w: 0.07, h: 0.085, paper: true, tilt: 0.04, draw: 'fish' },
+        { is: 'frame', x: 0.405, y: 0.25, w: 0.07, h: 0.075, paper: true, tilt: -0.04, draw: 'boat' },
         { is: 'plant', x: 0.3, y: 0.5, s: 0.07 },
       ] },
       { kind: 'sunbeam', from: [0.04, 0.36, 0.5], to: [0.04, 0.42, 0.86], alpha: 0.14, g: 1 },
@@ -534,7 +538,7 @@ export const SCENES = {
     fx: [{ kind: 'firelight', x: 0.44, y: 0.56, r: 0.12, rgb: '205 225 255', alpha: 0.28, pace: 0.22, at: 0 }],
     layers: [
       { kind: 'kitchen', rect: [0.1, 0.18, 0.9, 0.66], lamp: [0.68, 0.34], clock: [0.24, 0.29], time: [1, 6], cupboards: [0.54, 0.9], g: 0 },
-      { kind: 'cozy', g: 0, dim: 0.3, shade: '#3a2414', items: [{ is: 'frame', x: 0.44, y: 0.27, w: 0.1, h: 0.08, pic: ['#9cc4e0', '#5b9a62'], sun: '#f4d35e' }] },
+      { kind: 'cozy', g: 0, dim: 0.3, shade: '#3a2414', items: [{ is: 'frame', x: 0.44, y: 0.27, w: 0.11, h: 0.085, photo: [['mom'], ['me', 'child'], ['dog'], ['dad']] }] },
       { kind: 'people', list: [
         { who: 'mom', mood: 'sad', x: 0.34, y: 0.76, h: 0.62, pose: 'phone', look: { coat: false }, light: 0.8, rim: '#d6e6ff', rimSide: 1 },
       ], g: 0 },
@@ -558,7 +562,7 @@ export const SCENES = {
     fx: [{ kind: 'motes', at: 0, count: 18 }],
     layers: [
       { kind: 'kitchen', rect: [0.1, 0.18, 0.9, 0.66], lamp: [0.68, 0.34], light: '#fff3d6', wall: '#f3d9a8', floor: '#c99a62', wood: '#9a6a3c', clock: [0.24, 0.29], time: [10, 2], cupboards: [0.54, 0.9], g: 0 },
-      { kind: 'cozy', g: 0, items: [{ is: 'frame', x: 0.44, y: 0.27, w: 0.1, h: 0.08, pic: ['#9cc4e0', '#5b9a62'], sun: '#f4d35e' }] },
+      { kind: 'cozy', g: 0, items: [{ is: 'frame', x: 0.44, y: 0.27, w: 0.11, h: 0.085, photo: [['mom'], ['me', 'child'], ['dog'], ['dad']] }] },
       { kind: 'sunbeam', from: [0.12, 0.3, 0.2], to: [0.3, 0.58, 0.66], alpha: 0.18, g: 0 },
       { kind: 'people', list: [
         { who: 'me', x: 0.36, y: 0.71, h: 0.42, age: 'child', pose: 'phone', light: 0.9, rim: '#fff1c9', rimSide: -1 },
@@ -589,12 +593,11 @@ export const SCENES = {
       { kind: 'band', y: 0, y2: 0.68, color: '#c99a6a', g: 1, bleed: true },
       { kind: 'band', y: 0.68, y2: 1, color: '#7a4e30', planks: 6, trim: '#5e3a22', g: 1, bleed: true },
       { kind: 'door', x: 0.8, y: 0.68, w: 0.24, h: 0.62, pane: '#ffd98a', g: 1 },
-      { kind: 'stairs', x: 0.52, x2: -0.08, y: 0.68, top: 0.22, steps: 9, under: '#9a6a44', g: 1, bleed: true },
       { kind: 'cozy', g: 1, items: [
-        { is: 'hooks', x: 0.38, y: 0.36, coats: ['#2f5a4e', null] },
-        { is: 'frame', x: 0.12, y: 0.32, w: 0.09, h: 0.11, pic: ['#f2d9b0', '#c9473f'] },
-        { is: 'frame', x: 0.24, y: 0.26, w: 0.08, h: 0.07, pic: ['#9cc4e0', '#5b9a62'] },
+        { is: 'hooks', x: 0.54, y: 0.68, up: 0.53, coats: ['#2f5a4e', null] },
+        { is: 'frame', x: 0.8, y: 0.68, up: 0.71, w: 0.15, h: 0.1, photo: [['mom'], ['me'], ['dad'], ['dog']] },
       ] },
+      { kind: 'stairs', x: 0.52, x2: -0.08, y: 0.68, top: 0.22, steps: 9, under: '#9a6a44', g: 1, bleed: true },
       { kind: 'shoes', x: 0.56, x2: 1, y: 0.72, s: 0.06, list: ['#2f5a4e', '#8a2a3a', '#3a4a6a'], gone: [-1, -1, -1], g: 1 },
       { kind: 'people', list: [
         { who: 'me', x: 0.3, y: 0.82, h: 0.44, face: 1 },
@@ -656,14 +659,38 @@ export const SCENES = {
       { kind: 'cozy', g: 1, items: [
         { is: 'rug', x: 0.45, y: 0.9, w: 0.62, color: '#b7838f' },
         { is: 'plant', x: 0.14, y: 0.82, s: 0.18 },
-        { is: 'frame', x: 0.62, y: 0.3, w: 0.13, h: 0.1, pic: ['#f2c9a8', '#8a6a86'], sun: '#fff3d6' },
-        { is: 'shelf', x: 0.27, y: 0.56, w: 0.26, books: 7, seed: 2 },
+        { is: 'frame', x: 0.575, y: 0.78, up: 0.47, w: 0.13, h: 0.1, photo: [['me'], ['partner']], pic: ['#f2c9a8', '#8a9a6a'] },
+        { is: 'frame', x: 0.575, y: 0.78, up: 0.3, w: 0.1, h: 0.12, photo: 'piggyback', pic: ['#9cc4e0', '#5b9a62'] },
+        { is: 'shelf', x: 0.27, y: 0.78, up: 0.3, w: 0.26, books: 7, seed: 2 },
       ] },
       { kind: 'figure', who: 'me', x: 0.42, y: 0.86, h: 0.46, pose: 'phone', light: 0.85, rim: '#ffe4c9', rimSide: -1, g: 2 },
     ],
   },
 
   // Sixty-six: clearing out Mom's house. Her photo albums, and the dog in every one.
+  // Mom's hall, the day you come to clear the house: the same stairs and door you grew up
+  // with, grey and still, dust in the light, and on its peg her red coat, the one colour.
+  momHall: {
+    sky: ['#9a958e', '#8a857e'],
+    skyEnd: 1,
+    fog: '#8a857e',
+    vibrance: 1,
+    light: 0.7,
+    ambience: 'room',
+    fx: [{ kind: 'motes', count: 22 }],
+    layers: [
+      { kind: 'band', y: 0, y2: 0.66, color: '#b7aea2', g: 1, bleed: true },
+      { kind: 'band', y: 0.66, y2: 1, color: '#6e6258', planks: 6, trim: '#5a5048', g: 1, bleed: true },
+      { kind: 'door', x: 0.78, y: 0.66, w: 0.28, h: 0.7, pane: '#f4efe6', g: 1 },
+      { kind: 'glow', x: 0.78, y: 0.42, r: 0.5, color: '#fff4e0', alpha: 0.14, g: 1 },
+      { kind: 'cozy', g: 1, items: [
+        { is: 'hooks', x: 0.47, y: 0.66, up: 0.6, coats: [null, '#c9473f', null] },
+        { is: 'frame', x: 0.78, y: 0.66, up: 0.79, w: 0.15, h: 0.1, photo: [['mom'], ['me'], ['dad'], ['dog']] },
+      ] },
+      { kind: 'stairs', x: 0.56, x2: -0.1, y: 0.66, top: 0.14, steps: 9, color: '#5e544c', under: '#857a70', rim: '#c8beb2', g: 1, bleed: true },
+    ],
+  },
+
   album: {
     sky: ['#7a7470', '#8f8780', '#a39a90'],
     skyEnd: 1,
@@ -675,6 +702,36 @@ export const SCENES = {
     layers: [
       { kind: 'glow', x: 0.85, y: 0.12, r: 0.9, color: '#fff2dc', alpha: 0.35, g: 0 },
       { kind: 'album', x: 0.5, y: 0.5, w: 0.92, coat: '#b9773f', g: 1 },
+      { kind: 'arm', who: 'me', from: [1.25, 0.9], to: [0.84, 0.64], size: 0.15, fingers: 'open', g: 2, bleed: true },
+    ],
+  },
+
+  albumOld: {
+    sky: ['#7a7470', '#8f8780', '#a39a90'],
+    skyEnd: 1,
+    fog: '#8f8780',
+    vibrance: 0.85,
+    light: 0.9,
+    ambience: 'room',
+    fx: [{ kind: 'motes', count: 10 }],
+    layers: [
+      { kind: 'glow', x: 0.85, y: 0.12, r: 0.9, color: '#fff2dc', alpha: 0.35, g: 0 },
+      { kind: 'album', spread: 'old', x: 0.5, y: 0.5, w: 0.92, coat: '#b9773f', g: 1 },
+      { kind: 'arm', who: 'me', from: [1.25, 0.9], to: [0.84, 0.64], size: 0.15, fingers: 'open', g: 2, bleed: true },
+    ],
+  },
+
+  albumYou: {
+    sky: ['#7a7470', '#8f8780', '#a39a90'],
+    skyEnd: 1,
+    fog: '#8f8780',
+    vibrance: 0.85,
+    light: 0.9,
+    ambience: 'room',
+    fx: [{ kind: 'motes', count: 10 }],
+    layers: [
+      { kind: 'glow', x: 0.85, y: 0.12, r: 0.9, color: '#fff2dc', alpha: 0.35, g: 0 },
+      { kind: 'album', spread: 'you', x: 0.5, y: 0.5, w: 0.92, coat: '#b9773f', g: 1 },
       { kind: 'arm', who: 'me', from: [1.25, 0.9], to: [0.84, 0.64], size: 0.15, fingers: 'open', g: 2, bleed: true },
     ],
   },
@@ -731,11 +788,12 @@ export const SCENES = {
       { kind: 'desk', x: 0.54, y: 0.775, w: 0.42, legs: 0.27, screen: '#a8c8ff', g: 1 },
       { kind: 'cozy', g: 1, dim: 0.55, shade: '#0a0c14', items: [
         { is: 'lights', x: 0.2, y: 0.1, x2: 0.9, sag: 0.05, n: 10 },
-        { is: 'frame', x: 0.09, y: 0.3, w: 0.12, h: 0.16, pic: ['#5a6aa0', '#3a4a7a'] },
+        { is: 'frame', x: 0.1, y: 0.805, up: 0.5, w: 0.12, h: 0.16, pic: ['#5a6aa0', '#3a4a7a'] },
         { is: 'plant', x: 0.72, y: 0.775, up: 0.26, s: 0.07 },
+        { is: 'desklamp', x: 0.4, y: 0.775, up: 0.26, s: 0.13, face: -1 },
       ] },
-      { kind: 'figure', who: 'me', x: 0.4, y: 0.88, h: 0.6, pose: 'sit', back: true, light: 0.35, rim: '#a8c8ff', rimSide: 1, g: 1 },
-      { kind: 'chair', x: 0.4, y: 0.885, h: 0.3, color: '#2c2640', metal: '#1a1826', rim: '#a8c8ff', g: 2 },
+      { kind: 'figure', who: 'me', x: 0.48, y: 0.805, h: 0.6, pose: 'sit', back: true, light: 0.35, rim: '#a8c8ff', rimSide: 1, g: 1 },
+      { kind: 'chair', x: 0.48, y: 0.81, h: 0.3, color: '#2c2640', metal: '#1a1826', rim: '#a8c8ff', g: 2 },
     ],
   },
 
@@ -752,8 +810,10 @@ export const SCENES = {
       { kind: 'city', y: 0.6, color: '#5e4566', haze: 0.35, hMin: 0.015, hMax: 0.06, gap: 0, seed: 4, g: 1, bleed: true },
       { kind: 'mist', y: 0.6, h: 0.05, alpha: 0.7, g: 1 },
       { kind: 'ridge', y: 0.73, amp: 0.03, freq: 0.6, oct: 2, color: '#2e2338', mist: 0, seed: 102, g: 2, bleed: true },
-      { kind: 'bench', x: 0.5, y: 0.745, w: 0.44, seat: 0.046, color: '#1a1222', rim: '#ffd6a0', rimSide: 1, g: 2 },
-      { kind: 'figure', who: 'me', x: 0.36, y: 0.745, h: 0.17, pose: 'sit', light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2 },
+      // Two benches: yours, and the one further along that somebody else will take.
+      { kind: 'bench', x: 0.33, y: 0.745, w: 0.27, seat: 0.046, color: '#1a1222', rim: '#ffd6a0', rimSide: 1, g: 2 },
+      { kind: 'bench', x: 0.66, y: 0.745, w: 0.23, seat: 0.046, color: '#1a1222', rim: '#ffd6a0', rimSide: 1, g: 2 },
+      { kind: 'figure', who: 'me', x: 0.27, y: 0.745, h: 0.17, pose: 'sit', light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2 },
       { kind: 'pine', x: 0.82, y: 0.735, h: 0.42, color: '#1a1222', rim: '#ffd6a0', rimSide: -1, seed: 9, g: 2 },
     ],
   },
@@ -958,10 +1018,10 @@ export const SCENES = {
       { kind: 'ridge', y: 0.58, amp: 0.12, freq: 0.8, oct: 2, color: '#ead3b6', mist: 0.15, seed: 7, g: 0 },
       { kind: 'ridge', y: 0.86, amp: 0.1, freq: 0.7, oct: 2, color: '#dfc19e', mist: 0.1, seed: 9, g: 1, bleed: true },
       // The baby in a blanket, a small head in a hat, one arm out, the fist round your finger.
-      { kind: 'arm', who: 'kid', sleeve: '#f0c4a2', from: [0.5, 0.57], to: [0.53, 0.485], size: 0.085, fingers: 'small', g: 2 },
+      { kind: 'arm', who: 'kid', sleeve: '#f0c4a2', from: [0.5, 0.62], to: [0.5, 0.494], size: 0.085, fingers: 'small', g: 2 },
       { kind: 'swaddle', x: 0.36, y: 0.7, w: 0.85, tilt: -0.35, head: true, color: '#d7e3f0', fold: '#a9b9cc', g: 2, bleed: true },
-      { kind: 'arm', who: 'me', from: [2.2, 0.6], to: [0.66, 0.5], size: 0.2, fingers: 'point', g: 2, bleed: true },
-      { kind: 'grip', who: 'kid', x: 0.535, y: 0.474, size: 0.02, g: 2 },
+      { kind: 'arm', who: 'me', from: [2.2, 0.56], to: [0.57, 0.497], size: 0.2, fingers: 'point', g: 2, bleed: true },
+      { kind: 'grip', who: 'kid', x: 0.5, y: 0.479, size: 0.02, g: 2 },
     ],
   },
 
@@ -1018,13 +1078,15 @@ SCENES.momDoorDark = {
     .map((it) => (it.kind === 'house' ? { ...it, lit: null, doorLit: null, windows: it.windows.map((w) => ({ ...w, lit: null })) } : it)),
 };
 
-// The same hill, some Sundays later: somebody else comes up for the sunrise too, sitting
-// well apart from you; and later the same somebody right beside you.
+// The same hill, some Sundays later: somebody else comes up for the sunrise too, on the
+// other bench; and the Sunday she brings the coffee, she gets up from hers and comes to sit
+// beside you.
 SCENES.hillDawnTwo = {
   ...SCENES.hillDawn,
-  layers: [...SCENES.hillDawn.layers, { kind: 'figure', who: 'partner', x: 0.66, y: 0.745, h: 0.165, pose: 'sit', face: -1, light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2 }],
+  layers: [...SCENES.hillDawn.layers, { kind: 'figure', who: 'partner', x: 0.68, y: 0.745, h: 0.165, pose: 'sit', face: -1, light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2 }],
 };
 SCENES.hillDawnClose = {
   ...SCENES.hillDawn,
-  layers: [...SCENES.hillDawn.layers, { kind: 'figure', who: 'partner', x: 0.5, y: 0.745, h: 0.165, pose: 'sit', face: -1, bend: 0.12, light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2 }],
+  layers: [...SCENES.hillDawn.layers, { kind: 'figure', who: 'partner', x: 0.39, y: 0.745, h: 0.165, pose: 'sit', face: -1, bend: 0.12, light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2,
+    delay: 0.8, seconds: 3.2, track: [[0.68, 0.745, 0.165], [0.6, 0.752, 0.165], [0.39, 0.752, 0.165], [0.39, 0.745, 0.165]], poses: [[0, 'sit'], [0.03, 'walk'], [0.96, 'sit']] }],
 };

@@ -32,7 +32,7 @@ faint to read.
 | `js/props.js` | Things in a scene: houses, flats, trees, pier, bus, car, lamps, desk, and the small things of a home (`cozy`: plants, pictures, shelves, rugs, a string of lights, coats on their pegs) |
 | `js/people.js` | The people: one colour and one outfit each for life, with its own details (your hoodie, Mom's coat buttons, Dad's beard and zip, the best friend's beanie), faceless, lit from one side; they breathe, walk, run and pedal |
 | `js/pets.js` | The family dog: wagging tail, floppy ears, a muzzle that greys |
-| `js/closeups.js` | Close shots of hands: the jar of jam, a newborn's grip |
+| `js/closeups.js` | Close shots of hands: the jar of jam, a newborn's grip, the chewed trainer; Mom's photo album in three spreads (the old photos from before you, your childhood, the dog's page with his name under each) |
 | `js/fx.js` | What moves in a scene: stars, birds, smoke, rain, snow, the people breathing |
 | `js/stage.js` | Shows scenes: three layers drifting at their own speeds, cross-fades, camera push |
 | `js/lines.js` | The life lines: the years run and stop at each moment; people join, drift, come back, end |

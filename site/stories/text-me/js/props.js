@@ -1486,10 +1486,13 @@ const PROPS = {
 
   // The small things that make a room somebody's home, each placed by the scene: a plant
   // in a pot ('plant', `tall` for one with long leaves), a picture on the wall ('frame',
-  // `pic` [sky, hill], or `paper` for a child's drawing pinned up), a shelf of books
+  // `pic` [sky, hill], or `paper` for a child's drawing pinned up, `draw` saying of what:
+  // a house, a family, a dog, a rainbow, a flower, a boat, a fish; or `photo`, a photo of
+  // the people in the story: a list of [who, age] standing in a row, the dog as 'dog', or
+  // 'piggyback' for you carrying the partner), a shelf of books
   // ('shelf'), a mug with steam ('mug'), a rug ('rug'), a string of small warm lights
   // ('lights'), coats on hooks ('hooks', each coat in its owner's colour), a bedside lamp
-  // ('lamp'), a window box of flowers ('flowers'). `dim` (0 to 1) sinks them toward `shade`
+  // ('lamp'), a desk lamp on its bent arm ('desklamp'), a window box of flowers ('flowers'). `dim` (0 to 1) sinks them toward `shade`
   // for a room at night. Sizes are in column widths.
   cozy(ctx, it, pen) {
     const dim = it.dim ?? 0;
@@ -1539,28 +1542,13 @@ const PROPS = {
           ctx.fillStyle = 'rgb(0 0 0 / 0.18)';
           ctx.fillRect(x - w / 2 + 2, y - h / 2 + 3, w, h);
           if (thing.paper) {
-            // A child's drawing pinned up: a sun, a house, a person, in crayon.
+            // A child's drawing pinned up, in crayon.
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(thing.tilt ?? 0);
             ctx.fillStyle = c('#f8f3e6');
             ctx.fillRect(-w / 2, -h / 2, w, h);
-            const [a, b2] = thing.pic ?? ['#e8a33c', '#5b8fd0'];
-            ctx.fillStyle = c(a);
-            ctx.beginPath();
-            ctx.arc(-w * 0.22, -h * 0.18, Math.min(w, h) * 0.14, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = c(b2);
-            ctx.fillRect(w * 0.02, -h * 0.02, w * 0.3, h * 0.3);
-            ctx.beginPath();
-            ctx.moveTo(-w * 0.02, -h * 0.02);
-            ctx.lineTo(w * 0.17, -h * 0.22);
-            ctx.lineTo(w * 0.36, -h * 0.02);
-            ctx.closePath();
-            ctx.fill();
-            ctx.strokeStyle = c('#5aa04e');
-            ctx.lineWidth = Math.max(1, h * 0.05);
-            line(ctx, -w * 0.42, h * 0.34, w * 0.42, h * 0.34);
+            crayon(ctx, thing.draw ?? 'house', w, h, c, thing.pic);
             ctx.fillStyle = c('#c9473f');
             ctx.beginPath();
             ctx.arc(0, -h * 0.5, Math.max(1, w * 0.04), 0, Math.PI * 2);
@@ -1578,6 +1566,10 @@ const PROPS = {
           const iy = y - h / 2 + m * 1.8;
           const iw = w - m * 3.6;
           const ih = h - m * 3.6;
+          if (thing.photo) {
+            snapshot(ctx, thing.photo, ix, iy, iw, ih, c, sky, hill);
+            break;
+          }
           ctx.fillStyle = c(sky);
           ctx.fillRect(ix, iy, iw, ih);
           ctx.fillStyle = c(hill);
@@ -1750,6 +1742,43 @@ const PROPS = {
           ctx.fill();
           break;
         }
+        case 'desklamp': {
+          // A lamp on a bent arm, its shade tipped down at the desk, warm light under it.
+          const sz = S(thing.s ?? 0.14);
+          const dir = thing.face ?? 1;
+          const head = [x + dir * sz * 0.42, y - sz * 0.92];
+          ctx.globalCompositeOperation = 'screen';
+          glow(ctx, head[0] + dir * sz * 0.12, y - sz * 0.1, sz * 1.5, pen.tone('#ffc77a', 0, 0.42), pen.tone('#ffc77a', 0, 0));
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.fillStyle = c(thing.color ?? '#c9b48a');
+          ctx.beginPath();
+          ctx.ellipse(x, y - sz * 0.03, sz * 0.2, sz * 0.06, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = c(thing.color ?? '#c9b48a');
+          ctx.lineWidth = Math.max(1.2, sz * 0.05);
+          ctx.beginPath();
+          ctx.moveTo(x, y - sz * 0.05);
+          ctx.lineTo(x - dir * sz * 0.08, y - sz * 0.62);
+          ctx.lineTo(head[0], head[1]);
+          ctx.stroke();
+          ctx.save();
+          ctx.translate(head[0], head[1]);
+          ctx.rotate(dir * 0.5);
+          ctx.fillStyle = c(thing.color ?? '#c9b48a');
+          ctx.beginPath();
+          ctx.moveTo(-sz * 0.08, -sz * 0.04);
+          ctx.lineTo(sz * 0.08, -sz * 0.04);
+          ctx.lineTo(sz * 0.2, sz * 0.2);
+          ctx.lineTo(-sz * 0.2, sz * 0.2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = pen.tone('#fff0c8');
+          ctx.beginPath();
+          ctx.ellipse(0, sz * 0.2, sz * 0.19, sz * 0.045, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          break;
+        }
         case 'flowers': {
           // A window box: the planter, leaves, and flowers in a few colours.
           const w = S(thing.w ?? 0.5);
@@ -1793,6 +1822,258 @@ const PROPS = {
     for (const p of it.list) drawPerson(ctx, { rim: it.rim, rimSide: it.rimSide, ...p }, pen);
   },
 };
+
+/**
+ * What a child draws, on a sheet `w` by `h` centred on the origin, coloured through `c`:
+ * a house in the sun, the family holding hands, the dog, a rainbow, a big flower, a boat,
+ * a fish with bubbles. Thick, simple strokes, the way crayons go.
+ */
+function crayon(ctx, what, w, h, c, pic) {
+  const m = Math.min(w, h);
+  const stroke = (css, width) => {
+    ctx.strokeStyle = c(css);
+    ctx.lineWidth = Math.max(0.8, m * width);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  };
+  const blob = (x, y, r, css) => {
+    ctx.fillStyle = c(css);
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(0.8, r), 0, Math.PI * 2);
+    ctx.fill();
+  };
+  const sun = (x, y) => blob(x, y, m * 0.13, '#f4c542');
+  const grass = () => {
+    stroke('#5aa04e', 0.07);
+    line(ctx, -w * 0.42, h * 0.36, w * 0.42, h * 0.36);
+  };
+  switch (what) {
+    case 'family': {
+      // Two tall and one small, hand in hand, under the sun.
+      sun(w * 0.3, -h * 0.26);
+      const people = [[-w * 0.24, 1, '#c9473f'], [0, 1, '#2f5a4e'], [w * 0.2, 0.62, '#e8a33c']];
+      people.forEach(([px, k, css]) => {
+        blob(px, h * (0.28 - 0.48 * k), m * 0.08 * (0.7 + 0.3 * k), '#d9a074');
+        ctx.fillStyle = c(css);
+        ctx.beginPath();
+        ctx.moveTo(px, h * (0.33 - 0.42 * k));
+        ctx.lineTo(px - w * 0.07 * k, h * 0.3);
+        ctx.lineTo(px + w * 0.07 * k, h * 0.3);
+        ctx.closePath();
+        ctx.fill();
+      });
+      stroke('#3a2a1e', 0.03);
+      line(ctx, -w * 0.18, h * 0.08, -w * 0.06, h * 0.08);
+      line(ctx, w * 0.06, h * 0.08, w * 0.15, h * 0.16);
+      grass();
+      break;
+    }
+    case 'dog': {
+      ctx.fillStyle = c('#b9773f');
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.02, h * 0.06, w * 0.22, h * 0.13, 0, 0, Math.PI * 2);
+      ctx.fill();
+      blob(w * 0.22, -h * 0.1, m * 0.15, '#b9773f');
+      blob(w * 0.16, -h * 0.02, m * 0.07, '#7a4a24');
+      stroke('#b9773f', 0.06);
+      for (const lx of [-0.16, -0.06, 0.06, 0.14]) line(ctx, w * lx, h * 0.14, w * lx, h * 0.3);
+      line(ctx, -w * 0.22, h * 0.02, -w * 0.34, -h * 0.12);
+      blob(w * 0.27, -h * 0.12, m * 0.025, '#2a1a10');
+      grass();
+      break;
+    }
+    case 'rainbow': {
+      const bands = ['#e05a4e', '#f4c542', '#5aa04e', '#5b8fd0'];
+      bands.forEach((css, i) => {
+        stroke(css, 0.07);
+        ctx.beginPath();
+        ctx.arc(0, h * 0.3, w * (0.38 - i * 0.07), Math.PI, 0);
+        ctx.stroke();
+      });
+      blob(-w * 0.34, h * 0.28, m * 0.1, '#d8e4ee');
+      blob(-w * 0.24, h * 0.3, m * 0.12, '#d8e4ee');
+      blob(w * 0.3, h * 0.28, m * 0.11, '#d8e4ee');
+      break;
+    }
+    case 'flower': {
+      sun(-w * 0.3, -h * 0.28);
+      stroke('#5aa04e', 0.06);
+      line(ctx, w * 0.06, h * 0.36, w * 0.06, -h * 0.02);
+      ctx.fillStyle = c('#5aa04e');
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.04, h * 0.2, w * 0.09, h * 0.04, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+      for (let i = 0; i < 6; i += 1) {
+        const a = (i / 6) * Math.PI * 2;
+        blob(w * 0.06 + Math.cos(a) * m * 0.16, -h * 0.12 + Math.sin(a) * m * 0.16, m * 0.1, pic?.[0] ?? '#d784b8');
+      }
+      blob(w * 0.06, -h * 0.12, m * 0.09, '#f4c542');
+      break;
+    }
+    case 'boat': {
+      sun(w * 0.3, -h * 0.28);
+      ctx.fillStyle = c('#5b8fd0');
+      ctx.fillRect(-w * 0.44, h * 0.18, w * 0.88, h * 0.24);
+      ctx.fillStyle = c('#c9473f');
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.26, h * 0.06);
+      ctx.lineTo(w * 0.22, h * 0.06);
+      ctx.lineTo(w * 0.14, h * 0.2);
+      ctx.lineTo(-w * 0.18, h * 0.2);
+      ctx.closePath();
+      ctx.fill();
+      stroke('#3a2a1e', 0.03);
+      line(ctx, -w * 0.02, h * 0.06, -w * 0.02, -h * 0.3);
+      ctx.fillStyle = c('#f6f0e6');
+      ctx.strokeStyle = c('#8a8a9a');
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.01, -h * 0.28);
+      ctx.lineTo(w * 0.2, h * 0.02);
+      ctx.lineTo(-w * 0.01, h * 0.02);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case 'fish': {
+      ctx.fillStyle = c('#cfe3f2');
+      ctx.fillRect(-w * 0.44, -h * 0.4, w * 0.88, h * 0.8);
+      ctx.fillStyle = c(pic?.[0] ?? '#e8a33c');
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.04, 0, w * 0.2, h * 0.14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(w * 0.14, 0);
+      ctx.lineTo(w * 0.32, -h * 0.14);
+      ctx.lineTo(w * 0.32, h * 0.14);
+      ctx.closePath();
+      ctx.fill();
+      blob(-w * 0.14, -h * 0.03, m * 0.03, '#2a1a10');
+      stroke('#5b8fd0', 0.03);
+      for (const [bx, by, br] of [[-0.3, -0.18, 0.04], [-0.34, -0.3, 0.025]]) {
+        ctx.beginPath();
+        ctx.arc(w * bx, h * by, m * br, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      break;
+    }
+    default: {
+      // A house in the sun, on the grass.
+      const [a, b] = pic ?? ['#e8a33c', '#5b8fd0'];
+      blob(-w * 0.22, -h * 0.18, m * 0.14, a);
+      ctx.fillStyle = c(b);
+      ctx.fillRect(w * 0.02, -h * 0.02, w * 0.3, h * 0.3);
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.02, -h * 0.02);
+      ctx.lineTo(w * 0.17, -h * 0.22);
+      ctx.lineTo(w * 0.36, -h * 0.02);
+      ctx.closePath();
+      ctx.fill();
+      grass();
+    }
+  }
+}
+
+/**
+ * A photo of the people in the story, inside the box ix, iy, iw, ih: sky and grass, and
+ * the people in a row in their own colours (people.js), the children smaller, the dog at
+ * their feet; or 'piggyback': you with the partner on your back, her arms round your neck.
+ */
+function snapshot(ctx, what, ix, iy, iw, ih, c, sky, grass) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(ix, iy, iw, ih);
+  ctx.clip();
+  ctx.fillStyle = c(sky);
+  ctx.fillRect(ix, iy, iw, ih);
+  ctx.fillStyle = c(grass);
+  ctx.fillRect(ix, iy + ih * 0.78, iw, ih * 0.22);
+  const ground = iy + ih * 0.9;
+  const person = (who, x, tall, lean = 0) => {
+    const look = LOOKS[who] ?? LOOKS.stranger;
+    const bw = tall * 0.3;
+    const head = tall * 0.13;
+    ctx.save();
+    ctx.translate(x, ground);
+    ctx.rotate(lean);
+    ctx.fillStyle = c(look.legs);
+    ctx.fillRect(-bw * 0.36, -tall * 0.46, bw * 0.3, tall * 0.46);
+    ctx.fillRect(bw * 0.06, -tall * 0.46, bw * 0.3, tall * 0.46);
+    ctx.fillStyle = c(look.top);
+    ctx.beginPath();
+    ctx.moveTo(-bw * 0.5, -tall * 0.4);
+    ctx.lineTo(-bw * 0.46, -tall * 0.76);
+    ctx.quadraticCurveTo(0, -tall * 0.82, bw * 0.46, -tall * 0.76);
+    ctx.lineTo(bw * 0.5, -tall * 0.4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = c(look.skin);
+    ctx.beginPath();
+    ctx.arc(0, -tall * 0.87, head, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = c(look.scarf ?? look.hair ?? '#3a2a20');
+    ctx.beginPath();
+    ctx.arc(0, -tall * 0.89, head * 1.05, Math.PI * 1.05, Math.PI * 1.95);
+    ctx.fill();
+    if (look.hairStyle === 'long') ctx.fillRect(-head * 1.02, -tall * 0.9, head * 0.5, head * 1.7);
+    ctx.restore();
+  };
+  if (what === 'piggyback') {
+    // You, laughing under the weight; her on your back, arms round your neck, legs out.
+    const tall = ih * 0.62;
+    const x = ix + iw * 0.5;
+    const her = LOOKS.partner;
+    ctx.fillStyle = c(her.legs);
+    ctx.save();
+    ctx.translate(x, ground - tall * 0.5);
+    ctx.fillRect(-tall * 0.34, -tall * 0.06, tall * 0.22, tall * 0.08);
+    ctx.fillRect(tall * 0.12, -tall * 0.06, tall * 0.22, tall * 0.08);
+    ctx.restore();
+    person('me', x, tall);
+    ctx.fillStyle = c(her.top);
+    ctx.beginPath();
+    ctx.ellipse(x - tall * 0.06, ground - tall * 0.84, tall * 0.14, tall * 0.12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = c(her.skin);
+    ctx.beginPath();
+    ctx.arc(x - tall * 0.1, ground - tall * 1.02, tall * 0.11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = c(her.hair);
+    ctx.beginPath();
+    ctx.arc(x - tall * 0.1, ground - tall * 1.04, tall * 0.12, Math.PI * 0.9, Math.PI * 2.05);
+    ctx.fill();
+    ctx.fillRect(x - tall * 0.22, ground - tall * 1.04, tall * 0.07, tall * 0.2);
+    ctx.strokeStyle = c(her.top);
+    ctx.lineWidth = Math.max(1, tall * 0.07);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - tall * 0.12, ground - tall * 0.86);
+    ctx.quadraticCurveTo(x + tall * 0.02, ground - tall * 0.76, x + tall * 0.12, ground - tall * 0.8);
+    ctx.stroke();
+  } else {
+    const n = what.length;
+    what.forEach(([who, age], i) => {
+      const x = ix + iw * ((i + 0.5) / n);
+      if (who === 'dog') {
+        const d = ih * 0.12;
+        ctx.fillStyle = c(LOOKS.dog.coat);
+        ctx.beginPath();
+        ctx.ellipse(x, ground - d * 0.9, d * 1.1, d * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + d * 0.9, ground - d * 1.5, d * 0.55, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(x - d * 0.8, ground - d * 0.6, d * 0.25, d * 0.6);
+        ctx.fillRect(x + d * 0.5, ground - d * 0.6, d * 0.25, d * 0.6);
+        return;
+      }
+      // Leaning in toward the middle, the way people stand for a photo.
+      const lean = (i - (n - 1) / 2) * -0.06;
+      person(who, x, ih * (age === 'child' ? 0.42 : 0.66), lean);
+    });
+  }
+  ctx.restore();
+}
 
 function line(ctx, x0, y0, x1, y1) {
   ctx.beginPath();
