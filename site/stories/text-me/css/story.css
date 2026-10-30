@@ -532,16 +532,10 @@ button {
   filter: blur(0.5px);
 }
 
-/* The partner asleep on the pillow, the baby asleep on their chest. */
+/* The partner asleep on the pillow, her long hair spread over it, the baby asleep on her
+   chest under her arm. Drawn as an SVG, since this one needs exact shapes. */
 .photo-baby {
-  background:
-    radial-gradient(ellipse 9% 11% at 60% 40%, #f0c8a6 0 96%, transparent 100%),
-    radial-gradient(ellipse 15% 12% at 62% 53%, #f6f1e7 0 96%, transparent 100%),
-    radial-gradient(ellipse 13% 17% at 25% 47%, #c98d68 0 96%, transparent 100%),
-    radial-gradient(ellipse 17% 22% at 21% 41%, #1f1a18 0 96%, transparent 100%),
-    radial-gradient(ellipse 50% 22% at 68% 66%, #5b8fd0 0 96%, transparent 100%),
-    radial-gradient(ellipse 30% 26% at 18% 50%, #f4f2ee 0 96%, transparent 100%),
-    linear-gradient(#c9d6e8, #a9b8d0);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 120' preserveAspectRatio='xMidYMid slice'%3E%3Cdefs%3E%3ClinearGradient id='s' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23dfe6ef'/%3E%3Cstop offset='1' stop-color='%23b9c7da'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='150' height='120' fill='url(%23s)'/%3E%3Cellipse cx='38' cy='54' rx='38' ry='25' fill='%23f5f3ef'/%3E%3Cellipse cx='38' cy='60' rx='34' ry='14' fill='%23e6e2da' opacity='0.6'/%3E%3Cpath d='M52 47C41 36 21 37 9 47C15 52 17 59 11 68C22 73 35 73 42 68Z' fill='%231f1a18'/%3E%3Cpath d='M40 43C30 41 20 44 13 50M36 70C27 70 20 68 15 66M30 56C22 56 17 58 14 60' stroke='%233d332e' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='46' cy='57' r='11.5' fill='%23c98d68'/%3E%3Cpath d='M56.5 52C53 44 43 43 37 50C35 54 35.5 59 37.5 63C38 56 42 50 56.5 52Z' fill='%231f1a18'/%3E%3Cpath d='M44 80Q66 58 150 62L150 120L30 120Q30 92 44 80Z' fill='%238eaedc'/%3E%3Cpath d='M44 80Q66 64 150 66' stroke='%23a9c2e6' stroke-width='2' fill='none'/%3E%3Cellipse cx='57' cy='74' rx='12' ry='7.5' fill='%235b8fd0'/%3E%3Cg transform='rotate(-8 78 70)'%3E%3Cellipse cx='79' cy='70' rx='15' ry='8.5' fill='%23f6f1e7'/%3E%3Cpath d='M68 73Q79 77 92 72' stroke='%23ddd5c6' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3C/g%3E%3Ccircle cx='63.5' cy='67' r='6.3' fill='%23f0c4a2'/%3E%3Cpath d='M58 68Q57 61 63 60.5Q66.5 60.5 68.5 63Q62.5 62.5 58 68Z' fill='%23ecc95a'/%3E%3Cpath d='M59 79Q69 81 80 75' stroke='%23c98d68' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='81' cy='74.5' r='3.1' fill='%23c98d68'/%3E%3C/svg%3E") center / cover;
 }
 
 /* The partner, never posed: asleep against a train window, burnt toast held up, a laugh
