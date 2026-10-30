@@ -5,6 +5,13 @@
 // (Mom's red coat, Dad's green jacket, Grandma's yellow headscarf, your orange top), and the
 // life lines view draws their line in the same colour, so a dot there is a person you know.
 //
+// Each of them is also told apart by the cut of their clothes and a few small things, the
+// same all their life: your hoodie with its strings and the tuft of hair that never lies
+// down, Mom's coat with lapels and buttons and her earrings, Dad's zip-up jacket and his
+// beard, Grandma's cardigan and the knot of her headscarf, Grandpa's waistcoat over a shirt
+// and his moustache, the best friend's beanie and stripe, the partner's knit and earrings,
+// the kid's stripes and tuft. A little warmth in the cheek and an ear make a head somebody's.
+//
 // Figures are drawn flat with a soft shadow side and a light edge on the side the light
 // comes from, arms and legs narrowing to the wrist and ankle, and a soft shadow on the
 // ground under them. At night they sink toward the scene's dark colour, so a person under a
@@ -20,14 +27,14 @@ import { drawDog } from './pets.js';
 // is teal for that reason), and Dad's green is dark enough to stay apart from her red for
 // players who cannot tell red from green.
 export const LOOKS = {
-  me: { top: '#d9772e', legs: '#2e3a55', hair: '#a8824c', skin: '#efc3a2', old: { hair: '#d4cec4' } },
-  mom: { top: '#c9473f', legs: '#3b3346', hair: '#7a4a2c', hairStyle: 'long', skin: '#f0c4a2', coat: true, old: { hair: '#cfc8bf', hairStyle: 'bun' } },
-  dad: { top: '#2f5a4e', legs: '#3a3833', hair: '#2a2420', skin: '#d6a07e', broad: true, old: { hair: '#cdc8c0' } },
-  grandma: { top: '#7b5b8e', legs: '#5a4a5a', scarf: '#e0a83e', skin: '#efcaae', coat: true, mark: '#e0a83e' },
-  grandpa: { top: '#8b6a4b', legs: '#4a4038', hair: '#dcd8d0', cap: '#5a4b3c', skin: '#e2b08e' },
-  friend: { top: '#f2c94c', legs: '#2c4a6b', hair: '#c79a55', skin: '#f2c8a6' },
-  partner: { top: '#5b8fd0', legs: '#2f3340', hair: '#1f1a18', hairStyle: 'long', skin: '#c98d68' },
-  kid: { top: '#f0a347', legs: '#3e5a7a', hair: '#c9a46a', skin: '#f0c4a2' },
+  me: { wear: 'hoodie', tuft: true, top: '#d9772e', legs: '#2e3a55', hair: '#a8824c', skin: '#efc3a2', old: { hair: '#d4cec4' } },
+  mom: { wear: 'coat', earring: '#e7c46a', top: '#c9473f', legs: '#3b3346', hair: '#7a4a2c', hairStyle: 'long', skin: '#f0c4a2', coat: true, old: { hair: '#cfc8bf', hairStyle: 'bun' } },
+  dad: { wear: 'jacket', beard: true, top: '#2f5a4e', legs: '#3a3833', hair: '#2a2420', skin: '#d6a07e', broad: true, old: { hair: '#cdc8c0' } },
+  grandma: { wear: 'cardigan', top: '#7b5b8e', legs: '#5a4a5a', scarf: '#e0a83e', skin: '#efcaae', coat: true, mark: '#e0a83e' },
+  grandpa: { wear: 'vest', moustache: true, top: '#8b6a4b', legs: '#4a4038', hair: '#dcd8d0', cap: '#5a4b3c', skin: '#e2b08e' },
+  friend: { wear: 'stripe', beanie: '#34466a', top: '#f2c94c', legs: '#2c4a6b', hair: '#c79a55', skin: '#f2c8a6' },
+  partner: { wear: 'knit', earring: '#e7c46a', top: '#5b8fd0', legs: '#2f3340', hair: '#1f1a18', hairStyle: 'long', skin: '#c98d68' },
+  kid: { wear: 'stripes', tuft: true, top: '#f0a347', legs: '#3e5a7a', hair: '#c9a46a', skin: '#f0c4a2' },
   goose: { mark: '#b9c6d8' },
   dog: { coat: '#b9773f', light: '#f1dcbc', mark: '#2f8fa3', collar: '#2f8fa3' },
   // People who pass through: friends at the fire, strangers.
@@ -80,6 +87,8 @@ export function drawPerson(ctx, it, pen, t = 0, step = 0, moving = false) {
     old: it.age === 'old',
     look,
     paint,
+    // A colour in the scene's light with an alpha, for soft touches like a cheek.
+    tint: (hex, alpha) => rgbToCss(vivid(mix(hexToRgb(hex), shade, 1 - light), pen.scene.vibrance ?? 1), alpha),
     // Fills across the body: shadow side darker, lit side as is.
     fill: (hex) => {
       const g = ctx.createLinearGradient(-h * 0.16 * litSide, 0, h * 0.16 * litSide, 0);
@@ -170,10 +179,12 @@ function standing(ctx, k, it, pose) {
     arms = blendArms(armPose(it.poseFrom, k, b, sy, t), arms, it.poseK);
   }
   limb(ctx, k, k.look.top, arms.back[0], arms.back[1], b.limb, 0.28, arms.back[2]);
+  cuff(ctx, k, arms.back, b.limb, 0.28);
   hand(ctx, k, arms.back[2] ?? arms.back[1], 0.25);
   torso(ctx, k, b, sy, it.back);
   head(ctx, k, b, sy, it);
   limb(ctx, k, k.look.top, arms.front[0], arms.front[1], b.limb, 0, arms.front[2]);
+  cuff(ctx, k, arms.front, b.limb, 0);
   hand(ctx, k, arms.front[2] ?? arms.front[1], 0);
   if (pose === 'phone') phone(ctx, k, arms.front[2] ?? arms.front[1]);
   if (pose === 'carry') bundle(ctx, k, b, sy);
@@ -259,18 +270,26 @@ function torso(ctx, k, b, sy, back = false) {
   // The top narrows a little at the waist and sits out again over the hips.
   const shape = () => {
     ctx.beginPath();
-    ctx.moveTo(-b.shoulderW, sy + h * 0.04);
-    ctx.quadraticCurveTo(-b.shoulderW, sy, -b.shoulderW + h * 0.04, sy);
-    ctx.lineTo(b.shoulderW - h * 0.04, sy);
-    ctx.quadraticCurveTo(b.shoulderW, sy, b.shoulderW, sy + h * 0.04);
+    ctx.moveTo(-b.shoulderW, sy + h * 0.065);
+    ctx.quadraticCurveTo(-b.shoulderW, sy, -b.shoulderW + h * 0.065, sy);
+    ctx.lineTo(b.shoulderW - h * 0.065, sy);
+    ctx.quadraticCurveTo(b.shoulderW, sy, b.shoulderW, sy + h * 0.065);
     ctx.quadraticCurveTo(b.shoulderW * 0.86, sy * 0.45, hw, hem);
     ctx.lineTo(-hw, hem);
     ctx.quadraticCurveTo(-b.shoulderW * 0.86, sy * 0.45, -b.shoulderW, sy + h * 0.04);
     ctx.closePath();
   };
+  if (look.wear === 'hoodie') hood(ctx, k, b, sy);
   ctx.fillStyle = k.fill(look.top);
   shape();
   ctx.fill();
+  if (!back) {
+    ctx.save();
+    shape();
+    ctx.clip();
+    clothes(ctx, k, b, sy, hw, hem);
+    ctx.restore();
+  }
   // A little shade along the hem, where the cloth turns under.
   const fold = ctx.createLinearGradient(0, hem - h * 0.07, 0, hem);
   fold.addColorStop(0, 'rgb(0 0 0 / 0)');
@@ -337,6 +356,16 @@ function head(ctx, k, b, sy, it) {
   ctx.beginPath();
   ctx.arc(cx + litSide * r * 0.28, cy - r * 0.08, r * 0.95, 0, Math.PI * 2);
   ctx.fill();
+  if (!it.back) {
+    // A little warmth in the cheek, on the side the face is turned to.
+    const bx = cx + r * 0.4;
+    const by = cy + r * 0.32;
+    const g = ctx.createRadialGradient(bx, by, 0, bx, by, r * 0.42);
+    g.addColorStop(0, k.tint('#e9806a', k.child ? 0.5 : 0.34));
+    g.addColorStop(1, k.tint('#e9806a', 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(bx - r * 0.42, by - r * 0.42, r * 0.84, r * 0.84);
+  }
   ctx.restore();
 
   if (look.scarf) {
@@ -347,6 +376,20 @@ function head(ctx, k, b, sy, it) {
     ctx.lineTo(cx - r * 1.25, cy + r * 1.05);
     ctx.closePath();
     ctx.fill();
+    if (!it.back) {
+      // Tied under the chin, the two ends hanging.
+      ctx.fillStyle = k.paint(look.scarf, 0.12);
+      ctx.beginPath();
+      ctx.ellipse(cx - r * 0.1, cy + r * 1.02, r * 0.2, r * 0.15, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.2, cy + r * 1.05);
+      ctx.lineTo(cx - r * 0.42, cy + r * 1.55);
+      ctx.lineTo(cx - r * 0.18, cy + r * 1.5);
+      ctx.lineTo(cx + r * 0.02, cy + r * 1.08);
+      ctx.closePath();
+      ctx.fill();
+    }
   } else if (look.hair) {
     ctx.fillStyle = k.paint(look.hair, 0.04);
     ctx.beginPath();
@@ -372,9 +415,30 @@ function head(ctx, k, b, sy, it) {
     }
     ctx.closePath();
     ctx.fill();
+    if (look.tuft && !look.beanie) {
+      // The tuft on the crown that never lies down.
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.42, cy - r * 1.0);
+      ctx.quadraticCurveTo(cx - r * 0.3, cy - r * 1.5, cx + r * 0.05, cy - r * 1.42);
+      ctx.quadraticCurveTo(cx - r * 0.12, cy - r * 1.24, cx + r * 0.05, cy - r * 1.0);
+      ctx.closePath();
+      ctx.fill();
+    }
     if (hairStyle === 'bun') {
       ctx.beginPath();
       ctx.arc(cx - r * 0.9, cy - r * 0.6, r * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (!it.back && hairStyle === 'short') {
+      // A strand's edge across the crown, and the ear just in front of the hairline.
+      ctx.strokeStyle = k.paint(look.hair, 0.22);
+      ctx.lineWidth = Math.max(0.6, r * 0.07);
+      ctx.beginPath();
+      ctx.arc(cx - r * 0.3, cy - r * 0.05, r * 0.82, -2.35, -1.75);
+      ctx.stroke();
+      ctx.fillStyle = k.paint(look.skin, 0.16);
+      ctx.beginPath();
+      ctx.ellipse(cx - r * 0.5, cy + r * 0.14, r * 0.15, r * 0.21, 0.2, 0, Math.PI * 2);
       ctx.fill();
     }
     if (!it.back) {
@@ -385,6 +449,44 @@ function head(ctx, k, b, sy, it) {
       ctx.arc(cx - r * 0.07, cy - r * 0.08, r * 0.78, litSide > 0 ? -1.9 : -2.5, litSide > 0 ? -1.35 : -1.95);
       ctx.stroke();
     }
+  }
+  if (!it.back && look.beard) {
+    // A short beard along the jaw, up to the ear: the face above it stays bare.
+    ctx.fillStyle = k.paint(mixHex(look.hair, look.skin, 0.18), 0.04);
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.5, cy + r * 0.28);
+    ctx.quadraticCurveTo(cx - r * 0.4, cy + r * 0.98, cx + r * 0.25, cy + r * 1.05);
+    ctx.quadraticCurveTo(cx + r * 0.8, cy + r * 0.95, cx + r * 0.9, cy + r * 0.52);
+    ctx.quadraticCurveTo(cx + r * 0.55, cy + r * 0.76, cx + r * 0.12, cy + r * 0.7);
+    ctx.quadraticCurveTo(cx - r * 0.22, cy + r * 0.62, cx - r * 0.3, cy + r * 0.28);
+    ctx.closePath();
+    ctx.fill();
+  }
+  if (!it.back && look.moustache) {
+    ctx.fillStyle = k.paint(look.hair, 0.04);
+    ctx.beginPath();
+    ctx.ellipse(cx + r * 0.55, cy + r * 0.4, r * 0.3, r * 0.11, -0.12, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (!it.back && look.earring) {
+    ctx.fillStyle = k.paint(look.earring);
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.46, cy + r * 0.48, Math.max(0.7, r * 0.1), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (look.beanie) {
+    // A beanie pulled down to the ears, with its turned-up edge.
+    ctx.fillStyle = k.paint(look.beanie, 0.04);
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.04, cy - r * 0.1, r * 1.14, Math.PI * 1.02, Math.PI * 1.98);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = k.paint(look.beanie, 0.2);
+    ctx.fillRect(cx - r * 1.16, cy - r * 0.32, r * 2.24, r * 0.34);
+    ctx.fillStyle = k.paint(mixHex(look.beanie, '#ffffff', 0.25), 0.04);
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.04, cy - r * 1.22, r * 0.2, 0, Math.PI * 2);
+    ctx.fill();
   }
   if (look.cap) {
     ctx.fillStyle = k.paint(look.cap);
@@ -434,6 +536,140 @@ function limb(ctx, k, hex, from, to, width, dark, end) {
     ctx.arc(px, py, half(i), 0, Math.PI * 2);
   });
   ctx.fill('nonzero');
+}
+
+/** A cuff: a darker band of the sleeve just above the hand. */
+function cuff(ctx, k, arm, width, dark) {
+  const [p, q] = arm.length === 3 ? [arm[1], arm[2]] : arm;
+  const at = (v) => [p[0] + (q[0] - p[0]) * v, p[1] + (q[1] - p[1]) * v];
+  const [a, b] = [at(0.8), at(0.93)];
+  ctx.strokeStyle = k.paint(k.look.top, dark + 0.2);
+  ctx.lineWidth = width * 0.84;
+  ctx.lineCap = 'butt';
+  line(ctx, a[0], a[1], b[0], b[1]);
+  ctx.lineCap = 'round';
+}
+
+/** A hood lying round the back of the neck, seen over the shoulders. */
+function hood(ctx, k, b, sy) {
+  const { h } = k;
+  ctx.fillStyle = k.paint(k.look.top, 0.2);
+  ctx.beginPath();
+  ctx.ellipse(h * 0.005, sy + h * 0.012, b.shoulderW * 0.64, h * 0.042, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/**
+ * The details that make a top somebody's, inside its outline (the caller clips to it):
+ * the neckline, a hoodie's strings and pocket, lapels and buttons, a zip, a stripe.
+ */
+function clothes(ctx, k, b, sy, hw, hem) {
+  const { h, look } = k;
+  const sw = b.shoulderW;
+  const cx = h * 0.01;
+  const thin = Math.max(0.6, h * 0.008);
+  const dark = (d) => k.paint(look.top, d);
+  const light = (t) => k.paint(mixHex(look.top, '#fff6e6', t));
+  const dot = (x, y, r, css) => {
+    ctx.fillStyle = css;
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(0.6, r), 0, Math.PI * 2);
+    ctx.fill();
+  };
+  const shapeOf = (pts, css) => {
+    ctx.fillStyle = css;
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+    ctx.fill();
+  };
+  const band = (y, tall, css) => {
+    ctx.fillStyle = css;
+    ctx.fillRect(-sw * 1.5, y, sw * 3, tall);
+  };
+  const crew = (width) => {
+    ctx.strokeStyle = dark(0.3);
+    ctx.lineWidth = Math.max(0.8, h * width);
+    ctx.beginPath();
+    ctx.ellipse(cx, sy + h * 0.004, sw * 0.36, h * 0.024, 0, Math.PI * 0.06, Math.PI * 0.94);
+    ctx.stroke();
+  };
+  ctx.lineCap = 'round';
+  switch (look.wear) {
+    case 'hoodie': {
+      ctx.strokeStyle = k.paint('#efe8dc', 0.08);
+      ctx.lineWidth = thin;
+      for (const side of [-1, 1]) {
+        line(ctx, cx + side * sw * 0.2, sy + h * 0.03, cx + side * sw * 0.25, sy + h * 0.11);
+        dot(cx + side * sw * 0.25, sy + h * 0.115, h * 0.007, k.paint('#efe8dc', 0.08));
+      }
+      // The pocket across the front.
+      ctx.strokeStyle = dark(0.24);
+      ctx.lineWidth = thin;
+      ctx.beginPath();
+      ctx.moveTo(-hw * 0.7, hem - h * 0.02);
+      ctx.lineTo(-hw * 0.5, hem - h * 0.1);
+      ctx.lineTo(hw * 0.5, hem - h * 0.1);
+      ctx.lineTo(hw * 0.7, hem - h * 0.02);
+      ctx.stroke();
+      band(hem - h * 0.022, h * 0.022, dark(0.2));
+      break;
+    }
+    case 'coat': {
+      shapeOf([[cx - sw * 0.4, sy], [cx - sw * 0.1, sy], [cx + h * 0.004, sy + h * 0.12]], dark(0.18));
+      shapeOf([[cx + sw * 0.4, sy], [cx + sw * 0.1, sy], [cx + h * 0.004, sy + h * 0.12]], dark(0.1));
+      for (const y of [0.15, 0.23, 0.31]) dot(h * 0.034, sy + h * y, h * 0.008, dark(0.45));
+      ctx.strokeStyle = dark(0.3);
+      ctx.lineWidth = thin;
+      for (const side of [-1, 1]) line(ctx, side * hw * 0.35, h * 0.07, side * hw * 0.78, h * 0.065);
+      break;
+    }
+    case 'jacket': {
+      shapeOf([[cx - sw * 0.44, sy - h * 0.004], [cx - sw * 0.08, sy - h * 0.01], [cx - sw * 0.02, sy + h * 0.05], [cx - sw * 0.4, sy + h * 0.035]], dark(0.22));
+      shapeOf([[cx + sw * 0.44, sy - h * 0.004], [cx + sw * 0.08, sy - h * 0.01], [cx + sw * 0.02, sy + h * 0.05], [cx + sw * 0.4, sy + h * 0.035]], dark(0.14));
+      ctx.strokeStyle = light(0.3);
+      ctx.lineWidth = thin;
+      line(ctx, cx, sy + h * 0.05, cx + h * 0.004, hem - h * 0.01);
+      ctx.strokeStyle = dark(0.3);
+      ctx.strokeRect(sw * 0.24, sy + h * 0.08, sw * 0.38, h * 0.045);
+      band(hem - h * 0.028, h * 0.028, dark(0.22));
+      break;
+    }
+    case 'cardigan': {
+      for (let i = 0; i < 4; i += 1) dot(h * 0.03, sy + h * (0.07 + i * 0.065), h * 0.008, light(0.45));
+      ctx.strokeStyle = dark(0.28);
+      ctx.lineWidth = thin;
+      for (const side of [-1, 1]) ctx.strokeRect(side > 0 ? hw * 0.3 : -hw * 0.82, h * 0.03, hw * 0.52, h * 0.06);
+      break;
+    }
+    case 'vest': {
+      shapeOf([[cx - sw * 0.32, sy], [cx + sw * 0.32, sy], [cx, sy + h * 0.13]], k.paint('#e9e2d4', 0.1));
+      shapeOf([[cx - sw * 0.3, sy], [cx - sw * 0.04, sy + h * 0.02], [cx - sw * 0.16, sy + h * 0.045]], k.paint('#e9e2d4', 0.26));
+      shapeOf([[cx + sw * 0.3, sy], [cx + sw * 0.04, sy + h * 0.02], [cx + sw * 0.16, sy + h * 0.045]], k.paint('#e9e2d4', 0.2));
+      for (const y of [0.17, 0.24, 0.31]) dot(cx + h * 0.002, sy + h * y, h * 0.008, dark(0.42));
+      break;
+    }
+    case 'stripe':
+      crew(0.014);
+      band(sy + h * 0.075, h * 0.03, light(0.55));
+      band(sy + h * 0.112, h * 0.012, dark(0.25));
+      break;
+    case 'knit': {
+      crew(0.022);
+      ctx.strokeStyle = dark(0.13);
+      ctx.lineWidth = Math.max(0.5, h * 0.006);
+      for (const x of [-0.55, -0.2, 0.15, 0.5]) line(ctx, sw * x, sy + h * 0.06, sw * x * 0.9, hem - h * 0.03);
+      band(hem - h * 0.03, h * 0.03, dark(0.2));
+      break;
+    }
+    case 'stripes':
+      crew(0.016);
+      band(sy + h * 0.075, h * 0.03, light(0.6));
+      band(sy + h * 0.14, h * 0.03, light(0.6));
+      break;
+    default:
+      crew(0.014);
+  }
 }
 
 function hand(ctx, k, [x, y], dark) {
