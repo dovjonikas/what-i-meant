@@ -29,21 +29,21 @@ faint to read.
 | `js/player.js` | Plays the script: taps, holds, choices, saving where the player stopped |
 | `js/scenes.js` | Every place in the story as data: colours, hills, houses, people, weather |
 | `js/painter.js` | Paints a scene: sky, mountains, mist, pines, water, roads |
-| `js/props.js` | Things in a scene: houses, flats, trees, pier, bus, car, lamps, desk |
-| `js/people.js` | The people: one colour and outfit each for life, faceless, lit from one side; they breathe, walk, run and pedal |
+| `js/props.js` | Things in a scene: houses, flats, trees, pier, bus, car, lamps, desk, and the small things of a home (`cozy`: plants, pictures, shelves, rugs, a string of lights, coats on their pegs) |
+| `js/people.js` | The people: one colour and one outfit each for life, with its own details (your hoodie, Mom's coat buttons, Dad's beard and zip, the best friend's beanie), faceless, lit from one side; they breathe, walk, run and pedal |
 | `js/pets.js` | The family dog: wagging tail, floppy ears, a muzzle that greys |
 | `js/closeups.js` | Close shots of hands: the jar of jam, a newborn's grip |
 | `js/fx.js` | What moves in a scene: stars, birds, smoke, rain, snow, the people breathing |
 | `js/stage.js` | Shows scenes: three layers drifting at their own speeds, cross-fades, camera push |
 | `js/lines.js` | The life lines: the years run and stop at each moment; people join, drift, come back, end |
-| `js/phone.js` | The phone that slides up: messages, typing dots, replies that type themselves |
-| `js/captions.js` | The words, one line at a time |
+| `js/phone.js` | The phone that slides up: messages, typing dots, replies that type themselves. It grows with the chat; a chat taller than the screen scrolls and can be pulled back |
+| `js/captions.js` | The words, one line at a time; they move up under the bar for a scene where at the foot they would cover somebody. And the quiet "tap to go on" when a line has waited |
 | `js/ui.js` | Chapter and title cards, the ending, choice buttons, the hold hint |
 | `js/score.js` | The music: one theme for the whole life, an act per part of it |
 | `js/sfx.js` | Phone sounds and the sound of each place |
 | `js/util.js` | Seeded random numbers, noise for hill edges, colour maths |
 | `js/check.js` | The art checks behind `scenes.html?check` |
-| `js/audit.js` | Checks while the story plays, with `?check`: overlaps, things outside the column, faint names |
+| `js/audit.js` | Checks while the story plays, with `?check`: overlaps, things outside the column, faint names, words covering somebody |
 | `scenes.html` | The art work page described above; not linked from the story |
 
 ## How the pieces connect
@@ -64,5 +64,9 @@ The player's place is saved in `localStorage` under `wim.text-me` at every beat 
 - Sizes in `js/scenes.js` are fractions of the column width, positions fractions of the
   column (x) and of the screen height (y). Keep people and props inside the column; run
   `scenes.html?check` after moving anything.
+- Phones: only the side glass on wide screens uses a backdrop blur (blurring the moving
+  picture behind the phone or a button on every frame makes a phone stutter); a layer of people clears only the box they were
+  drawn in, layers with no people redraw every other frame, and a scene that leaves empties
+  its canvases so Safari frees the memory.
 - Sound starts only after a tap. On iPhone the page asks for media playback so the silent
   switch does not mute it.

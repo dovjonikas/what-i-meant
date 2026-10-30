@@ -21,6 +21,9 @@
 // the next letters (they type themselves if the player waits).
 // Any step may carry `if: { flag: value }`, and `music` to change the score when it lands.
 
+import { markOf } from './people.js';
+import { NAMES } from './names.js';
+
 const TYPE_MS = 45; // per character when a reply types itself
 
 export class Phone {
@@ -45,12 +48,51 @@ export class Phone {
     this.replies = this.el.querySelector('.phone-replies');
     this.text = this.el.querySelector('.phone-text');
     this.send = this.el.querySelector('.phone-send');
+    // Pulled back to read something earlier: the top edge fades to show there is more above.
+    this.thread.addEventListener('scroll', () => this.thread.classList.toggle('is-scrolled', this.thread.scrollTop > 2), { passive: true });
+    // Every message, stamp, typing bubble or reply row that comes or goes resizes the phone.
+    const resize = new MutationObserver(() => this.fit());
+    resize.observe(this.thread, { childList: true });
+    resize.observe(this.replies, { childList: true });
+  }
+
+  /**
+   * The phone grows with its chat, up to the room the screen has (min-height and max-height
+   * in story.css), so a message stays on screen while it can still be read. Past that the
+   * thread scrolls: it follows the newest message, and a finger can pull it back.
+   */
+  fit() {
+    if (this.el.hidden) return;
+    const style = getComputedStyle(this.el);
+    const min = parseFloat(style.minHeight) || 0;
+    const max = parseFloat(style.maxHeight) || Infinity;
+    const chrome = this.el.offsetHeight - this.thread.clientHeight;
+    const want = Math.min(max, Math.max(min, chrome + this.thread.scrollHeight));
+    if (Math.abs(want - (this.height ?? 0)) > 0.5) {
+      this.height = want;
+      this.el.style.height = `${want}px`;
+      // The words above the phone move up with it.
+      this.el.parentElement.style.setProperty('--phone-h', `${want}px`);
+    }
+    // Keep the newest message in view while the phone changes size.
+    const end = performance.now() + 420;
+    const follow = () => {
+      this.thread.scrollTop = this.thread.scrollHeight;
+      this.thread.classList.toggle('is-scrolled', this.thread.scrollTop > 2);
+      if (performance.now() < end) requestAnimationFrame(follow);
+    };
+    cancelAnimationFrame(this.following);
+    this.following = requestAnimationFrame(follow);
   }
 
   async run(spec, ctx) {
     this.ctx = ctx;
     this.el.classList.toggle('is-new', spec.with === null);
     this.el.querySelector('.phone-name').textContent = spec.with === null ? 'New message' : spec.with;
+    // The avatar wears the colour that person has all their life (a stranger stays grey).
+    const id = Object.keys(NAMES).find((k) => NAMES[k] === spec.with) ?? spec.with;
+    const mark = spec.with ? markOf(id) : null;
+    this.el.style.setProperty('--mark', mark && mark !== '#e9e4da' ? mark : '#6b7488');
     this.thread.textContent = '';
     this.text.textContent = '';
     this.send.disabled = true;
@@ -264,6 +306,7 @@ export class Phone {
 
   async open() {
     this.el.hidden = false;
+    this.fit();
     document.body.classList.add('phone-open');
     this.ctx.sfx?.buzz();
     await this.el.animate([{ transform: 'translateY(105%)' }, { transform: 'translateY(0)' }], {
@@ -276,6 +319,8 @@ export class Phone {
       duration: 360, easing: 'cubic-bezier(0.32, 0.72, 0, 1)',
     }).finished;
     this.el.hidden = true;
+    this.el.style.height = '';
+    this.height = 0;
     document.body.classList.remove('phone-open');
   }
 }

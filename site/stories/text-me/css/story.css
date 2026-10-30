@@ -64,6 +64,16 @@ button {
   overflow: hidden;
 }
 
+/* A soft, warm darkening toward the corners, like the light in an old photo: it draws the
+   eye to the middle and makes every place feel a little more held. */
+#stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 92% 78% at 50% 44%, transparent 58%, rgb(26 13 4 / 0.32));
+}
+
 #lines {
   position: fixed;
   inset: 0;
@@ -77,14 +87,43 @@ button {
   opacity: 1;
 }
 
-/* A dark wash at the bottom, so the words read over any sky. */
+/* A dark wash at the bottom, so the words read over any sky; when the words go to the top
+   (.words-top), a wash there too, and the one at the bottom lighter. */
 .scrim {
   position: fixed;
-  inset: auto 0 0;
-  height: 46%;
+  inset: 0;
   z-index: 2;
   pointer-events: none;
+}
+
+.scrim::before,
+.scrim::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  transition: opacity 700ms ease;
+}
+
+.scrim::before {
+  bottom: 0;
+  height: 46%;
   background: linear-gradient(to bottom, rgb(5 7 15 / 0), rgb(5 7 15 / 0.62) 55%, rgb(5 7 15 / 0.84));
+}
+
+.scrim::after {
+  top: 0;
+  height: 36%;
+  background: linear-gradient(to top, rgb(5 7 15 / 0), rgb(5 7 15 / 0.5) 50%, rgb(5 7 15 / 0.72));
+  opacity: 0;
+}
+
+.words-top .scrim::before {
+  opacity: 0.45;
+}
+
+.words-top .scrim::after {
+  opacity: 1;
 }
 
 /* The column: everything you read and tap. */
@@ -156,11 +195,26 @@ button {
   inset: auto 0 calc(64px + var(--safe-b));
   padding: 0 var(--gutter);
   pointer-events: none;
-  transition: transform 500ms var(--ease-out);
+  transition: transform 500ms var(--ease-out), opacity 160ms ease;
+}
+
+.captions.is-moving {
+  opacity: 0;
 }
 
 .phone-open .captions {
-  transform: translateY(calc(-1 * min(54svh, 480px) - 10px));
+  transform: translateY(calc(-1 * var(--phone-h, min(54svh, 480px)) - 10px));
+}
+
+/* Up under the bar, when at the foot the words would cover somebody (js/captions.js). */
+.captions.is-top {
+  inset: calc(max(12px, env(safe-area-inset-top, 0px)) + 58px) 0 auto;
+  /* No slide: words placed up here right after the phone goes down must not travel. */
+  transition: opacity 160ms ease;
+}
+
+.phone-open .captions.is-top {
+  transform: none;
 }
 
 .line {
@@ -231,18 +285,83 @@ button {
   }
 }
 
-/* The phone: slides up from the bottom of the column. */
+/* "tap to go on", at the foot of the screen once a line has waited (js/captions.js): small
+   and dim, a fingertip touching down beside it, gone with the tap. */
+.nudge {
+  position: absolute;
+  left: 50%;
+  bottom: calc(24px + var(--safe-b));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  transform: translateX(-50%);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  font-variation-settings: var(--label);
+  color: rgb(243 238 229 / 0.58);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.nudge.is-on {
+  opacity: 1;
+  transition-duration: 900ms;
+}
+
+.nudge i {
+  position: relative;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.nudge i::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  animation: touch 2.4s var(--ease-out) infinite;
+}
+
+@keyframes touch {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  75%,
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* The phone: slides up from the bottom of the column and grows with its chat (js/phone.js
+   sets the height), leaving room above for the bar and a line of words. No backdrop blur:
+   blurring the moving picture behind it on every frame is what makes a phone stutter, so
+   the glass is nearly opaque instead, a little lighter at the top. */
 .phone {
   position: absolute;
   inset: auto 10px calc(10px + var(--safe-b));
   height: min(54svh, 480px);
+  min-height: min(54svh, 480px);
+  max-height: calc(100svh - 128px - env(safe-area-inset-top, 0px) - var(--safe-b));
   display: flex;
   flex-direction: column;
-  border-radius: 28px;
-  background: var(--glass-dark);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 20px 60px rgb(0 0 0 / 0.5), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  border-radius: 30px;
+  background: linear-gradient(180deg, rgb(31 36 54 / 0.97), rgb(13 16 28 / 0.97) 42%);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.05);
+  transition: height 320ms var(--ease-out);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-variation-settings: normal;
   overflow: hidden;
@@ -256,17 +375,21 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 14px 0 10px;
+  gap: 3px;
+  padding: 11px 0 8px;
   border-bottom: 1px solid rgb(255 255 255 / 0.07);
 }
 
-/* A plain round avatar: no face, like everyone else in the story. */
+/* A plain round avatar: no face, like everyone else in the story, in that person's own
+   colour (js/phone.js sets --mark). */
 .phone-avatar {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: linear-gradient(160deg, #6b7488, #3c4356);
+  background:
+    radial-gradient(circle at 34% 28%, rgb(255 255 255 / 0.28), transparent 55%),
+    linear-gradient(160deg, color-mix(in srgb, var(--mark, #6b7488) 78%, #fff), color-mix(in srgb, var(--mark, #3c4356) 70%, #10131f));
+  box-shadow: 0 0 0 2px rgb(13 16 28), 0 0 0 3px color-mix(in srgb, var(--mark, #6b7488) 45%, transparent);
 }
 
 .phone-name {
@@ -275,20 +398,35 @@ button {
   min-height: 1em;
 }
 
+/* The messages sit at the bottom, the way a phone fills up. A thread too long for the screen
+   scrolls: it follows the newest message, and a finger can pull it back to read the rest. */
 .phone-thread {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   gap: 4px;
   padding: 12px 12px 8px;
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%);
-  mask-image: linear-gradient(to bottom, transparent, #000 18%);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  touch-action: pan-y;
 }
 
-/* A full thread pushes its oldest lines up out of sight, the way a phone scrolls, rather
-   than squeezing anything. */
+.phone-thread::-webkit-scrollbar {
+  display: none;
+}
+
+.phone-thread > :first-child {
+  margin-top: auto;
+}
+
+/* Pulled back or scrolled: the top edge fades, so it shows there is more above. */
+.phone-thread.is-scrolled {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 44px);
+  mask-image: linear-gradient(to bottom, transparent, #000 44px);
+}
+
 .phone-thread > * {
   flex-shrink: 0;
 }
@@ -416,22 +554,11 @@ button {
     linear-gradient(100deg, #6f8fb0 0 22%, #2a3346 22% 24%, #8aa6c2 24%);
 }
 
-/* Her, holding up the burnt toast like a prize, a little smoke still coming off it. */
+/* Her, front on, holding up the burnt toast like a prize, a little smoke still coming off it:
+   the arm goes up from her shoulder, the toast above her head. Drawn as an SVG, since this
+   one needs exact shapes. */
 .photo-toast {
-  background:
-    radial-gradient(ellipse 9% 7% at 27% 12%, rgb(236 233 228 / 0.7) 0 96%, transparent 100%),
-    radial-gradient(ellipse 7% 6% at 34% 21%, rgb(236 233 228 / 0.55) 0 96%, transparent 100%),
-    linear-gradient(#24140c, #24140c) 24.4% 34.7% / 22% 15% no-repeat,
-    radial-gradient(ellipse 9% 5% at 22% 26%, #8a4a22 0 96%, transparent 100%),
-    radial-gradient(ellipse 9% 5% at 38% 26%, #8a4a22 0 96%, transparent 100%),
-    linear-gradient(#8a4a22, #8a4a22) 21.4% 32% / 30% 22% no-repeat,
-    radial-gradient(ellipse 8% 6% at 34% 47%, #c98d68 0 96%, transparent 100%),
-    linear-gradient(#c98d68, #c98d68) 38% 72% / 9% 27% no-repeat,
-    radial-gradient(ellipse 15% 11% at 65% 43%, #c98d68 0 96%, transparent 100%),
-    radial-gradient(ellipse 20% 15% at 65% 37%, #1f1a18 0 96%, transparent 100%),
-    radial-gradient(ellipse 21% 22% at 67% 52%, #1f1a18 0 96%, transparent 100%),
-    radial-gradient(ellipse 48% 22% at 60% 99%, #5b8fd0 0 96%, transparent 100%),
-    linear-gradient(#f1d3a6, #d4a06a);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 74 98' preserveAspectRatio='xMidYMid slice'%3E%3Cdefs%3E%3ClinearGradient id='k' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23f4dcb4'/%3E%3Cstop offset='1' stop-color='%23d49b63'/%3E%3C/linearGradient%3E%3CradialGradient id='v' cx='0.5' cy='0.45' r='0.75'%3E%3Cstop offset='0.6' stop-color='%23000' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%233a1e0c' stop-opacity='0.28'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='74' height='98' fill='url(%23k)'/%3E%3Crect x='51' y='8' width='20' height='28' rx='2' fill='%23fff4dd' opacity='0.45'/%3E%3Crect x='0' y='80' width='74' height='18' fill='%23b9814f' opacity='0.45'/%3E%3Crect x='0' y='79' width='74' height='1.4' fill='%23f6e2c2' opacity='0.5'/%3E%3Cpath d='M37 52.5Q36 39.5 46 40Q56 39.5 55 52.5Q55 63 58 72L34 72Q37 63 37 52.5Z' fill='%231f1a18'/%3E%3Cpath d='M30 98L31.5 81.5Q29.5 72.5 36 70Q41 68.5 46 68.5Q51 68.5 56 70Q62.5 72.5 60.5 81.5L62 98Z' fill='%235b8fd0'/%3E%3Crect x='43.3' y='60' width='5.4' height='10' rx='2' fill='%23b97d5b'/%3E%3Cellipse cx='46' cy='52.5' rx='8.6' ry='10.6' fill='%23c98d68'/%3E%3Cpath d='M37.6 52Q37 41.5 46 41.5Q55 41.5 54.4 51.3Q50 44 43.5 47Q39.5 48.8 37.6 52Z' fill='%231f1a18'/%3E%3Cpath d='M31.5 71L26.5 57L24.5 42' stroke='%23c98d68' stroke-width='5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpath d='M33.5 74.5L29.8 64' stroke='%235b8fd0' stroke-width='8' stroke-linecap='round' fill='none'/%3E%3Cpath d='M16 37L16 26Q16 19 21 19Q24 16 27 19Q32 19 32 26L32 37Z' fill='%239a5426'/%3E%3Cpath d='M18.2 35.2L18.2 26.4Q18.2 21.3 22 21.3Q24 19.5 26 21.3Q29.8 21.3 29.8 26.4L29.8 35.2Z' fill='%232b1a10'/%3E%3Cellipse cx='22' cy='29' rx='2' ry='1.6' fill='%234a2a16'/%3E%3Cellipse cx='26.5' cy='25.5' rx='1.4' ry='1.1' fill='%234a2a16'/%3E%3Cellipse cx='24' cy='38.5' rx='3.8' ry='3' fill='%23c98d68'/%3E%3Cpath d='M21.5 37.4Q24 35.8 26.5 37.4' stroke='%23a96d4c' stroke-width='0.8' fill='none'/%3E%3Cg stroke='%23f2efe9' stroke-linecap='round' fill='none' opacity='0.75'%3E%3Cpath d='M21.5 17Q19 14.5 21.5 12Q24 9.5 21.5 7' stroke-width='1.7'/%3E%3Cpath d='M27 16Q29.5 13.5 27 11Q24.5 8.5 27 6' stroke-width='1.4'/%3E%3C/g%3E%3Crect width='74' height='98' fill='url(%23v)'/%3E%3C/svg%3E") center / cover;
 }
 
 .photo-laugh {
@@ -602,9 +729,7 @@ button {
   padding: 8px 15px;
   border: 1px solid rgb(255 255 255 / 0.22);
   border-radius: 999px;
-  background: rgb(14 18 32 / 0.6);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  background: rgb(14 18 32 / 0.78);
   font-size: 15px;
   cursor: pointer;
   transition: transform 140ms var(--ease-out), background-color 160ms ease, border-color 160ms ease;
@@ -775,10 +900,8 @@ button {
   margin-top: 26px;
   padding: 12px 14px;
   border-radius: 18px;
-  background: rgb(20 24 40 / 0.62);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  background: rgb(20 24 40 / 0.86);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07), 0 10px 30px rgb(0 0 0 / 0.3);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-variation-settings: normal;
 }
@@ -812,7 +935,7 @@ button {
   justify-content: center;
   gap: 14px;
   padding: 0 calc((100vw - var(--app-w)) / 2 + var(--gutter));
-  background: var(--ink);
+  background: radial-gradient(ellipse 70% 45% at 50% 47%, rgb(150 165 215 / 0.07), transparent 70%), var(--ink);
   text-align: center;
 }
 
@@ -1004,8 +1127,13 @@ body:not(.is-gate) .gate {
 
   .hint,
   .phone-send.is-ready,
-  .line.is-done .line-text::after {
+  .line.is-done .line-text::after,
+  .nudge i::after {
     animation: none;
+  }
+
+  .phone {
+    transition: none;
   }
 }
 
@@ -1072,9 +1200,7 @@ body:not(.is-gate) .gate {
   display: flex;
   flex-direction: column;
   padding: calc(max(12px, env(safe-area-inset-top, 0px)) + 52px) var(--gutter) calc(20px + var(--safe-b));
-  background: rgb(8 10 20 / 0.9);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  background: rgb(8 10 20 / 0.95);
   animation: history-in 260ms var(--ease-out);
 }
 

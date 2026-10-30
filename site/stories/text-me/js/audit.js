@@ -1,13 +1,15 @@
 // audit.js: checks that run while the story plays, when the page is opened with ?check.
 // They watch for what a player would see as a glitch: words, buttons or the phone sticking
 // out of the column or covering each other, and in the life lines names sitting on each
-// other, names far from their dot, or names too faint to read on the sky behind them.
+// other, names far from their dot, or names too faint to read on the sky behind them; and
+// the words covering a person or the dog in the picture.
 // Each problem is logged once as a console warning starting with "[check]", so a test run
 // (or a person with the console open) can list them. Nothing here runs for players.
 
 import { contrast } from './util.js';
 
 const seen = new Set();
+const since = new Map(); // when each cover was first seen; reported once it has lasted
 
 function warn(message) {
   if (seen.has(message)) return;
@@ -15,11 +17,40 @@ function warn(message) {
   console.warn(`[check] ${message}`);
 }
 
-export function startAudit() {
+export function startAudit(stage) {
   setInterval(() => {
     checkInterface();
     checkLines();
+    checkCover(stage);
   }, 300);
+}
+
+/** The words on screen covering a good part of somebody in the scene. */
+function checkCover(stage) {
+  const now = new Set();
+  const words = [...document.querySelectorAll('.captions .line:not(.is-gone) .word')];
+  const done = () => {
+    for (const k of [...since.keys()]) if (!now.has(k)) since.delete(k);
+  };
+  if (!words.length || !stage?.current || document.body.classList.contains('phone-open') || document.querySelector('.captions.is-moving')) return done();
+  const rects = words.map((w) => w.getBoundingClientRect());
+  const text = [Math.min(...rects.map((r) => r.left)), Math.min(...rects.map((r) => r.top)), Math.max(...rects.map((r) => r.right)), Math.max(...rects.map((r) => r.bottom))];
+  if (document.querySelector('#lines.is-on')) return done();
+  for (const { who, box, canvas, w } of stage.current.fx.bodies?.() ?? []) {
+    const r = canvas.getBoundingClientRect();
+    const k = r.width / w;
+    const b = [r.left + box[0] * k, r.top + box[1] * k, r.left + box[2] * k, r.top + box[3] * k];
+    const ox = Math.min(text[2], b[2]) - Math.max(text[0], b[0]);
+    const oy = Math.min(text[3], b[3]) - Math.max(text[1], b[1]);
+    const share = ox > 0 && oy > 0 ? (ox * oy) / ((b[2] - b[0]) * (b[3] - b[1])) : 0;
+    const key = `${who} ${stage.id}`;
+    if (share > 0.25) {
+      now.add(key);
+      if (!since.has(key)) since.set(key, performance.now());
+      if (performance.now() - since.get(key) > 900) warn(`words cover ${who} in ${stage.id} (${Math.round(share * 100)}%): "${words.map((w) => w.textContent).join(' ').slice(0, 40)}"`);
+    }
+  }
+  done();
 }
 
 function visible(el) {

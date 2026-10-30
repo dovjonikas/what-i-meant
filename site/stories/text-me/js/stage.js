@@ -145,6 +145,9 @@ export class Stage {
   retire(old) {
     old.fx.stop();
     old.el.remove();
+    // Safari keeps a removed canvas's memory for a while; emptying it frees it now, which
+    // matters on a phone after dozens of scenes.
+    for (const canvas of old.el.querySelectorAll('canvas')) canvas.width = canvas.height = 0;
   }
 
   get scene() {

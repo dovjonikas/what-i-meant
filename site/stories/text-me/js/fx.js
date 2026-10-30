@@ -49,25 +49,44 @@ export function createFx(items = [], view, scene, progress = () => 0, t0 = 0, cu
       canvas.style.height = `${view.h}px`;
       const ctx = canvas.getContext('2d');
       ctx.scale(dpr, dpr);
-      slots[at] = { canvas, ctx, list: [] };
+      slots[at] = { canvas, ctx, list: [], dt: 0 };
     }
     const kind = KINDS[it.kind];
     if (!kind) throw new Error(`Unknown effect: ${it.kind}`);
     const state = kind.init(it, pos, rng(1000 + i * 77), pen, progress, cues);
     slots[at].list.push({ kind, it, state });
   });
-  for (const s of Object.values(slots)) live.push(s);
+  // What a phone pays for is clearing and redrawing whole-screen canvases every frame, so:
+  // a layer that holds only people clears just the box they were drawn in last frame (a
+  // person's draw returns that box), and a layer with no people at all (stars, smoke, snow:
+  // slow or small movement) is redrawn every other frame.
+  for (const s of Object.values(slots)) {
+    s.people = s.list.some((e) => e.it.kind === 'person');
+    s.local = s.list.every((e) => e.it.kind === 'person');
+    s.box = [0, 0, cssW, view.h];
+    live.push(s);
+  }
 
   let raf = 0;
   let last = 0;
+  let count = 0;
   let t = t0; // seconds since the scene first appeared, so a repaint carries on
   const frame = (now) => {
     const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
     last = now;
     t += dt;
+    count += 1;
     for (const s of live) {
-      s.ctx.clearRect(0, 0, cssW, view.h);
-      for (const e of s.list) e.kind.draw(s.ctx, e.state, t, dt, e.it, pos);
+      s.dt += dt;
+      if (!s.people && count % 2) continue;
+      s.ctx.clearRect(...(s.box ?? [0, 0, cssW, view.h]));
+      let box = null;
+      for (const e of s.list) {
+        const b = e.kind.draw(s.ctx, e.state, t, Math.min(0.1, s.dt), e.it, pos);
+        if (b) box = box ? [Math.min(box[0], b[0]), Math.min(box[1], b[1]), Math.max(box[2], b[2]), Math.max(box[3], b[3])] : b;
+      }
+      s.box = s.local && box ? [box[0] - 2, box[1] - 2, box[2] - box[0] + 4, box[3] - box[1] + 4] : s.local ? [0, 0, 0, 0] : null;
+      s.dt = 0;
     }
     raf = requestAnimationFrame(frame);
   };
@@ -81,6 +100,10 @@ export function createFx(items = [], view, scene, progress = () => 0, t0 = 0, cu
       cancelAnimationFrame(raf);
       raf = 0;
       last = 0;
+    },
+    /** Where each person stands on their canvas right now, for the checks in audit.js. */
+    bodies() {
+      return live.flatMap((s) => s.list.filter((e) => e.state.body).map((e) => ({ who: e.it.person.who, box: e.state.body, canvas: s.canvas, w: cssW })));
     },
     /** The scene's own clock, in seconds: what a cue (stage.cue) is timed against. */
     now() {
@@ -172,6 +195,7 @@ const KINDS = {
       return { pen, progress, cues, step: 0, last: null, until: 0 };
     },
     draw(ctx, s, t, dt, it, p) {
+      s.body = null;
       let who = it.person;
       let clock = t - (who.delay ?? 0);
       if (who.acts) {
@@ -233,6 +257,13 @@ const KINDS = {
       drawPerson(ctx, who, s.pen, t, s.step, t < s.until);
       nameTag(ctx, who, tagT, p);
       ctx.restore();
+      // The box drawn in: the person with a raised arm or a bike, the shadow, the name tag.
+      const x = p.X(who.x);
+      const y = p.Y(who.y);
+      const h = p.S(who.h ?? 0.2);
+      const half = Math.max(h, 64);
+      s.body = [x - h * 0.32, y - h, x + h * 0.32, y];
+      return [x - half, y - h * 1.5 - 30, x + half, y + h * 0.25 + 8];
     },
   },
 

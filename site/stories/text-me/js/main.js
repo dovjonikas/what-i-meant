@@ -19,6 +19,7 @@ const stage = new Stage(document.getElementById('stage'));
 const lines = new Lines(document.getElementById('lines'));
 const column = document.querySelector('.column');
 const captions = new Captions(column);
+captions.stage = stage;
 const phone = new Phone(column);
 const ui = new Ui(column, document.querySelector('.card'));
 const soundButton = document.querySelector('.sound');
@@ -34,7 +35,7 @@ registerWorker('../../');
 offerInstall('../../', () => document.body.classList.contains('is-gate'));
 
 // ?check turns on the glitch checks in audit.js (for testing; players never see them).
-if (new URLSearchParams(location.search).has('check')) import('./audit.js').then((m) => m.startAudit());
+if (new URLSearchParams(location.search).has('check')) import('./audit.js').then((m) => m.startAudit(stage));
 
 const saved = Player.saved();
 stage.show('porch', { instant: true });
