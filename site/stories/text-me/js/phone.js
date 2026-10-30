@@ -7,6 +7,7 @@
 //         time: a stamp at the top, history: messages already there, steps: [...] }
 // A message or step is one of:
 //   { them: 'text' }  { me: 'text' }  { stamp: 'Fri 23:12' }  { photo: 'moon', from }
+//   (`photo` can be a list: several photos sent at once, side by side in one row)
 //   { pick: ['a', 'b'], set }   reply chips; the picked text is typed and sent. A chip can
 //                               be { text, silent: true }: an action, not words, such as
 //                               leaving a message on read; nothing is sent
@@ -83,7 +84,7 @@ export class Phone {
     } else if (s.photo) {
       if (s.from === 'them') await this.typing(700);
       this.place(s);
-      this.onMessage?.(s.from === 'me' ? 'you' : this.name(), '(a photo)');
+      this.onMessage?.(s.from === 'me' ? 'you' : this.name(), Array.isArray(s.photo) ? `(${s.photo.length} photos)` : '(a photo)');
       ctx.sfx?.[s.from === 'me' ? 'whoosh' : 'pop']();
     } else if (s.stamp) {
       this.stamp(s.stamp);
@@ -130,7 +131,16 @@ export class Phone {
 
   place(m) {
     if (m.stamp) this.stamp(m.stamp);
-    else if (m.photo) {
+    else if (Array.isArray(m.photo)) {
+      const b = this.bubble(m.from ?? 'them', '');
+      b.classList.add('is-photos');
+      b.setAttribute('aria-label', `${m.photo.length} photos`);
+      for (const p of m.photo) {
+        const one = document.createElement('span');
+        one.className = `photo-${p}`;
+        b.append(one);
+      }
+    } else if (m.photo) {
       const b = this.bubble(m.from ?? 'them', '');
       b.classList.add('is-photo', `photo-${m.photo}`);
       b.setAttribute('aria-label', `a photo: ${m.photo}`);

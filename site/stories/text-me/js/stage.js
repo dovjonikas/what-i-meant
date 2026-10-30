@@ -23,8 +23,6 @@ export class Stage {
     this.root = root;
     this.current = null;
     this.id = null;
-    // How far the player has held in a hold beat, 0 to 1; people with a track follow it.
-    this.progress = 0;
     this.started = 0;
     this.pushed = null;
     let timer = 0;
@@ -60,7 +58,6 @@ export class Stage {
     this.id = id;
     if (!again) {
       this.started = performance.now();
-      this.progress = 0;
       this.pushed = null;
     }
     const elapsed = performance.now() - this.started;
@@ -73,7 +70,11 @@ export class Stage {
     });
     const flat = { ...scene, layers: scene.layers.filter((it) => it.kind !== 'figure' && it.kind !== 'people') };
     const paints = paintScene(flat, view);
-    const fx = createFx([...(scene.fx ?? []), ...people], view, scene, () => this.progress, elapsed / 1000);
+    // Each scene keeps its own hold progress and cues, so the one fading out stays exactly
+    // as it was (nobody jumps back to the start of their walk) while the next fades in.
+    const kept = again ? this.current : null;
+    const record = { progress: kept?.progress ?? 0, cues: kept?.cues ?? {} };
+    const fx = createFx([...(scene.fx ?? []), ...people], view, scene, () => record.progress, elapsed / 1000, (name) => record.cues[name]);
 
     const el = document.createElement('div');
     el.className = 'scene';
@@ -103,7 +104,7 @@ export class Stage {
     });
 
     const old = this.current;
-    this.current = { el, fx, scene };
+    this.current = Object.assign(record, { el, fx, scene });
     this.root.append(el);
     fx.start();
     if (again && this.pushed) this.push(this.pushed.scale, this.pushed.ms, this.pushed.at);
@@ -125,6 +126,20 @@ export class Stage {
       duration: ms, easing: 'cubic-bezier(0.45, 0, 0.55, 1)', fill: 'forwards',
     });
     move.currentTime = Math.min(ms, performance.now() - at);
+  }
+
+  /** Somebody in the picture does what they do at this line: their acts with `on: name` (fx.js). */
+  cue(name) {
+    if (this.current) this.current.cues[name] = this.current.fx.now();
+  }
+
+  /** How far the player has held in this scene's hold beat, 0 to 1; people with a track follow it. */
+  get progress() {
+    return this.current?.progress ?? 0;
+  }
+
+  set progress(value) {
+    if (this.current) this.current.progress = value;
   }
 
   retire(old) {

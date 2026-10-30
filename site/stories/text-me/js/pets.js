@@ -5,6 +5,7 @@
 // drawDog(ctx, it, k) is called by people.js for a person whose `who` is 'dog'. `it.h` is
 // the dog's height at the shoulder (a column-width fraction, like a person's height).
 // Poses: stand, sit, lie, and front (sitting, turned to face us). Age: 'puppy', 'adult', 'old'.
+// `shoe: true`: he has somebody's shoe in his mouth.
 
 export function drawDog(ctx, it, k) {
   const { h, t, step, moving, paint } = k;
@@ -36,10 +37,11 @@ export function drawDog(ctx, it, k) {
   };
 
   if (pose === 'lie') {
-    // Lying down, head on the front paws.
+    // Lying down, head on the front paws, the back rising and falling slowly.
+    const rise = 1 + Math.sin(t * 1.3) * 0.05;
     ctx.fillStyle = paint(coat, 0.05);
     ctx.beginPath();
-    ctx.ellipse(0, -h * 0.28, len * 0.6, h * 0.28, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -h * 0.28 * rise, len * 0.6, h * 0.28 * rise, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = paint(coat, 0.15);
     ctx.fillRect(len * 0.2, -h * 0.12, len * 0.5, h * 0.12);
@@ -166,6 +168,32 @@ function front(ctx, k, it, o) {
   ctx.quadraticCurveTo(r * 0.17, r * 0.38, 0, r * 0.42);
   ctx.quadraticCurveTo(-r * 0.17, r * 0.38, -r * 0.24, r * 0.2);
   ctx.fill();
+  if (it.shoe) shoe(ctx, k, r * 0.15, r * 0.82, r, -0.1);
+  ctx.restore();
+}
+
+// A small red trainer held by the heel: the sole, the toe cap and the laces.
+function shoe(ctx, k, x, y, r, tilt) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tilt);
+  ctx.fillStyle = k.paint('#b8473a');
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r * 0.78, r * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = k.paint('#f1ece2', 0.05);
+  ctx.fillRect(-r * 0.78, r * 0.12, r * 1.56, r * 0.14);
+  ctx.beginPath();
+  ctx.ellipse(r * 0.52, r * 0.02, r * 0.24, r * 0.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = k.paint('#f1ece2', 0.1);
+  ctx.lineWidth = Math.max(0.6, r * 0.06);
+  for (const dx of [-0.1, 0.12]) {
+    ctx.beginPath();
+    ctx.moveTo(r * dx, -r * 0.22);
+    ctx.lineTo(r * (dx + 0.08), -r * 0.04);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -187,6 +215,7 @@ function head(ctx, k, x, y, r, pale, coat, it, tilt) {
   ctx.beginPath();
   ctx.ellipse(r * 1.42, r * 0.18, r * 0.17, r * 0.13, 0, 0, Math.PI * 2);
   ctx.fill();
+  if (it.shoe) shoe(ctx, k, r * 0.95, r * 0.78, r, 0.25);
   // A floppy ear that swings a little.
   ctx.fillStyle = paint(coat, 0.22);
   ctx.beginPath();

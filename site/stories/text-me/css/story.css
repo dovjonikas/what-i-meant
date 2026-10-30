@@ -287,6 +287,12 @@ button {
   mask-image: linear-gradient(to bottom, transparent, #000 18%);
 }
 
+/* A full thread pushes its oldest lines up out of sight, the way a phone scrolls, rather
+   than squeezing anything. */
+.phone-thread > * {
+  flex-shrink: 0;
+}
+
 .bubble {
   max-width: 76%;
   margin: 0;
@@ -353,12 +359,26 @@ button {
   }
 }
 
-/* Photos are drawn in CSS: a moon, a thumb over the lens, a baby in a blanket, and the
+/* Photos are drawn in CSS: a moon, a thumb over the lens, the partner asleep with the baby, and the
    partner's three below. */
 .is-photo {
   width: 150px;
   height: 120px;
   padding: 0;
+}
+
+/* Several photos sent at once: a row of three, each one a little card. */
+.is-photos {
+  display: flex;
+  gap: 4px;
+  padding: 0;
+  background: none;
+}
+
+.is-photos > span {
+  width: 74px;
+  height: 98px;
+  border-radius: 12px;
 }
 
 .photo-moon {
@@ -374,10 +394,15 @@ button {
   filter: blur(0.5px);
 }
 
+/* The partner asleep on the pillow, the baby asleep on their chest. */
 .photo-baby {
   background:
-    radial-gradient(circle at 50% 38%, #f0c8a6 0 16%, transparent 17%),
-    radial-gradient(ellipse at 50% 70%, #f3efe6 0 34%, transparent 35%),
+    radial-gradient(ellipse 9% 11% at 60% 40%, #f0c8a6 0 96%, transparent 100%),
+    radial-gradient(ellipse 15% 12% at 62% 53%, #f6f1e7 0 96%, transparent 100%),
+    radial-gradient(ellipse 13% 17% at 25% 47%, #c98d68 0 96%, transparent 100%),
+    radial-gradient(ellipse 17% 22% at 21% 41%, #1f1a18 0 96%, transparent 100%),
+    radial-gradient(ellipse 50% 22% at 68% 66%, #5b8fd0 0 96%, transparent 100%),
+    radial-gradient(ellipse 30% 26% at 18% 50%, #f4f2ee 0 96%, transparent 100%),
     linear-gradient(#c9d6e8, #a9b8d0);
 }
 

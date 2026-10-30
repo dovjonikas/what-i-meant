@@ -21,7 +21,8 @@
 // is the brightest, the teen summers the most saturated, the city years violet, the present
 // on the porch cold petrol teal and nearly still. After each death the world drains: grey
 // after the dog, slate after Dad, the deepest drain after Mom. The late years are pale and
-// calm, and the very last light is first dawn. Built in OKLab so the blends keep their hue.
+// calm, and the story ends with the porch light going out. Built in OKLab so the blends
+// keep their hue.
 const P = {
   dawn: { sky: ['#6e7fc4', '#a98bc0', '#d6b1b2', '#ffc3a6'], fog: '#f6cfc4', far: '#ad919b', mid: '#76637a', near: '#594a68', ground: '#4a3c5e', ink: '#2a2238', rim: '#ffe4c9', sun: '#fff4e2' },
   morning: { sky: ['#5db8e8', '#a3d0dc', '#d5e2d0', '#fff0c2'], fog: '#d9f0e6', far: '#9ecdbc', mid: '#6eb29b', near: '#50a28a', ground: '#3e9a80', ink: '#1f4d45', rim: '#fff7de', sun: '#fff6cf' },
@@ -38,7 +39,6 @@ const P = {
   slate: { sky: ['#4a5563', '#646f7c', '#7a8591', '#8e98a3'], fog: '#a7afb7', far: '#747a82', mid: '#4d535a', near: '#393e45', ground: '#2e333a', ink: '#1b1f24', rim: '#c9d1d9', sun: '#e4e8ec' },
   drain: { sky: ['#2f3442', '#464754', '#5a5663', '#6b6470'], fog: '#77707a', far: '#514d56', mid: '#35323a', near: '#26242c', ground: '#1e1d24', ink: '#121117', rim: '#9a93a0', sun: '#c8c2cc' },
   late: { sky: ['#a9b4c6', '#c6c6cc', '#ded5d0', '#f3e2d3'], fog: '#ece4de', far: '#beb6b9', mid: '#9b929c', near: '#877f8d', ground: '#7d7484', ink: '#3a3440', rim: '#fff6ec', sun: '#fffaf2' },
-  first: { sky: ['#4a6fa5', '#919aab', '#cbbcac', '#ffd9a8'], fog: '#f7e6d4', far: '#a69d9d', mid: '#6a6673', near: '#4a495c', ground: '#3a3a4f', ink: '#22223a', rim: '#fff3e0', sun: '#fff8ec' },
 };
 
 /**
@@ -166,15 +166,27 @@ export const SCENES = {
       ground(P.dawn, 0.72, 5),
       { kind: 'fence', x: 0.04, x2: 0.4, y: 0.735, h: 0.05, color: P.dawn.ink, g: 2 },
       { kind: 'tree', x: 0.14, y: 0.75, h: 0.36, color: P.dawn.ink, rim: P.dawn.rim, seed: 4, g: 2 },
+      // Your first word is no, arms folded. Dad says you get that from Mom: she turns on him,
+      // hands on hips, and he puts his up, laughing. Then she says nothing, arms folded
+      // just like yours. Each move comes with its line (`act` in script.js).
       { kind: 'people', rim: P.dawn.rim, list: [
-        { who: 'mom', x: 0.6, y: 0.8, h: 0.22, pose: 'hand', face: -1 },
-        { who: 'me', x: 0.5, y: 0.8, h: 0.115, age: 'child', pose: 'walk' },
+        { who: 'mom', x: 0.6, y: 0.8, h: 0.22, pose: 'hand', face: -1, acts: [
+          { on: 'no', pose: 'stand', face: -1 },
+          { on: 'fromMom', pose: 'hips', face: 1 },
+          { on: 'alsoNo', pose: 'cross', face: -1 },
+        ] },
+        { who: 'me', x: 0.5, y: 0.8, h: 0.115, age: 'child', pose: 'walk', acts: [{ on: 'no', pose: 'cross' }] },
+        { who: 'dad', x: 0.79, y: 0.81, h: 0.235, face: -1, acts: [
+          { on: 'fromMom', pose: 'shrug', laugh: true, face: -1 },
+          { on: 'alsoNo', pose: 'stand', laugh: true, face: -1 },
+        ] },
       ], g: 2 },
       { kind: 'pine', x: 1.04, y: 0.95, h: 0.8, color: '#141024', seed: 41, g: 2, bleed: true },
     ],
   },
 
-  // Age 6: grandma's garden on a summer morning. An apple tree, the jars.
+  // Age 6: Grandma's garden on a summer morning. Grandpa on the bench under the apple tree,
+  // peeling you an apple in one long curl while you watch; Grandma at her door.
   garden: {
     sky: P.morning.sky,
     fog: P.morning.fog,
@@ -184,12 +196,14 @@ export const SCENES = {
     layers: [
       ...backdrop(P.morning, { h: 0.52, sun: { x: 0.2, y: 0.18, r: 0.05, halo: 0.7 }, peaks: 0.3, seed: 33 }),
       ground(P.morning, 0.72, 8),
-      { kind: 'house', x: 0.74, y: 0.73, w: 0.4, color: '#1d3a35', roof: '#7a3b2e', rim: P.morning.rim, windows: [{ x: -0.3 }], g: 2 },
+      { kind: 'house', x: 0.74, y: 0.73, w: 0.4, color: '#1d3a35', roof: '#7a3b2e', rim: P.morning.rim, windows: [{ x: -0.3 }], door: 0.12, g: 2 },
       { kind: 'tree', x: 0.3, y: 0.76, h: 0.5, color: '#1f4a3a', rim: P.morning.rim, fruit: '#d8463a', seed: 12, g: 2 },
       { kind: 'fence', x: -0.1, x2: 0.62, y: 0.765, h: 0.055, color: P.morning.ink, g: 2, bleed: true },
+      { kind: 'bench', x: 0.36, y: 0.795, w: 0.26, seat: 0.057, color: '#5a3a26', rim: P.morning.rim, g: 2 },
       { kind: 'people', rim: P.morning.rim, list: [
-        { who: 'grandma', x: 0.58, y: 0.82, h: 0.2, age: 'old', pose: 'reach', face: -1 },
-        { who: 'me', x: 0.45, y: 0.82, h: 0.135, age: 'child', pose: 'reach' },
+        { who: 'grandma', x: 0.816, y: 0.735, h: 0.15, age: 'old' , face: -1 },
+        { who: 'grandpa', x: 0.33, y: 0.795, h: 0.21, age: 'old', pose: 'sit', hands: 'peel', curlSeconds: 14 },
+        { who: 'me', x: 0.53, y: 0.805, h: 0.135, age: 'child', face: -1 },
       ], g: 2 },
     ],
   },
@@ -213,7 +227,10 @@ export const SCENES = {
     ],
   },
 
-  // Age 5: Dad home with a box that moves. The puppy runs circles round the yard.
+  // Age 5: Dad home with a box that moves. The puppy runs circles round the yard. Mom is
+  // not there until she says absolutely not: out of the door, hands on hips. The puppy runs
+  // straight to her and sits on her foot, and she crouches down to him. Once you have named
+  // him, his name comes up over him again.
   puppy: {
     sky: P.morning.sky,
     fog: P.morning.fog,
@@ -227,8 +244,60 @@ export const SCENES = {
       { kind: 'box', x: 0.7, y: 0.8, w: 0.11, rim: P.morning.rim, g: 2 },
       { kind: 'people', rim: P.morning.rim, list: [
         { who: 'dad', x: 0.82, y: 0.8, h: 0.24, face: -1 },
-        { who: 'me', x: 0.42, y: 0.84, h: 0.12, age: 'child', pose: 'sit', seat: 'ground' },
-        { who: 'dog', age: 'puppy', x: 0.55, y: 0.86, h: 0.035, loop: true, seconds: 3.4, track: [[0.5, 0.86, 0.035], [0.6, 0.83, 0.033], [0.66, 0.86, 0.035], [0.58, 0.89, 0.037], [0.5, 0.86, 0.035]] },
+        { who: 'me', x: 0.5, y: 0.83, h: 0.12, age: 'child', pose: 'sit', seat: 'ground' },
+        { who: 'mom', hidden: true, x: 0.37, y: 0.8, h: 0.235, acts: [
+          { on: 'mom', ...timed([[0, 0.316, 0.733, 0.17], [1.8, 0.37, 0.8, 0.235]], [[0, 'walk'], [1.8, 'hips']]) },
+          { on: 'pet', pose: 'pet', squat: 1, bend: 0.35 },
+        ] },
+        { who: 'dog', age: 'puppy', x: 0.43, y: 0.806, h: 0.034, tagOn: 'named', loop: true, seconds: 3.4, track: [[0.58, 0.84, 0.035], [0.66, 0.815, 0.033], [0.72, 0.84, 0.035], [0.64, 0.865, 0.037], [0.58, 0.84, 0.035]], acts: [
+          { on: 'won', turn: true, ...timed([[0, 0.6, 0.84, 0.035], [1.3, 0.43, 0.806, 0.034]], [[0, 'stand', { wag: 1 }], [1.3, 'front', { wag: 1 }]]) },
+        ] },
+      ], g: 2 },
+    ],
+  },
+
+  // Age 5, that night: your room in the dark, you asleep, the puppy asleep on your feet.
+  puppyNight: {
+    sky: P.night.sky,
+    fog: P.night.fog,
+    vibrance: 0.8,
+    ambience: 'night',
+    shade: '#1a2238',
+    fx: [{ kind: 'stars', at: 0, bottom: 0.4 }],
+    layers: [
+      { kind: 'stars', count: 70, bottom: 0.45, g: 0 },
+      { kind: 'moon', x: 0.66, y: 0.2, r: 0.045, color: '#f4f2ea', glow: '#a9b8e0', g: 0 },
+      { kind: 'room', window: [0.22, 0.1, 0.84, 0.42], color: '#1b2340', frame: '#2c3760', g: 1, bleed: true },
+      { kind: 'band', y: 0.8, y2: 1, color: '#221c2e', planks: 5, trim: '#2c2640', g: 1, bleed: true },
+      { kind: 'glow', x: 0.55, y: 0.62, r: 0.5, color: '#a9b8e0', alpha: 0.1, g: 1 },
+      { kind: 'glow', x: 0.08, y: 0.78, r: 0.32, color: '#ffb35c', alpha: 0.16, g: 1 },
+      { kind: 'bed', x: 0.5, y: 0.9, top: 0.78, w: 0.7, who: 'me', rim: '#a9b8e0', g: 2 },
+      { kind: 'people', list: [
+        { who: 'dog', age: 'puppy', pose: 'lie', x: 0.72, y: 0.775, h: 0.085, face: -1, wag: 0.1, light: 0.7, rim: '#a9b8e0' },
+      ], g: 2 },
+    ],
+  },
+
+  // Age 5: the hall. One shoe gone from every pair, and out of the dark under the stairs
+  // comes the puppy with yours.
+  hallShoes: {
+    sky: P.morning.sky,
+    fog: P.morning.fog,
+    vibrance: 1,
+    ambience: 'morning',
+    light: 0.9,
+    shade: '#6e5238',
+    fx: [{ kind: 'motes', count: 16 }],
+    layers: [
+      { kind: 'band', y: 0, y2: 0.72, color: '#d9b98a', g: 1, bleed: true },
+      { kind: 'band', y: 0.72, y2: 1, color: '#8a5a36', planks: 6, trim: '#6b4428', g: 1, bleed: true },
+      { kind: 'door', x: 0.78, y: 0.72, w: 0.3, h: 0.78, pane: '#fff3d6', g: 1 },
+      { kind: 'stairs', x: 0.58, x2: -0.12, y: 0.72, top: 0.18, steps: 9, g: 1, bleed: true },
+      { kind: 'shoes', x: 0.5, x2: 1.02, y: 0.79, s: 0.1, list: ['#2f5a4e', '#8a2a3a', '#b8473a'], gone: [0, 1, 1], g: 2 },
+      { kind: 'people', list: [
+        { who: 'dog', age: 'puppy', x: 0.4, y: 0.88, h: 0.1, turn: true, ...timed([
+          [0, 0.13, 0.73, 0.085], [0.9, 0.13, 0.73, 0.085], [2.4, 0.36, 0.86, 0.098], [2.8, 0.4, 0.88, 0.1], [12, 0.4, 0.88, 0.1],
+        ], [[0, 'stand', { shoe: true, wag: 0.5, light: 0.12 }], [1.3, 'stand', { shoe: true, wag: 0.9, light: 0.45 }], [1.8, 'stand', { shoe: true, wag: 1 }], [2.8, 'front', { shoe: true, wag: 1 }]]) },
       ], g: 2 },
     ],
   },
@@ -350,7 +419,7 @@ export const SCENES = {
       ground(P.grey, 0.72, 13),
       { kind: 'house', x: 0.72, y: 0.74, w: 0.42, color: P.grey.ink, rim: P.grey.rim, rimSide: -1, windows: [{ x: -0.3 }, { x: 0.18, lit: '#ffc46b' }], g: 2 },
       { kind: 'gate', x: 0.62, y: 0.79, h: 0.075, from: -0.1, to: 1.1, color: '#141a30', rim: P.grey.rim, rimSide: -1, g: 2, bleed: true },
-      { kind: 'leash', x: 0.665, y: 0.725, s: 0.05, g: 2 },
+      { kind: 'leash', x: 0.665, y: 0.725, s: 0.065, color: '#2f8fa3', g: 2 },
       { kind: 'figure', who: 'me', mood: 'sad', x: 0.42, y: 0.87, h: 0.21, rim: P.grey.rim, rimSide: -1, light: 0.6, g: 2 },
     ],
   },
@@ -471,7 +540,7 @@ export const SCENES = {
       { kind: 'sunbeam', from: [0.12, 0.3, 0.2], to: [0.3, 0.58, 0.66], alpha: 0.18, g: 0 },
       { kind: 'people', list: [
         { who: 'me', x: 0.36, y: 0.71, h: 0.42, age: 'child', pose: 'phone', light: 0.9, rim: '#fff1c9', rimSide: -1 },
-        { who: 'mom', x: 0.74, y: 0.8, h: 0.6, face: -1, look: { coat: false }, light: 0.9, rim: '#fff1c9', rimSide: -1 },
+        { who: 'mom', x: 0.74, y: 0.75, h: 0.6, face: -1, look: { coat: false }, light: 0.9, rim: '#fff1c9', rimSide: -1 },
       ], g: 0 },
       { kind: 'room', window: [0.12, 0.2, 0.88, 0.64], color: '#d9a86c', frame: '#f6ecd8', g: 1, bleed: true },
       { kind: 'band', y: 0, y2: 0.06, color: '#b9844e', g: 1, bleed: true },
@@ -479,7 +548,100 @@ export const SCENES = {
     ],
   },
 
-  // Eighteen: the bus stop at dusk. One bag, one bus, two people waving.
+  // Eighteen: the same hall, packing to leave. The shoes all come in pairs now. You pack one
+  // bag; Mom packs the rest, and tells you what you will need.
+  hallPack: {
+    sky: P.golden.sky,
+    fog: P.golden.fog,
+    vibrance: 0.95,
+    ambience: 'room',
+    light: 0.85,
+    shade: '#6e4a38',
+    fx: [{ kind: 'motes', count: 12 }],
+    layers: [
+      { kind: 'band', y: 0, y2: 0.76, color: '#c99a6a', g: 1, bleed: true },
+      { kind: 'band', y: 0.76, y2: 1, color: '#7a4e30', planks: 6, trim: '#5e3a22', g: 1, bleed: true },
+      { kind: 'door', x: 0.8, y: 0.76, w: 0.24, h: 0.62, pane: '#ffd98a', g: 1 },
+      { kind: 'stairs', x: 0.52, x2: -0.08, y: 0.76, top: 0.3, steps: 9, under: '#9a6a44', g: 1, bleed: true },
+      { kind: 'shoes', x: 0.56, x2: 1, y: 0.8, s: 0.06, list: ['#2f5a4e', '#8a2a3a', '#3a4a6a'], gone: [-1, -1, -1], g: 1 },
+      { kind: 'people', list: [
+        { who: 'me', x: 0.3, y: 0.9, h: 0.44, face: 1 },
+        { who: 'mom', x: 0.74, y: 0.86, h: 0.42, face: -1, pose: 'hips', acts: [{ on: 'towels', pose: 'reach', face: -1 }] },
+      ], g: 1 },
+      { kind: 'bags', x: 0.5, y: 0.98, list: [[0, 0.2, 0.12, '#3a4a6a', 'duffel'], [0.2, 0.15, 0.2, '#6a3a2a', 'case'], [0.37, 0.19, 0.11, '#2f5a4e', 'duffel'], [0.1, 0.15, 0.08, '#8a6a3a', 'duffel']], rim: '#ffe2a2', g: 2, bleed: true },
+    ],
+  },
+
+  // Close, under the stairs: the dark, the dust, and one small red trainer at the back.
+  underStairs: {
+    sky: ['#140d0a', '#1e140e', '#2a1c12'],
+    skyEnd: 1,
+    fog: '#2a1c12',
+    vibrance: 1,
+    light: 0.55,
+    ambience: 'room',
+    fx: [{ kind: 'motes', count: 10 }],
+    layers: [
+      { kind: 'glow', x: 1.05, y: 0.62, r: 0.95, color: '#ffcf86', alpha: 0.32, g: 0 },
+      { kind: 'band', y: 0.7, y2: 1, color: '#2e1d12', planks: 5, g: 1, bleed: true },
+      { kind: 'trainer', x: 0.36, y: 0.76, w: 0.3, tilt: 0.12, g: 2 },
+      { kind: 'arm', who: 'me', from: [1.25, 0.88], to: [0.62, 0.75], size: 0.15, fingers: 'open', g: 2, bleed: true },
+    ],
+  },
+
+  // In your hands, in the light: the trainer, and his tooth marks down the heel.
+  oldShoe: {
+    sky: ['#e9d2a8', '#d9b98a', '#b98f5c'],
+    skyEnd: 1,
+    fog: '#d9b98a',
+    vibrance: 1,
+    light: 1,
+    ambience: 'room',
+    layers: [
+      { kind: 'glow', x: 0.2, y: 0.2, r: 1, color: '#fff4d8', alpha: 0.4, g: 0 },
+      { kind: 'arm', who: 'me', from: [-0.25, 1.0], to: [0.26, 0.69], size: 0.17, fingers: 'open', g: 1, bleed: true },
+      { kind: 'trainer', x: 0.5, y: 0.655, w: 0.62, tilt: -0.1, g: 2 },
+      { kind: 'arm', who: 'me', from: [1.25, 1.0], to: [0.78, 0.66], size: 0.17, fingers: 'open', g: 2, bleed: true },
+    ],
+  },
+
+  // Thirty: your own kitchen, early on a Saturday. You at the window with your phone, the
+  // bathroom door shut beside you with a line of light under it: the news comes through it.
+  flatMorning: {
+    sky: P.dawn.sky,
+    fog: P.dawn.fog,
+    vibrance: 0.9,
+    ambience: 'room',
+    light: 0.85,
+    shade: '#5a4a68',
+    fx: [{ kind: 'motes', count: 10 }],
+    layers: [
+      { kind: 'sun', x: 0.3, y: 0.4, r: 0.05, color: '#fff3d6', glow: '#ffd9a8', halo: 0.8, g: 0 },
+      { kind: 'city', y: 0.46, color: '#8a6a86', haze: 0.4, hMin: 0.03, hMax: 0.1, seed: 12, g: 0, bleed: true },
+      { kind: 'room', window: [0.08, 0.14, 0.48, 0.46], color: '#d8c4cc', frame: '#f4ecef', g: 1, bleed: true },
+      { kind: 'band', y: 0.78, y2: 1, color: '#6a5262', planks: 5, trim: '#4e3a48', g: 1, bleed: true },
+      { kind: 'door', x: 0.8, y: 0.78, w: 0.26, h: 0.6, color: '#efe6e8', frame: '#cbb8c0', under: '#fff3d6', g: 1 },
+      { kind: 'figure', who: 'me', x: 0.42, y: 0.86, h: 0.46, pose: 'phone', light: 0.85, rim: '#ffe4c9', rimSide: -1, g: 2 },
+    ],
+  },
+
+  // Sixty-six: clearing out Mom's house. Her photo albums, and the dog in every one.
+  album: {
+    sky: ['#7a7470', '#8f8780', '#a39a90'],
+    skyEnd: 1,
+    fog: '#8f8780',
+    vibrance: 0.85,
+    light: 0.9,
+    ambience: 'room',
+    fx: [{ kind: 'motes', count: 10 }],
+    layers: [
+      { kind: 'glow', x: 0.85, y: 0.12, r: 0.9, color: '#fff2dc', alpha: 0.35, g: 0 },
+      { kind: 'album', x: 0.5, y: 0.5, w: 0.92, coat: '#b9773f', g: 1 },
+      { kind: 'arm', who: 'me', from: [1.25, 0.9], to: [0.84, 0.64], size: 0.15, fingers: 'open', g: 2, bleed: true },
+    ],
+  },
+
+  // Eighteen: the bus stop at dusk, you and Dad and all the bags Mom packed.
   busStop: {
     sky: P.dusk.sky,
     fog: P.dusk.fog,
@@ -491,9 +653,10 @@ export const SCENES = {
       ground(P.dusk, 0.72, 9),
       { kind: 'busstop', x: 0.2, y: 0.8, w: 0.3, color: P.dusk.ink, rim: P.dusk.rim, rimSide: -1, g: 2 },
       { kind: 'bus', x: 0.66, y: 0.79, w: 0.6, color: '#1a0f20', rim: P.dusk.rim, rimSide: -1, g: 2 },
+      { kind: 'bags', x: 0.3, y: 0.885, list: [[0, 0.1, 0.06, '#3a4a6a', 'duffel'], [0.1, 0.08, 0.1, '#6a3a2a', 'case'], [0.18, 0.09, 0.055, '#2f5a4e', 'duffel'], [0.06, 0.07, 0.045, '#8a6a3a', 'duffel']], rim: P.dusk.rim, g: 2 },
       { kind: 'people', rim: P.dusk.rim, rimSide: -1, list: [
-        { who: 'mom', x: 0.13, y: 0.87, h: 0.22, pose: 'wave' },
-        { who: 'dad', x: 0.26, y: 0.87, h: 0.25 },
+        { who: 'dad', x: 0.1, y: 0.88, h: 0.25, face: 1 },
+        { who: 'me', x: 0.22, y: 0.875, h: 0.24, face: -1 },
       ], g: 2 },
     ],
   },
@@ -546,7 +709,8 @@ export const SCENES = {
       { kind: 'city', y: 0.6, color: '#5e4566', haze: 0.35, hMin: 0.015, hMax: 0.06, gap: 0, seed: 4, g: 1, bleed: true },
       { kind: 'mist', y: 0.6, h: 0.05, alpha: 0.7, g: 1 },
       { kind: 'ridge', y: 0.73, amp: 0.03, freq: 0.6, oct: 2, color: '#2e2338', mist: 0, seed: 102, g: 2, bleed: true },
-      { kind: 'figure', who: 'me', x: 0.4, y: 0.722, h: 0.17, pose: 'sit', seat: 'ground', light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2 },
+      { kind: 'bench', x: 0.5, y: 0.745, w: 0.44, seat: 0.046, color: '#1a1222', rim: '#ffd6a0', rimSide: 1, g: 2 },
+      { kind: 'figure', who: 'me', x: 0.36, y: 0.745, h: 0.17, pose: 'sit', light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2 },
       { kind: 'pine', x: 0.82, y: 0.735, h: 0.42, color: '#1a1222', rim: '#ffd6a0', rimSide: -1, seed: 9, g: 2 },
     ],
   },
@@ -750,9 +914,11 @@ export const SCENES = {
       { kind: 'glow', x: 0.85, y: 0.1, r: 1, color: '#fff6e6', alpha: 0.5, g: 0 },
       { kind: 'ridge', y: 0.58, amp: 0.12, freq: 0.8, oct: 2, color: '#ead3b6', mist: 0.15, seed: 7, g: 0 },
       { kind: 'ridge', y: 0.86, amp: 0.1, freq: 0.7, oct: 2, color: '#dfc19e', mist: 0.1, seed: 9, g: 1, bleed: true },
+      // The baby in a blanket, a small head in a hat, one arm out, the fist round your finger.
+      { kind: 'arm', who: 'kid', sleeve: '#f0c4a2', from: [0.41, 0.6], to: [0.53, 0.485], size: 0.085, fingers: 'small', g: 2 },
+      { kind: 'swaddle', x: 0.2, y: 0.76, w: 0.86, head: true, color: '#d7e3f0', fold: '#a9b9cc', g: 2, bleed: true },
       { kind: 'arm', who: 'me', from: [1.3, 0.55], to: [0.66, 0.5], size: 0.2, fingers: 'point', g: 2, bleed: true },
-      { kind: 'arm', who: 'kid', sleeve: '#f4f0e8', from: [-0.25, 0.7], to: [0.55, 0.49], size: 0.11, fingers: 'small', g: 2, bleed: true },
-      { kind: 'grip', who: 'kid', x: 0.535, y: 0.487, size: 0.03, g: 2 },
+      { kind: 'grip', who: 'kid', x: 0.535, y: 0.474, size: 0.02, g: 2 },
     ],
   },
 
@@ -785,32 +951,6 @@ SCENES.kitchenNightKid = {
   layers: SCENES.kitchenNight.layers.map((it) => (it.kind === 'figure' ? { ...it, who: 'kid' } : it)),
 };
 
-// The morning after: the same house at first light, the long night over. The sun comes up
-// where the car went, and nothing in the house is lit.
-SCENES.porchDawn = {
-  sky: P.first.sky,
-  fog: P.first.fog,
-  vibrance: 0.95,
-  ambience: 'morning',
-  // The colours of the people who are gone come back once, along the clouds: the dog, Grandma
-  // and her scarf, Dad, Mom.
-  fx: [
-    { kind: 'birds', count: 3, y: 0.3, color: 'rgb(40 40 70 / 0.5)' },
-    { kind: 'clouds', at: 0, count: 1, top: 0.08, bottom: 0.12, color: 'rgb(201 138 75 / 0.32)' },
-    { kind: 'clouds', at: 0, count: 1, top: 0.14, bottom: 0.18, color: 'rgb(123 91 142 / 0.3)' },
-    { kind: 'clouds', at: 0, count: 1, top: 0.2, bottom: 0.24, color: 'rgb(224 168 62 / 0.3)' },
-    { kind: 'clouds', at: 0, count: 1, top: 0.26, bottom: 0.3, color: 'rgb(47 90 78 / 0.32)' },
-    { kind: 'clouds', at: 0, count: 1, top: 0.32, bottom: 0.36, color: 'rgb(201 71 63 / 0.32)' },
-  ],
-  layers: [
-    ...backdrop(P.first, { h: 0.5, sun: { x: 0.74, y: 0.41, r: 0.06 }, peaks: 0.36, seed: 4 }),
-    { kind: 'road', path: [[1.1, 0.7], [0.9, 0.6], [0.66, 0.6], [0.61, 0.57]], w0: 0.07, w1: 0.008, color: '#6a6878', hazeFar: 0.5, g: 1 },
-    { kind: 'ground', y: 0.72, color: P.first.ground, amp: 0.03, seed: 2, mist: 0, g: 2, bleed: true },
-    { kind: 'house', x: 0.36, y: 0.75, w: 0.5, tall: 0.6, color: '#2a2a40', rim: '#ffe2b8', lit: null, door: 0.12, windows: [{ x: -0.36, s: 0.14, lit: null }, { x: 0.33, s: 0.12, lit: null }], g: 2 },
-    { kind: 'pine', x: 0.95, y: 0.9, h: 0.78, color: '#1c1c30', seed: 31, g: 2, bleed: true },
-  ],
-};
-
 // Each time the story comes back to the porch the horizon is a little lighter: the night
 // is slowly giving way, all through the wait.
 SCENES.porchLate2 = { ...SCENES.porchLate, sky: ['#08141c', '#152733', '#213747', '#2b4659'] };
@@ -839,9 +979,9 @@ SCENES.momDoorDark = {
 // well apart from you; and later the same somebody right beside you.
 SCENES.hillDawnTwo = {
   ...SCENES.hillDawn,
-  layers: [...SCENES.hillDawn.layers, { kind: 'figure', who: 'partner', x: 0.68, y: 0.724, h: 0.165, pose: 'sit', seat: 'ground', light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2 }],
+  layers: [...SCENES.hillDawn.layers, { kind: 'figure', who: 'partner', x: 0.66, y: 0.745, h: 0.165, pose: 'sit', face: -1, light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2 }],
 };
 SCENES.hillDawnClose = {
   ...SCENES.hillDawn,
-  layers: [...SCENES.hillDawn.layers, { kind: 'figure', who: 'partner', x: 0.53, y: 0.723, h: 0.165, pose: 'sit', seat: 'ground', bend: 0.12, light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2 }],
+  layers: [...SCENES.hillDawn.layers, { kind: 'figure', who: 'partner', x: 0.5, y: 0.745, h: 0.165, pose: 'sit', face: -1, bend: 0.12, light: 0.75, rim: '#ffd6a0', rimSide: 1, g: 2 }],
 };

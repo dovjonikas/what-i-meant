@@ -237,7 +237,9 @@ export class Lines {
     this.last = now;
     this.ease(now, dt);
     if (this.visible && (this.auto || this.holding) && !this.paused && !this.reading) {
-      const target = this.waiters.length ? Math.min(...this.waiters.map((w) => w.age)) : Infinity;
+      // Years only run toward an age somebody is waiting for: a finger still held after a
+      // stretch ends does not carry the age past it.
+      const target = this.waiters.length ? Math.min(...this.waiters.map((w) => w.age)) : this.age;
       const step = Math.min(dt * RATE * (this.holding ? FAST : 1) * this.pace(now), target - this.age);
       if (step > 0) this.advance(step);
       this.waiters = this.waiters.filter((w) => {
@@ -464,7 +466,8 @@ export class Lines {
     };
     const free = (row, s) => rows[row].every(([a, b]) => s[1] <= a || s[0] >= b);
     const rank = (p) => (p.me ? 3 : p.since !== undefined || IMPORTANT.has(p.id) ? 2 : 1);
-    const order = [...dots].sort((a, b) => rank(b.p) - rank(a.p));
+    // A name already on screen keeps its place; somebody new finds room around it.
+    const order = [...dots].sort((a, b) => rank(b.p) - rank(a.p) || ((b.p.la ?? 0) > 0) - ((a.p.la ?? 0) > 0));
     const labels = new Map();
     const named = [];
     for (const d of order) {
@@ -486,6 +489,9 @@ export class Lines {
         // else's; the higher rows sit above the other names and can go anywhere.
         const clear = r > 0 || dx === 0 || !dots.some((o) => o.p !== p && Math.abs(o.x - c[2]) < 10);
         if (free(r, c) && clear) {
+          // A name that has to change spot fades in again where it lands, so it never
+          // jumps across the line or slides over another name.
+          if (p.spot && (p.spot[0] !== r || p.spot[1] !== dx)) p.la = 0;
           s = c;
           row = r;
           p.spot = [r, dx];

@@ -4,6 +4,7 @@
 // colour from people.js, so you know whose hands they are.
 
 import { LOOKS } from './people.js';
+import { NAMES } from './names.js';
 
 /** A jar of Grandma's jam: glass, dark red jam, a checked cloth tied over the lid. */
 export function jar(ctx, it, pen) {
@@ -81,15 +82,33 @@ export function arm(ctx, it, pen) {
   ctx.fill();
   ctx.translate(hx + s * 0.3, 0);
   if (it.fingers === 'point') {
-    // One finger held out at the middle, the others curled under, the thumb on top.
-    rounded(ctx, 0, -s * 0.1, s * 0.95, s * 0.2, s * 0.1);
+    // A loose fist with one finger held out, the thumb resting along it: a round palm,
+    // three curled fingers as soft knuckles, and the creases between them.
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.06, s * 0.03, s * 0.36, s * 0.35, 0, 0, Math.PI * 2);
     ctx.fill();
     for (let i = 0; i < 3; i += 1) {
-      rounded(ctx, -s * 0.05, s * 0.1 + i * s * 0.09, s * 0.3, s * 0.13, s * 0.065);
+      ctx.beginPath();
+      ctx.arc(s * 0.2, s * 0.02 + i * s * 0.12, s * 0.105, 0, Math.PI * 2);
       ctx.fill();
     }
-    rounded(ctx, -s * 0.22, -s * 0.36, s * 0.4, s * 0.16, s * 0.08);
+    rounded(ctx, s * 0.05, -s * 0.27, s * 0.95, s * 0.19, s * 0.095);
     ctx.fill();
+    ctx.save();
+    ctx.rotate(-0.12);
+    rounded(ctx, -s * 0.24, -s * 0.38, s * 0.46, s * 0.17, s * 0.085);
+    ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = 'rgb(120 70 50 / 0.25)';
+    ctx.lineWidth = Math.max(1, s * 0.02);
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 3; i += 1) {
+      const cy = s * 0.02 + i * s * 0.12 - s * 0.06;
+      ctx.beginPath();
+      ctx.moveTo(s * 0.12, cy);
+      ctx.lineTo(s * 0.29, cy);
+      ctx.stroke();
+    }
   } else if (it.fingers === 'small') {
     // A newborn's fist: a round palm and tiny curled fingers.
     ctx.beginPath();
@@ -101,6 +120,207 @@ export function arm(ctx, it, pen) {
       ctx.fill();
     }
     rounded(ctx, -s * 0.3, -s * 0.5, s * 0.36, s * 0.17, s * 0.085);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/**
+ * A family photo album lying open: two pages, photos with white borders stuck on at a
+ * slant, each with the dog in it, and under each, in Mom's round handwriting, his name.
+ * The name is the one the player gave him (names.js); `coat` is his colour.
+ */
+export function album(ctx, it, pen) {
+  const x = pen.X(it.x);
+  const y = pen.Y(it.y);
+  const w = pen.S(it.w ?? 0.9);
+  const h = w * 0.7;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(it.tilt ?? -0.04);
+  // Cover, then the two pages with the fold between them.
+  ctx.fillStyle = pen.tone(it.cover ?? '#5a2a2a');
+  rounded(ctx, -w * 0.52, -h * 0.52, w * 1.04, h * 1.04, w * 0.02);
+  ctx.fill();
+  ctx.fillStyle = pen.tone(it.page ?? '#efe6d2');
+  ctx.fillRect(-w * 0.49, -h * 0.48, w * 0.98, h * 0.96);
+  const fold = ctx.createLinearGradient(-w * 0.05, 0, w * 0.05, 0);
+  fold.addColorStop(0, pen.tone('#000000', 0, 0));
+  fold.addColorStop(0.5, pen.tone('#000000', 0, 0.22));
+  fold.addColorStop(1, pen.tone('#000000', 0, 0));
+  ctx.fillStyle = fold;
+  ctx.fillRect(-w * 0.05, -h * 0.48, w * 0.1, h * 0.96);
+  const coat = it.coat ?? '#a0673c';
+  const shots = it.shots ?? [
+    [-0.27, -0.24, -0.06, '#8fc7e0', '#5aa06a', 'sit'],
+    [0.24, -0.25, 0.05, '#f2c27a', '#7a9a52', 'run'],
+    [-0.25, 0.2, 0.04, '#d8dde6', '#f4f2ee', 'lie'],
+    [0.26, 0.18, -0.05, '#9cc3a8', '#4e8a5a', 'sit'],
+  ];
+  const pw = w * 0.3;
+  const ph = pw * 0.72;
+  for (const [u, v, tilt, sky, grass, pose] of shots) {
+    ctx.save();
+    ctx.translate(u * w, v * h - h * 0.05);
+    ctx.rotate(tilt);
+    ctx.fillStyle = pen.tone('#000000', 0, 0.16);
+    ctx.fillRect(-pw / 2 + 2, -ph / 2 + 3, pw, ph);
+    ctx.fillStyle = pen.tone('#fbf8f2');
+    ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+    const iw = pw * 0.88;
+    const ih = ph * 0.84;
+    ctx.fillStyle = pen.tone(sky);
+    ctx.fillRect(-iw / 2, -ph / 2 + pw * 0.06, iw, ih);
+    ctx.fillStyle = pen.tone(grass);
+    ctx.fillRect(-iw / 2, -ph / 2 + pw * 0.06 + ih * 0.62, iw, ih * 0.38);
+    // The dog in each one: a round body, a head, an ear and a tail.
+    const d = ih * 0.22;
+    const gy = -ph / 2 + pw * 0.06 + ih * 0.8;
+    ctx.fillStyle = pen.tone(coat);
+    ctx.beginPath();
+    if (pose === 'lie') ctx.ellipse(0, gy - d * 0.3, d * 1.1, d * 0.42, 0, 0, Math.PI * 2);
+    else if (pose === 'run') ctx.ellipse(0, gy - d * 0.7, d * 1, d * 0.45, -0.15, 0, Math.PI * 2);
+    else ctx.ellipse(-d * 0.1, gy - d * 0.6, d * 0.55, d * 0.75, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+    const head = pose === 'lie' ? [d * 1, gy - d * 0.5] : pose === 'run' ? [d * 1, gy - d * 1.15] : [d * 0.35, gy - d * 1.35];
+    ctx.beginPath();
+    ctx.arc(head[0], head[1], d * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = pen.tone('#2a1a10');
+    ctx.beginPath();
+    ctx.arc(head[0] + d * 0.38, head[1] + d * 0.05, d * 0.09, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // Her writing under it: his name, a little crooked, in the colour of a biro.
+    ctx.save();
+    ctx.translate(u * w, v * h - h * 0.05 + ph / 2 + w * 0.045);
+    ctx.rotate(tilt * 0.6);
+    ctx.font = `400 ${Math.round(w * 0.05)}px Recursive, cursive`;
+    ctx.fontVariationSettings = '"CASL" 1, "CRSV" 1, "slnt" -12';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = pen.tone('#2b3a78', 0, 0.85);
+    ctx.fillText(NAMES.dog === 'puppy' ? 'Biscuit' : NAMES.dog, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/**
+ * A child's red trainer, seen from the side, close: the white sole and toe, the laces, and
+ * along the heel the tooth marks a puppy left in it years ago. `x`, `y` are the middle of
+ * the sole; `w` its length. `bitten: false` leaves the heel whole.
+ */
+export function trainer(ctx, it, pen) {
+  const x = pen.X(it.x);
+  const y = pen.Y(it.y);
+  const w = pen.S(it.w ?? 0.5);
+  const h = w * 0.42;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(it.tilt ?? -0.08);
+  // The upper: high at the heel (left), low at the toe (right).
+  ctx.fillStyle = pen.tone(it.color ?? '#b8473a');
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.48, 0);
+  ctx.lineTo(-w * 0.5, -h * 0.82);
+  ctx.quadraticCurveTo(-w * 0.44, -h * 1.02, -w * 0.3, -h * 0.94);
+  ctx.quadraticCurveTo(-w * 0.12, -h * 0.66, w * 0.08, -h * 0.72);
+  ctx.quadraticCurveTo(w * 0.36, -h * 0.66, w * 0.48, -h * 0.28);
+  ctx.lineTo(w * 0.5, 0);
+  ctx.closePath();
+  ctx.fill();
+  // Worn patches, lighter.
+  ctx.fillStyle = pen.tone('#ffffff', 0, 0.08);
+  ctx.beginPath();
+  ctx.ellipse(-w * 0.05, -h * 0.4, w * 0.16, h * 0.18, 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  // The white toe cap and sole.
+  ctx.fillStyle = pen.tone('#efe8dc');
+  ctx.beginPath();
+  ctx.moveTo(w * 0.22, 0);
+  ctx.quadraticCurveTo(w * 0.24, -h * 0.4, w * 0.44, -h * 0.34);
+  ctx.quadraticCurveTo(w * 0.53, -h * 0.18, w * 0.52, 0);
+  ctx.closePath();
+  ctx.fill();
+  rounded(ctx, -w * 0.52, -h * 0.14, w * 1.06, h * 0.2, h * 0.1);
+  ctx.fill();
+  ctx.fillStyle = pen.tone('#8a8276');
+  ctx.fillRect(-w * 0.5, h * 0.03, w * 1.02, Math.max(1, h * 0.03));
+  // Laces: short white crosses up the tongue.
+  ctx.strokeStyle = pen.tone('#f4efe6');
+  ctx.lineWidth = Math.max(1.2, h * 0.05);
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 4; i += 1) {
+    const lx = -w * 0.06 + i * w * 0.075;
+    const ly = -h * 0.68 + i * h * 0.04;
+    ctx.beginPath();
+    ctx.moveTo(lx - w * 0.03, ly - h * 0.06);
+    ctx.lineTo(lx + w * 0.03, ly + h * 0.06);
+    ctx.moveTo(lx + w * 0.03, ly - h * 0.06);
+    ctx.lineTo(lx - w * 0.03, ly + h * 0.06);
+    ctx.stroke();
+  }
+  if (it.bitten !== false) {
+    // The tooth marks: two crooked rows of small dents across the heel, and a chewed edge.
+    ctx.fillStyle = pen.tone('#3a120e', 0, 0.75);
+    const dents = [[-0.45, -0.78], [-0.41, -0.7], [-0.37, -0.63], [-0.33, -0.57], [-0.43, -0.4], [-0.39, -0.33], [-0.35, -0.27], [-0.31, -0.22]];
+    for (const [u, v] of dents) {
+      ctx.beginPath();
+      ctx.ellipse(u * w, v * h, w * 0.012, h * 0.035, 0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = pen.tone('#7a2a22');
+    ctx.lineWidth = Math.max(1, h * 0.03);
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.5, -h * 0.82);
+    for (let i = 1; i <= 5; i += 1) ctx.lineTo(-w * 0.5 + i * w * 0.04, -h * (0.86 + (i % 2) * 0.07) - i * h * 0.012);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/**
+ * A newborn's blanket, soft folds filling a corner of the picture: `w` is its size.
+ * `head: true` puts the baby in it: a small round head in a knitted hat at the top end.
+ */
+export function swaddle(ctx, it, pen) {
+  const x = pen.X(it.x);
+  const y = pen.Y(it.y);
+  const w = pen.S(it.w ?? 0.6);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(it.tilt ?? -0.4);
+  ctx.fillStyle = pen.tone(it.color ?? '#f4efe6');
+  ctx.beginPath();
+  ctx.ellipse(0, 0, w * 0.5, w * 0.36, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = pen.tone(it.fold ?? '#c9bfae', 0, 0.7);
+  ctx.lineWidth = Math.max(1.2, w * 0.012);
+  ctx.lineCap = 'round';
+  for (const [a, b, c, d, e, f] of [[-0.3, -0.08, -0.05, -0.2, 0.22, -0.12], [-0.28, 0.08, 0, -0.02, 0.3, 0.06], [-0.12, 0.2, 0.1, 0.12, 0.34, 0.18]]) {
+    ctx.beginPath();
+    ctx.moveTo(a * w, b * w);
+    ctx.quadraticCurveTo(c * w, d * w, e * w, f * w);
+    ctx.stroke();
+  }
+  if (it.head) {
+    const [hx, hy, r] = [w * 0.33, -w * 0.02, w * 0.12];
+    ctx.fillStyle = pen.tone(LOOKS.kid.skin);
+    ctx.beginPath();
+    ctx.arc(hx, hy, r, 0, Math.PI * 2);
+    ctx.fill();
+    // The hat, soft yellow, with a little turned-up brim.
+    ctx.fillStyle = pen.tone(it.hat ?? '#f2d27a');
+    ctx.beginPath();
+    ctx.arc(hx + r * 0.12, hy, r * 1.04, -Math.PI * 0.5, Math.PI * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = pen.tone(it.hat ?? '#f2d27a', 0.15);
+    ctx.fillRect(hx + r * 0.02, hy - r * 1.02, r * 0.22, r * 2.04);
+    // The blanket folded up under the chin.
+    ctx.fillStyle = pen.tone(it.color ?? '#f4efe6');
+    ctx.beginPath();
+    ctx.ellipse(hx - r * 0.95, hy, r * 0.5, r * 1.1, 0, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();

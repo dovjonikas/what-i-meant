@@ -46,8 +46,11 @@ export function markOf(id) {
 /**
  * Draws one person. Item fields: x, y (feet), h (standing height, in column widths),
  * who (a key of LOOKS), age ('child', 'adult', 'old'), pose (stand, walk, wave, sit, phone,
- * hand, push, reach, carry, bike), face (-1 faces left), back (seen from behind), bend,
- * stride, and any look field to override (top, hair, ...). `t` is time in seconds, for
+ * hand, push, reach, carry, bike, hips, cross, shrug, pet), face (-1 faces left), back (seen
+ * from behind), bend, squat (0 to 1, a crouch), laugh (shoulders shaking), hands ('peel',
+ * for somebody sitting), stride, and any look field to override (top, hair, ...). fx.js
+ * adds flip (the face, eased through a turn) and poseFrom and poseK (the arms on their way
+ * from the last pose to this one). `t` is time in seconds, for
  * breathing, shifting weight and waving; leave it at 0 for a still. `step` is how far the
  * legs have gone round (radians) while the person walks, runs or pedals, and `moving`
  * says whether they are moving right now (fx.js works both out from the person's track).
@@ -87,7 +90,8 @@ export function drawPerson(ctx, it, pen, t = 0, step = 0, moving = false) {
   };
   ctx.save();
   ctx.translate(pen.X(it.x), pen.Y(it.y));
-  if (face === -1) ctx.scale(-1, 1);
+  const flip = it.flip ?? face;
+  if (flip !== 1) ctx.scale(Math.sign(flip || 1) * Math.max(0.12, Math.abs(flip)), 1);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   const pose = it.pose ?? 'stand';
@@ -129,7 +133,11 @@ function standing(ctx, k, it, pose) {
   const breathe = Math.sin(t * rate + seed) * h * 0.004;
   // Standing still, people shift their weight a little; walking, they bob with each step.
   const sway = moving ? 0 : Math.sin(t * (sad ? 0.4 : 0.55) + seed) * h * (sad ? 0.011 : 0.008);
-  const bob = moving ? -Math.abs(Math.sin(step)) * h * (sad ? 0.009 : 0.02) : 0;
+  // Laughing: the shoulders shake in small quick hops.
+  const bob = moving ? -Math.abs(Math.sin(step)) * h * (sad ? 0.009 : 0.02) : it.laugh ? -Math.abs(Math.sin(t * 13)) * h * 0.007 : 0;
+  // A crouch lowers the hips and bends the knees forward.
+  const squat = it.squat ?? 0;
+  const drop = squat * h * 0.2;
   // Legs: back one first, in the shadow colour. A walking leg swings and lifts its foot.
   let legs;
   if (moving) {
@@ -141,16 +149,23 @@ function standing(ctx, k, it, pose) {
   } else {
     legs = [[-h * 0.045 + sway, 0], [h * 0.045 + sway, 0]];
   }
-  limb(ctx, k, k.look.legs, [-h * 0.03 + sway, b.hipY + bob], legs[0], b.limb * 1.15, 0.25);
-  shoe(ctx, k, legs[0]);
-  limb(ctx, k, k.look.legs, [h * 0.03 + sway, b.hipY + bob], legs[1], b.limb * 1.15, 0);
-  shoe(ctx, k, legs[1]);
+  const leg = (hx, foot, dark) => {
+    const hip = [hx + sway, b.hipY + bob + drop];
+    const knee = [(hip[0] + foot[0]) / 2 + squat * h * 0.15, (hip[1] + foot[1]) / 2 - squat * h * 0.02];
+    limb(ctx, k, k.look.legs, hip, knee, b.limb * 1.15, dark, foot);
+    shoe(ctx, k, foot);
+  };
+  leg(-h * 0.03, legs[0], 0.25);
+  leg(h * 0.03, legs[1], 0);
 
   ctx.save();
-  ctx.translate(sway, b.hipY + breathe + bob);
-  ctx.rotate((it.bend ?? (k.old ? 0.2 : pose === 'phone' ? 0.07 : 0)) + (sad ? 0.09 : 0));
+  ctx.translate(sway, b.hipY + breathe + bob + drop);
+  ctx.rotate((it.bend ?? (k.old ? 0.2 : pose === 'phone' ? 0.07 : 0)) + (sad ? 0.09 : 0) - (it.laugh ? 0.05 : 0));
   const sy = b.shoulderY - b.hipY;
-  const arms = armPose(pose, k, b, sy, t);
+  let arms = armPose(pose, k, b, sy, t);
+  if (it.poseFrom && it.poseK < 1 && !['sit', 'bike'].includes(it.poseFrom)) {
+    arms = blendArms(armPose(it.poseFrom, k, b, sy, t), arms, it.poseK);
+  }
   limb(ctx, k, k.look.top, arms.back[0], arms.back[1], b.limb, 0.28, arms.back[2]);
   hand(ctx, k, arms.back[2] ?? arms.back[1], 0.25);
   torso(ctx, k, b, sy);
@@ -194,9 +209,38 @@ function armPose(pose, k, b, sy, t) {
       return { back: down(-1), front: [[s, sy + h * 0.02], [s + h * 0.03, sy + h * 0.2], [s + h * 0.07, sy + h * 0.08]] };
     case 'carry':
       return { back: down(-1), front: [[s, sy + h * 0.02], [s + h * 0.02, sy + h * 0.2], [s - h * 0.04, sy + h * 0.16]] };
+    case 'hips': {
+      // Hands on the hips, elbows out: not having it.
+      const arm = (side) => [[side * s, sy + h * 0.02], [side * (s + h * 0.085), sy + h * 0.17], [side * h * 0.085, -h * 0.01]];
+      return { back: arm(-1), front: arm(1) };
+    }
+    case 'cross':
+      // Arms folded over the chest.
+      return {
+        back: [[-s, sy + h * 0.02], [-s - h * 0.012, sy + h * 0.19], [s * 0.55, sy + h * 0.13]],
+        front: [[s, sy + h * 0.02], [s + h * 0.012, sy + h * 0.2], [-s * 0.55, sy + h * 0.15]],
+      };
+    case 'shrug': {
+      // Both hands up and open: what did I do.
+      const arm = (side) => [[side * s, sy + h * 0.02], [side * (s + h * 0.06), sy + h * 0.15], [side * (s + h * 0.13), sy + h * 0.03]];
+      return { back: arm(-1), front: arm(1) };
+    }
+    case 'pet':
+      // Reaching down in front, to a dog's head.
+      return { back: down(-1, h * 0.04), front: [[s, sy + h * 0.02], [s + h * 0.12, sy + h * 0.2], [s + h * 0.22, sy + h * 0.33]] };
     default:
       return { back: down(-1), front: down(1) };
   }
+}
+
+/** The arms part of the way from one pose to the next, every joint on a straight line. */
+function blendArms(a, b, k) {
+  const three = (arm) => (arm.length === 3 ? arm : [arm[0], [(arm[0][0] + arm[1][0]) / 2, (arm[0][1] + arm[1][1]) / 2], arm[1]]);
+  const mixArm = (p, q) => {
+    const [from, to] = [three(p), three(q)];
+    return from.map((pt, i) => [pt[0] + (to[i][0] - pt[0]) * k, pt[1] + (to[i][1] - pt[1]) * k]);
+  };
+  return { back: mixArm(a.back, b.back), front: mixArm(a.front, b.front) };
 }
 
 function torso(ctx, k, b, sy) {
@@ -392,12 +436,50 @@ function sitting(ctx, k, it) {
   ctx.translate(0, seat + breathe);
   ctx.rotate(it.bend ?? 0.05);
   const sy = b.shoulderY - b.hipY;
-  limb(ctx, k, k.look.top, [-b.shoulderW * 0.7, sy + h * 0.02], [lap[0] - h * 0.05, lap[1] + h * 0.01], b.limb, 0.25);
+  // `hands: 'peel'`: an apple held up in front in one hand, the knife in the other, and
+  // the peel hanging from it in one curl, as long as `curl` says (0 to 1).
+  const peel = it.hands === 'peel';
+  const apple = [h * 0.2, sy + h * 0.24];
+  const backHand = peel ? apple : [lap[0] - h * 0.05, lap[1] + h * 0.01];
+  const frontHand = peel ? [h * 0.25, sy + h * 0.21 + Math.sin(t * 2.4) * h * 0.008] : lap;
+  limb(ctx, k, k.look.top, [-b.shoulderW * 0.7, sy + h * 0.02], peel ? [h * 0.02, sy + h * 0.24] : backHand, b.limb, 0.25, peel ? backHand : null);
   torso(ctx, k, b, sy);
   head(ctx, k, b, sy, it);
-  limb(ctx, k, k.look.top, [b.shoulderW * 0.8, sy + h * 0.02], lap, b.limb, 0);
-  hand(ctx, k, lap, 0);
+  // `curlSeconds`: the peel grows while you watch, as long as that takes.
+  if (peel) curl(ctx, k, apple, it.curlSeconds ? Math.min(1, t / it.curlSeconds) : it.curl ?? 1, t);
+  limb(ctx, k, k.look.top, [b.shoulderW * 0.8, sy + h * 0.02], peel ? [h * 0.16, sy + h * 0.17] : frontHand, b.limb, 0, peel ? frontHand : null);
+  hand(ctx, k, frontHand, 0);
   ctx.restore();
+}
+
+// An apple being peeled in one long curl: the apple, white where it is peeled, and the
+// red peel hanging from it and turning a little, longer as `length` goes from 0 to 1.
+function curl(ctx, k, [x, y], length, t) {
+  const { h } = k;
+  const r = h * 0.045;
+  const drop = h * 0.42 * length;
+  if (drop > 1) {
+    ctx.strokeStyle = k.paint('#e04a32');
+    ctx.lineWidth = Math.max(1.6, h * 0.022);
+    ctx.beginPath();
+    ctx.moveTo(x + r * 0.6, y + r * 0.4);
+    const n = Math.max(2, Math.round(length * 9));
+    for (let i = 1; i <= n; i += 1) {
+      const v = i / n;
+      ctx.lineTo(x + r * 0.6 + Math.sin(v * 13 + t * 1.3) * h * 0.02 * (0.5 + v), y + r * 0.4 + drop * v);
+    }
+    ctx.stroke();
+  }
+  ctx.fillStyle = k.paint('#e9d79a', 0.05);
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = k.paint('#c8402e', 0.05);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.arc(x, y, r, Math.PI * 1.1, Math.PI * (1.1 + 1.9 * (1 - length)));
+  ctx.closePath();
+  ctx.fill();
 }
 
 // On a bike: the wheels turn and the feet go round the pedals as `step` grows.

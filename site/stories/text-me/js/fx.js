@@ -9,16 +9,11 @@
 import { rng } from './util.js';
 import { makePen } from './painter.js';
 import { drawPerson, markOf } from './people.js';
+import { NAMES } from './names.js';
 
-// Who is who: as a scene comes in, each person you know gets their name above them for a
-// few seconds, in their own colour, then it fades. People passing through get none.
-// The dog is 'puppy' until the player names him (setName).
-const NAMES = { me: 'you', mom: 'mom', dad: 'dad', grandma: 'grandma', grandpa: 'grandpa', friend: 'best friend', partner: 'partner', kid: 'your kid', dog: 'puppy' };
-
-/** Changes the name shown over a person, once the player has chosen it. */
-export function setName(id, name) {
-  NAMES[id] = name;
-}
+// Who is who: as a scene comes in, each person you know gets their name (names.js) above
+// them for a few seconds, in their own colour, then it fades. People passing through get none.
+export { setName } from './names.js';
 const NAME_IN = 0.5;
 const NAME_HOLD = 3.4;
 const NAME_OUT = 1.2;
@@ -29,7 +24,7 @@ const NAME_OUT = 1.2;
  * (kind 'person'), so they can breathe and wave; their layers keep the full pixel ratio.
  * `t0` is how long the scene has already been on screen.
  */
-export function createFx(items = [], view, scene, progress = () => 0, t0 = 0) {
+export function createFx(items = [], view, scene, progress = () => 0, t0 = 0, cues = () => undefined) {
   const pen = makePen(scene, view);
   const sharp = new Set(items.filter((it) => it.kind === 'person').map((it) => it.at ?? 2));
   const cssW = view.w + view.margin * 2;
@@ -58,7 +53,7 @@ export function createFx(items = [], view, scene, progress = () => 0, t0 = 0) {
     }
     const kind = KINDS[it.kind];
     if (!kind) throw new Error(`Unknown effect: ${it.kind}`);
-    const state = kind.init(it, pos, rng(1000 + i * 77), pen, progress);
+    const state = kind.init(it, pos, rng(1000 + i * 77), pen, progress, cues);
     slots[at].list.push({ kind, it, state });
   });
   for (const s of Object.values(slots)) live.push(s);
@@ -87,6 +82,39 @@ export function createFx(items = [], view, scene, progress = () => 0, t0 = 0) {
       raf = 0;
       last = 0;
     },
+    /** The scene's own clock, in seconds: what a cue (stage.cue) is timed against. */
+    now() {
+      return t;
+    },
+  };
+}
+
+/** Smoothstep: 0 to 1 with a gentle start and end. */
+function smooth(k) {
+  return k * k * (3 - 2 * k);
+}
+
+/**
+ * Eases the changes in how somebody stands, so nothing snaps: the arms move from the old
+ * pose to the new one, the bend and crouch settle, and turning round passes through side on.
+ */
+function settle(s, who, t, dt) {
+  const ease = (key, target, rate) => (s[key] = s[key] === undefined ? target : s[key] + (target - s[key]) * (1 - Math.exp(-dt * rate)));
+  const pose = who.pose ?? 'stand';
+  if (pose !== s.pose) {
+    s.poseFrom = s.pose;
+    s.poseAt = t;
+    s.pose = pose;
+  }
+  const k = Math.min(1, (t - s.poseAt) / 0.45);
+  const rest = pose === 'sit' ? 0.05 : who.age === 'old' ? 0.2 : pose === 'phone' ? 0.07 : 0;
+  return {
+    ...who,
+    poseFrom: k < 1 ? s.poseFrom : undefined,
+    poseK: smooth(k),
+    bend: ease('bend', who.bend ?? rest, 7),
+    squat: ease('squat', who.squat ?? 0, 7),
+    flip: ease('flip', who.face ?? 1, 14),
   };
 }
 
@@ -133,17 +161,51 @@ const KINDS = {
   // 0 to 1) or, with `seconds`, by time (`loop` repeats it). `poses` changes the pose:
   // [[at, pose, {fields}], ...]. Legs walk, run or pedal by the distance covered. `ghost`
   // (seconds) makes them a memory that fades away.
+  //
+  // `acts` is what somebody does when the story reaches a line: a beat with `act: 'name'`
+  // starts every act with `on: 'name'` (its fields replace theirs; a `track` plays on the
+  // act's own clock, starting from wherever they are). Somebody `hidden` is not there until
+  // their first act, and fades in with it. `tagOn` shows the name again at that cue.
+  // Changes of pose, bend, crouch (`squat`) and the way they face are eased, never snapped.
   person: {
-    init(it, p, r, pen, progress) {
-      return { pen, progress, step: 0, last: null, until: 0 };
+    init(it, p, r, pen, progress, cues) {
+      return { pen, progress, cues, step: 0, last: null, until: 0 };
     },
     draw(ctx, s, t, dt, it, p) {
       let who = it.person;
+      let clock = t - (who.delay ?? 0);
+      if (who.acts) {
+        let act = null;
+        let at = -Infinity;
+        for (const a of who.acts) {
+          const c = s.cues(a.on);
+          if (c !== undefined && c >= at) [act, at] = [a, c];
+        }
+        if (!act && who.hidden) return;
+        if (act !== s.act) {
+          s.act = act;
+          s.from = s.here;
+          if (who.hidden && s.shown === undefined) s.shown = at;
+        }
+        if (act) {
+          who = { ...who, loop: false, track: null, poses: null, ...act };
+          clock = t - at;
+          if (!who.track && s.from) who = { ...who, x: s.from[0], y: s.from[1], h: s.from[2] };
+        }
+      }
       if (who.track) {
-        const raw = who.seconds ? (t - (who.delay ?? 0)) / who.seconds : s.progress();
+        const raw = who.seconds ? clock / who.seconds : s.progress();
         // A `loop` track (a puppy running circles) starts over; others stop at the end.
         const k = who.loop ? raw - Math.floor(raw) : Math.min(1, Math.max(0, raw));
-        const [x, y, h] = along(who.track, k);
+        let [x, y, h] = along(who.track, k);
+        // An act's path begins where the person already stood and eases onto its own.
+        if (s.act && s.from) {
+          const w = 1 - smooth(Math.min(1, clock / 0.6));
+          const [x0, y0, h0] = who.track[0];
+          x += (s.from[0] - x0) * w;
+          y += (s.from[1] - y0) * w;
+          h += (s.from[2] - h0) * w;
+        }
         who = { ...who, x, y, h };
         for (const [at, pose, extra] of who.poses ?? []) if (k >= at) who = { ...who, pose, ...extra };
         if (s.last) {
@@ -157,20 +219,20 @@ const KINDS = {
         s.last = [x, y];
         if (who.turn && s.face) who = { ...who, face: s.face };
       }
+      s.here = [who.x, who.y, who.h];
+      who = settle(s, who, t, dt);
+      const shown = s.shown ?? 0;
+      const tagged = who.tagOn === undefined ? undefined : s.cues(who.tagOn);
+      const tagT = tagged === undefined ? t - shown : t - tagged;
       // A `ghost` is a memory of somebody: drawn faint, and gone `ghost` seconds after a
       // short look.
-      if (who.ghost) {
-        const a = 0.55 * Math.max(0, 1 - Math.max(0, t - 1.5) / who.ghost);
-        if (a <= 0) return;
-        ctx.save();
-        ctx.globalAlpha = a;
-        drawPerson(ctx, who, s.pen, t, s.step, t < s.until);
-        nameTag(ctx, who, t, p);
-        ctx.restore();
-        return;
-      }
+      const fade = who.ghost ? 0.55 * Math.max(0, 1 - Math.max(0, t - 1.5) / who.ghost) : Math.min(1, (t - shown) / 0.6);
+      if (fade <= 0) return;
+      ctx.save();
+      ctx.globalAlpha = fade;
       drawPerson(ctx, who, s.pen, t, s.step, t < s.until);
-      nameTag(ctx, who, t, p);
+      nameTag(ctx, who, tagT, p);
+      ctx.restore();
     },
   },
 

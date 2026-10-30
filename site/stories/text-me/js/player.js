@@ -123,8 +123,10 @@ export class Player {
 
   async play(b) {
     const tap = () => this.tap();
-    // Any beat can carry a sound of its own: the kettle, the light switch.
+    // Any beat can carry a sound of its own (the kettle, the light switch) and a cue for
+    // the people in the picture: Mom stepping out of the house as the line says she does.
     if (b.sfx) this.sound?.[b.sfx]?.();
+    if (b.act) this.stage.cue(b.act);
     if (b.chapter) return this.card('chapter', b.chapter);
     if (b.title) return this.card('title');
     if (b.end) return this.ending();
@@ -155,6 +157,7 @@ export class Player {
       if (b.choose === 'dog') {
         setName('dog', value);
         this.lines.rename('dog', value);
+        this.stage.cue('named');
       }
       return;
     }
@@ -283,9 +286,30 @@ export class Player {
 
   async card(kind, text) {
     this.captions.clear();
+    this.ui.when('');
     await this.ui.card(kind, text);
     await this.tap();
+    const next = this.ahead();
+    // Card after card (the title, then the chapter): only the words change, the dark stays.
+    if (next?.chapter || next?.title) return;
+    // The next picture goes in under the card, so lifting it shows where the story is
+    // going, not the porch it came from.
+    const picture = next?.scene ?? next?.lines?.scene;
+    if (picture) {
+      this.lines.show(false);
+      await this.stage.show(picture, { instant: true });
+    }
     await this.ui.uncard();
+  }
+
+  /** The next beat that will play: conditions are checked the way start() checks them. */
+  ahead() {
+    for (let j = this.i + 1; j < SCRIPT.length; j += 1) {
+      const beat = SCRIPT[j];
+      const cond = beat.if ?? beat.lines?.if ?? beat.phone?.if;
+      if (!cond || matches(cond, this.flags)) return beat;
+    }
+    return null;
   }
 
   async ending() {

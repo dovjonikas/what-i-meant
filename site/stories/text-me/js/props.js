@@ -8,8 +8,8 @@
 
 import { rng } from './util.js';
 import { pinePath } from './painter.js';
-import { drawPerson } from './people.js';
-import { jar, arm, grip } from './closeups.js';
+import { drawPerson, LOOKS } from './people.js';
+import { jar, arm, grip, album, trainer, swaddle } from './closeups.js';
 
 export function drawProp(ctx, it, pen) {
   const fn = PROPS[it.kind];
@@ -416,16 +416,20 @@ const PROPS = {
     ctx.fillRect(x + h * 0.12, y - h + 1.5, h * 0.08, 2.5);
   },
 
+  // A wooden bench. `seat` is the seat's height (column widths); by default it grows with
+  // the width. A person sitting on a chair (people.js) has the seat at 0.27 of their height.
   bench(ctx, it, pen) {
     const x = pen.X(it.x);
     const y = pen.Y(it.y);
     const w = pen.S(it.w ?? 0.2);
+    const seat = it.seat ? pen.S(it.seat) : w * 0.22;
+    const plank = Math.max(2, Math.min(w * 0.05, seat * 0.2));
     withRim(ctx, it, pen, (fill) => {
       ctx.fillStyle = fill;
-      ctx.fillRect(x - w / 2, y - w * 0.22, w, w * 0.05);
-      ctx.fillRect(x - w / 2, y - w * 0.4, w, w * 0.05);
-      ctx.fillRect(x - w * 0.45, y - w * 0.22, w * 0.04, w * 0.22);
-      ctx.fillRect(x + w * 0.41, y - w * 0.22, w * 0.04, w * 0.22);
+      ctx.fillRect(x - w / 2, y - seat, w, plank);
+      ctx.fillRect(x - w / 2, y - seat * 1.8, w, plank);
+      ctx.fillRect(x - w * 0.45, y - seat * 1.8, plank * 0.8, seat * 1.8);
+      ctx.fillRect(x + w * 0.45 - plank * 0.8, y - seat * 1.8, plank * 0.8, seat * 1.8);
     });
   },
 
@@ -812,12 +816,232 @@ const PROPS = {
     ctx.fillRect(lx - lw * 0.56, top - 2, lw * 1.12, 2);
   },
 
+  // A child's bed seen from the side, with somebody asleep in it: the head on the pillow
+  // and the blanket over the rest, in their own colour (people.js), so you know who it is.
+  // `y` is the floor and `top` the top of the mattress, both down the screen, so a dog
+  // lying on the blanket can stand at `top` at any screen size.
+  bed(ctx, it, pen) {
+    const x = pen.X(it.x);
+    const floor = pen.Y(it.y);
+    const top = pen.Y(it.top);
+    const w = pen.S(it.w ?? 0.6);
+    const left = x - w / 2;
+    const deep = floor - top;
+    const wood = pen.tone(it.color ?? '#5a3a26');
+    const look = LOOKS[it.who ?? 'me'];
+    // Head board, legs and the frame under the mattress.
+    ctx.fillStyle = wood;
+    ctx.fillRect(left - w * 0.02, top - deep * 1.1, w * 0.05, floor - top + deep * 1.1);
+    ctx.fillRect(left + w * 0.95, top - deep * 0.25, w * 0.04, floor - top + deep * 0.25);
+    ctx.fillRect(left, top + deep * 0.3, w, deep * 0.28);
+    ctx.fillStyle = pen.tone(it.sheet ?? '#e8e2d6');
+    ctx.fillRect(left + w * 0.03, top, w * 0.92, deep * 0.3);
+    // The pillow and the head on it, then the blanket in a long soft hump.
+    ctx.beginPath();
+    ctx.ellipse(left + w * 0.13, top - deep * 0.08, w * 0.09, deep * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const hx = left + w * 0.16;
+    const hy = top - deep * 0.3;
+    const r = w * 0.05;
+    ctx.fillStyle = pen.tone(look.skin);
+    ctx.beginPath();
+    ctx.arc(hx, hy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = pen.tone(look.hair ?? '#3a2a20');
+    ctx.beginPath();
+    ctx.arc(hx - r * 0.15, hy - r * 0.1, r * 1.05, Math.PI * 0.55, Math.PI * 1.75);
+    ctx.closePath();
+    ctx.fill();
+    const blanket = pen.tone(it.blanket ?? look.top);
+    ctx.fillStyle = blanket;
+    ctx.beginPath();
+    ctx.moveTo(left + w * 0.19, top + deep * 0.05);
+    ctx.quadraticCurveTo(left + w * 0.22, top - deep * 0.55, left + w * 0.42, top - deep * 0.5);
+    ctx.quadraticCurveTo(left + w * 0.62, top - deep * 0.45, left + w * 0.97, top - deep * 0.04);
+    ctx.lineTo(left + w * 0.97, top + deep * 0.62);
+    ctx.quadraticCurveTo(left + w * 0.6, top + deep * 0.72, left + w * 0.19, top + deep * 0.6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = pen.tone('#000000', 0, 0.18);
+    ctx.lineWidth = Math.max(1, w * 0.006);
+    ctx.beginPath();
+    ctx.moveTo(left + w * 0.3, top - deep * 0.2);
+    ctx.quadraticCurveTo(left + w * 0.5, top + deep * 0.05, left + w * 0.62, top + deep * 0.4);
+    ctx.stroke();
+    if (it.rim) {
+      ctx.strokeStyle = pen.tone(it.rim, 0, 0.55);
+      ctx.lineWidth = Math.max(1, w * 0.008);
+      ctx.beginPath();
+      ctx.moveTo(left + w * 0.24, top - deep * 0.42);
+      ctx.quadraticCurveTo(left + w * 0.42, top - deep * 0.56, left + w * 0.62, top - deep * 0.4);
+      ctx.stroke();
+    }
+  },
+
+  // Stairs going up to the left, from `x` (the bottom step) to `x2`, panelled underneath,
+  // with a low dark opening there where things go missing. `y` is the floor, `top` the
+  // landing, down the screen.
+  stairs(ctx, it, pen) {
+    const x0 = pen.X(it.x);
+    const x1 = pen.X(it.x2);
+    const floor = pen.Y(it.y);
+    const top = pen.Y(it.top);
+    const n = it.steps ?? 9;
+    const thick = pen.S(0.05);
+    // The panelled side under the stairs, then the opening into the dark at the bottom.
+    ctx.fillStyle = pen.tone(it.under ?? '#a8784e');
+    ctx.beginPath();
+    ctx.moveTo(x1, floor);
+    ctx.lineTo(x1, top + thick);
+    ctx.lineTo(x0, floor);
+    ctx.closePath();
+    ctx.fill();
+    const lineAt = (x) => floor - ((x0 - x) / (x0 - x1)) * (floor - top - thick);
+    const [o0, o1] = [x1 + (x0 - x1) * 0.14, x1 + (x0 - x1) * 0.64];
+    const mouth = (x) => lineAt(x) + (floor - lineAt(x)) * 0.32;
+    ctx.fillStyle = pen.tone(it.dark ?? '#0c0806');
+    ctx.beginPath();
+    ctx.moveTo(o0, floor);
+    ctx.lineTo(o0, mouth(o0));
+    ctx.lineTo(o1, mouth(o1));
+    ctx.lineTo(o1, floor);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = pen.tone(it.color ?? '#6b4428');
+    ctx.lineWidth = Math.max(2, pen.S(0.012));
+    ctx.stroke();
+    // The steps, one block each, and the lit edge of every tread.
+    const dx = (x0 - x1) / n;
+    const dy = (floor - top) / n;
+    ctx.fillStyle = pen.tone(it.color ?? '#6b4428');
+    ctx.beginPath();
+    ctx.moveTo(x0, floor);
+    for (let i = 0; i < n; i += 1) {
+      ctx.lineTo(x0 - i * dx, floor - (i + 1) * dy);
+      ctx.lineTo(x0 - (i + 1) * dx, floor - (i + 1) * dy);
+    }
+    ctx.lineTo(x1, top + thick);
+    ctx.lineTo(x0 - dx * 0.2, floor);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = pen.tone(it.rim ?? '#e8c48c', 0, 0.75);
+    for (let i = 0; i < n; i += 1) ctx.fillRect(x0 - (i + 1) * dx, floor - (i + 1) * dy, dx, Math.max(1, dy * 0.12));
+    // The banister: a rail along the stairs on posts.
+    const rail = pen.S(0.2);
+    ctx.strokeStyle = pen.tone(it.color ?? '#6b4428', 0.1);
+    ctx.lineWidth = Math.max(1.5, pen.S(0.012));
+    ctx.beginPath();
+    ctx.moveTo(x0 - dx * 0.5, floor - dy - rail);
+    ctx.lineTo(x1, top - rail);
+    ctx.stroke();
+    ctx.lineWidth = Math.max(1, pen.S(0.006));
+    for (let i = 0; i < n; i += 2) {
+      const px = x0 - (i + 0.5) * dx;
+      const py = floor - (i + 1) * dy;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px, py - rail);
+      ctx.stroke();
+    }
+  },
+
+  // A row of shoes by the door, one of each pair gone: `list` gives each pair's colour,
+  // `gone` which shoe of each is missing (0 the left, 1 the right, -1 neither).
+  shoes(ctx, it, pen) {
+    const y = pen.Y(it.y);
+    const s = pen.S(it.s ?? 0.06);
+    const step = (pen.X(it.x2) - pen.X(it.x)) / it.list.length;
+    it.list.forEach((color, i) => {
+      for (const side of [0, 1]) {
+        if ((it.gone?.[i] ?? 0) === side) continue;
+        const sx = pen.X(it.x) + step * (i + 0.3 + side * 0.42);
+        ctx.fillStyle = pen.tone(color);
+        ctx.beginPath();
+        ctx.ellipse(sx, y - s * 0.22, s * 0.42, s * 0.24, 0, Math.PI, 0);
+        ctx.fill();
+        ctx.fillRect(sx - s * 0.42, y - s * 0.24, s * 0.84, s * 0.16);
+        ctx.fillStyle = pen.tone('#e9e3d8', 0.1);
+        ctx.fillRect(sx - s * 0.44, y - s * 0.08, s * 0.88, s * 0.08);
+      }
+    });
+  },
+
+  // Bags on the floor, packed to leave: `list` is [dx, w, h, colour, kind] per bag, from
+  // `x` along the floor at `y`; kind 'duffel' (soft, with straps) or 'case' (a suitcase).
+  bags(ctx, it, pen) {
+    const x = pen.X(it.x);
+    const y = pen.Y(it.y);
+    for (const [dx, w0, h0, color, kind] of it.list) {
+      const bx = x + pen.S(dx);
+      const w = pen.S(w0);
+      const h = pen.S(h0);
+      ctx.fillStyle = pen.tone(color);
+      ctx.strokeStyle = pen.tone(color, 0.35);
+      ctx.lineWidth = Math.max(1.2, w * 0.05);
+      if (kind === 'case') {
+        roundRect(ctx, bx - w / 2, y - h, w, h, w * 0.08);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(bx - w * 0.18, y - h);
+        ctx.lineTo(bx - w * 0.18, y - h - h * 0.12);
+        ctx.lineTo(bx + w * 0.18, y - h - h * 0.12);
+        ctx.lineTo(bx + w * 0.18, y - h);
+        ctx.stroke();
+        ctx.fillStyle = pen.tone(color, 0.2);
+        ctx.fillRect(bx - w / 2, y - h * 0.55, w, Math.max(1, h * 0.05));
+      } else {
+        ctx.beginPath();
+        ctx.ellipse(bx, y - h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(bx, y - h * 0.95, w * 0.26, h * 0.32, 0, Math.PI, 0);
+        ctx.stroke();
+        ctx.fillStyle = pen.tone(color, 0.2);
+        ctx.fillRect(bx - w * 0.4, y - h * 0.62, w * 0.8, Math.max(1, h * 0.06));
+      }
+      if (it.rim) {
+        ctx.fillStyle = pen.tone(it.rim, 0, 0.5);
+        ctx.fillRect(bx - w * 0.36, y - h * (kind === 'case' ? 1 : 0.96), w * 0.72, Math.max(1, h * 0.04));
+      }
+    }
+  },
+
+  // A door in an inside wall: `y` the floor, `h` its height, with a lit pane up top, or
+  // `under`: shut, with the light of the room behind it showing along the bottom.
+  door(ctx, it, pen) {
+    const x = pen.X(it.x);
+    const y = pen.Y(it.y);
+    const w = pen.S(it.w ?? 0.2);
+    const h = pen.S(it.h ?? 0.5);
+    ctx.fillStyle = pen.tone(it.frame ?? '#f2e6cc');
+    ctx.fillRect(x - w / 2 - w * 0.07, y - h - w * 0.07, w * 1.14, h + w * 0.07);
+    ctx.fillStyle = pen.tone(it.color ?? '#6b4428');
+    ctx.fillRect(x - w / 2, y - h, w, h);
+    if (it.pane) {
+      glow(ctx, x, y - h * 0.8, w * 0.9, pen.tone(it.pane, 0, 0.25), pen.tone(it.pane, 0, 0));
+      ctx.fillStyle = pen.tone(it.pane);
+      ctx.fillRect(x - w * 0.3, y - h * 0.9, w * 0.6, h * 0.22);
+    }
+    ctx.fillStyle = pen.tone('#e8c48c');
+    ctx.beginPath();
+    ctx.arc(x + w * 0.34, y - h * 0.48, Math.max(1.5, w * 0.04), 0, Math.PI * 2);
+    ctx.fill();
+    if (it.under) {
+      glow(ctx, x, y, w * 0.9, pen.tone(it.under, 0, 0.35), pen.tone(it.under, 0, 0));
+      ctx.fillStyle = pen.tone(it.under);
+      ctx.fillRect(x - w / 2, y - 2, w, 2);
+    }
+  },
+
   // A person (see people.js). The stage draws people on a moving layer instead, so they
   // breathe and wave; this still version is for the checks.
   // Close-ups of hands (closeups.js).
   jar,
   arm,
   grip,
+  album,
+  trainer,
+  swaddle,
 
   figure(ctx, it, pen) {
     drawPerson(ctx, it, pen);

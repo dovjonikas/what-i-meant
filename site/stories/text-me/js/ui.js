@@ -23,6 +23,14 @@ export class Ui {
   /** Fades in a full-screen card: 'chapter' (one word), 'title', or 'end' (with buttons). */
   async card(kind, text) {
     const el = this.cardEl;
+    // A card already up (the title before the first chapter): its words fade out and the
+    // new ones in, and the dark behind them never lifts.
+    const swap = !el.hidden;
+    if (swap) {
+      await Promise.all([...el.children].map((n) => n.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: 500, easing: 'ease-in-out', fill: 'forwards',
+      }).finished));
+    }
     el.className = `card is-${kind}`;
     el.innerHTML = '';
     const add = (tag, cls, content) => {
@@ -51,12 +59,23 @@ export class Ui {
       actions.append(back, again);
     }
     el.hidden = false;
+    if (swap) {
+      await Promise.all([...el.children].map((n) => n.animate([{ opacity: 0 }, { opacity: 1 }], {
+        duration: 900, easing: 'ease-out',
+      }).finished));
+      return;
+    }
     await el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 900, easing: 'ease-out', fill: 'forwards' }).finished;
   }
 
+  /** Lifts the card: the words go first, then the dark, slowly, onto the picture under it. */
   async uncard() {
-    await this.cardEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, easing: 'ease-in-out', fill: 'forwards' }).finished;
-    this.cardEl.hidden = true;
+    const el = this.cardEl;
+    await Promise.all([...el.children].map((n) => n.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: 450, easing: 'ease-in-out', fill: 'forwards',
+    }).finished));
+    await el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, easing: 'ease-in-out', fill: 'forwards' }).finished;
+    el.hidden = true;
   }
 
   /** A black veil over everything, faded in (on) or out: a soft cut between times. */
