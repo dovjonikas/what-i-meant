@@ -57,7 +57,7 @@ export class Chart {
    * find:  { buoy: 'g3', ask }  after the lines, tap that buoy; `ask` says what to look for
    */
   run({ lines = [], mark = false, zoom = null, keep = [], intro = '', find = null }) {
-    this.laid = keep.map((l) => ({ ...l }));
+    this.laid = keep.map((l) => ({ ...l, old: true }));
     for (const l of this.laid) this.drawn.set(l, 1);
     this.task = { lines: lines.map((l) => ({ ...l })), next: 0, mark, zoom, find, tries: 0 };
     this.fix = null;
@@ -335,7 +335,9 @@ export class Chart {
     for (const l of this.laid) {
       const k = Math.min(1, (this.drawn.get(l) ?? 1) + 0.04);
       this.drawn.set(l, k);
-      this.ray(X, Y, s, STATIONS[l.from], l.brg, k, PENCIL, 1.6);
+      // An earlier night's line is older pencil: thinner and dashed, so three lines
+      // never read as one tangle.
+      this.ray(X, Y, s, STATIONS[l.from], l.brg, k, PENCIL, l.old ? 1.2 : 1.6, !!l.old);
     }
 
     // The line being aimed, with its number by the pencil tip.

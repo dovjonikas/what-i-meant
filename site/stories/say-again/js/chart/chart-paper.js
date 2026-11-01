@@ -244,6 +244,12 @@ function town(g, X, Y, s, map, zoomed, avoid) {
     g.fillRect(X(x), Y(y), w * s, h * s);
     avoid.boxes.push({ x: X(x), y: Y(y), w: w * s, h: h * s });
   }
+  // His own house, pencilled in as any operator would on his own chart: a small word that
+  // means nothing until a line runs through it.
+  const [hx, hy, hw, hh] = TOWN.houses[4];
+  g.font = zoomed ? 'italic 500 12px Recursive, sans-serif' : 'italic 500 8px Recursive, sans-serif';
+  g.fillStyle = 'rgb(58 54 49 / 0.8)';
+  avoid.boxes.push(label(g, 'home', X(hx + hw) + (zoomed ? 5 : 2), Y(hy + hh) + (zoomed ? 1 : 3), map));
   if (!zoomed) {
     g.fillStyle = INK;
     g.font = '700 11px Recursive, sans-serif';
