@@ -36,10 +36,14 @@ export class Ui {
     });
   }
 
-  /** A line under the picture. `who` colours it (the kid's words are his yellow). */
+  /**
+   * A line under the picture. `who` colours it (the kid's words are his yellow) and puts the
+   * speaker's name over it, as the radio screen does; a line with no `who` is the story telling.
+   */
   async line(text, who = '', { tap = true } = {}) {
     this.words.hidden = false;
-    this.say.className = `words-line ${who ? `is-${who}` : ''}`;
+    this.say.className = `words-line ${who ? `is-${who}` : 'is-told'}`;
+    this.name(who);
     this.say.textContent = text;
     this.say.classList.remove('is-in');
     void this.say.offsetWidth;
@@ -48,9 +52,17 @@ export class Ui {
     if (tap) await this.tapToGo();
   }
 
+  /** The speaker's name from the radio's list (player.js shares it), or none. */
+  name(who) {
+    const name = who && this.names?.[who];
+    if (name) this.say.dataset.name = name;
+    else delete this.say.dataset.name;
+  }
+
   clearLine() {
     this.say.classList.remove('is-in');
     this.say.textContent = '';
+    this.name('');
   }
 
   /** Waits for a tap anywhere, with a quiet "tap" shown after a moment. */
@@ -108,6 +120,7 @@ export class Ui {
         ring.style.strokeDashoffset = String(100 - k * 100);
         if (text) {
           this.say.className = 'words-line is-you is-in';
+          this.name('you');
           this.say.textContent = text.slice(0, Math.floor(k * text.length));
         }
         onProgress?.(k);

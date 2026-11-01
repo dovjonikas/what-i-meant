@@ -859,6 +859,23 @@ button {
   color: #f6d8a4;
 }
 
+/* The story telling, not anyone speaking. */
+.words-line.is-told {
+  color: var(--dim);
+  font-variation-settings: "MONO" 0, "CASL" 0.3, "wght" 400, "slnt" -9, "CRSV" 1;
+}
+
+/* Who says it, over the line, as on the radio screen. */
+.words-line[data-name]::before {
+  content: attr(data-name);
+  display: block;
+  margin-bottom: 4px;
+  color: var(--dim);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  font-variation-settings: var(--label);
+}
+
 .words-picks {
   display: flex;
   flex-direction: column;

@@ -14,6 +14,8 @@ export class Player {
     this.flags = {};
     this.cuts = 0;
     this.radio.names = { ...NAMES, kid: 'CH16 ?' };
+    // The kitchen names the speakers the way the radio screen does.
+    this.ui.names = this.radio.names;
   }
 
   static saved() {
