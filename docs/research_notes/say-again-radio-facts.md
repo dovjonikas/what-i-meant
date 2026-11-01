@@ -70,6 +70,8 @@ Verdict: needs rewording.
 
 Correct wording: In aviation (ICAO) the digits are said ZE-RO, WUN, TOO, TREE, FOW-er, FIFE, SIX, SEV-en, AIT, NIN-er, and military ACP 125 uses the same sounds (it writes nine as NINE-ER). The ITU and IMO maritime figure code is a different set: NADAZERO, UNAONE, BISSOTWO, TERRATHREE, KARTEFOUR, PANTAFIVE, SOXISIX, SETTESEVEN, OKTOEIGHT, NOVENINE.
 
+Correction (from say-again-coast-station-practice.md): NADAZERO and the rest are the signal-book code for when language is a problem, not what is spoken on VHF. The IMO Standard Marine Communication Phrases (SMCP 2.2) have ships say digits one at a time as WUN, TOO, TREE, FOWER, FIFE, SIX, SEVEN, AIT, NINER, ZEERO, much like aviation and the army.
+
 Sources:
 - ICAO Annex 10 Vol II, 5.2.1.4.3, in an extract published by the Polish Civil Aviation Authority: https://ulc.gov.pl/_download/personel_lotniczy/ICAO_LPR/sarps.pdf
 - ACP 125(G), Table 3-2: link as in claim 3
