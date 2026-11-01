@@ -1,7 +1,7 @@
 // art-kitchen.js: the 'kitchen' scene, the ending. Morning sun; the father (teal) and the
 // son (yellow) side on at the kitchen table, the old radio lying between them, two mugs,
 // and through the window the town's roofs, the water, and far off on the dune the mast
-// with its red light. s.hand (0..1) moves the father's hand across the table until it
+// with its red light; gulls glide past and dust turns in the sun. s.hand (0..1) moves the father's hand across the table until it
 // rests on the son's.
 //
 // Sizes come from real ones: a 1.8 m father, a son of about eight, a table 75 cm high,
@@ -42,6 +42,8 @@ export function paintKitchen(ctx, view, t, s, dpr) {
   // The mast's light far off across the water.
   const ml = lights.get(`${view.w}x${view.h}`);
   if (ml) stamp(ctx, glowSprite('#ff4030'), ml.x, ml.y, Math.max(4, 0.03 * L.m), 0.9 * blink(t));
+  gulls(ctx, L, t);
+  sunDust(ctx, L, t);
 
   const hand = smooth(clamp(s.hand ?? 0));
   const paint = lightPaint('#5a4a52', 0.96, 1.05);
@@ -298,4 +300,54 @@ function mugAt(g, [x, y], m, body, rim) {
   g.bezierCurveTo(x - w * 0.4, y - hh - 0.06 * m, x + w * 0.3, y - hh - 0.08 * m, x, y - hh - 0.14 * m);
   g.stroke();
   mark('mug', x - w, y - hh - 0.15 * m, w * 2, hh + 0.15 * m, 'high');
+}
+
+/**
+ * Two gulls gliding past the window, now and then a few slow wingbeats. They are clipped
+ * to the four panes, so they pass behind the window's bars.
+ */
+function gulls(ctx, L, t) {
+  const { win, m } = L;
+  const f = Math.max(4, 0.05 * m);
+  const midX = win.x + win.w / 2 - f / 2;
+  const barY = win.y + win.h * 0.32;
+  ctx.save();
+  ctx.beginPath();
+  for (const [x0, x1] of [[win.x, midX], [midX + f, win.x + win.w]]) {
+    ctx.rect(x0, win.y, x1 - x0, barY - win.y);
+    ctx.rect(x0, barY + f * 0.7, x1 - x0, win.y + win.h - barY - f * 0.7);
+  }
+  ctx.clip();
+  ctx.strokeStyle = css('#5e646c', 0.8);
+  ctx.lineWidth = Math.max(1, 0.006 * m);
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 2; i++) {
+    const span = win.w + 0.4 * m;
+    const x = win.x - 0.2 * m + ((t * (0.05 + i * 0.012) * m + i * span * 0.55) % span);
+    const y = win.y + win.h * (0.14 + i * 0.1) + Math.sin(t * 0.35 + i * 2) * 0.02 * m;
+    const s = (0.03 - i * 0.006) * m;
+    const beating = Math.sin(t * 0.45 + i * 2.5) > 0.55;
+    const lift = beating ? Math.sin(t * 6 + i) : 0.25;
+    ctx.beginPath();
+    ctx.moveTo(x - s, y - s * 0.2 * lift + s * 0.1);
+    ctx.quadraticCurveTo(x - s * 0.45, y - s * 0.55 * lift, x, y);
+    ctx.quadraticCurveTo(x + s * 0.45, y - s * 0.55 * lift, x + s, y - s * 0.2 * lift + s * 0.1);
+    ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
+  ctx.restore();
+}
+
+/** Dust turning slowly in the morning sun between the window and the floor. */
+function sunDust(ctx, L, t) {
+  const { win, m, floorY } = L;
+  const rand = rng(91);
+  const sprite = glowSprite('#fff4d8');
+  const top = win.y + win.h * 0.4;
+  for (let i = 0; i < 12; i++) {
+    const v = (rand() + t * 0.008 * (0.5 + rand())) % 1;
+    const y = top + (floorY - top) * v;
+    const x = win.x + win.w * (0.15 + rand() * 0.7) + Math.sin(t * 0.3 + i) * 0.04 * m;
+    stamp(ctx, sprite, x, y, 2, 0.2 + 0.3 * Math.sin(t * 0.7 + i * 1.7) ** 2);
+  }
 }
