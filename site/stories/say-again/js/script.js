@@ -44,7 +44,7 @@ const n1 = [
   { music: 'rescue' },
   { note: ['mayday', 'MAYDAY', 'Said three times: a boat or a life in grave danger. Then, in this order: the name, the position, what is wrong, the help needed, and persons on board (the count the rescuers work from). Everything else on 16 stops.'] },
   {
-    to: 'skipper',
+    to: 'all',
     prompt: 'A mayday, cut off halfway. Answer it.',
     say: [{ label: 'Ask for the position', text: 'Seagull, Seagull, Seagull, this is Dune Radio, Dune Radio, Dune Radio. Received mayday. Say again your position. Over.' }],
   },
