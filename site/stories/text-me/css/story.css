@@ -1014,7 +1014,8 @@ button {
   pointer-events: none;
 }
 
-.gate .btn {
+/* Only while the start screen is up: once it fades, its buttons must not catch taps. */
+.is-gate .gate .btn {
   pointer-events: auto;
 }
 
