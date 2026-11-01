@@ -4,8 +4,8 @@
 // what moves: the town's windows as the caller lights them, the son's window, the mast's
 // light, fog, waves, lightning, the lamp and the clock. The parts have their own files:
 // art-room-outside.js (the view), art-room-glass.js (the window glass), art-room-inside.js
-// and art-room-desk.js (the room and the desk), art-room-life.js (deer, moths, boats) and
-// art-cat.js (the cat).
+// and art-room-desk.js (the room and the desk), art-room-life.js (deer, moths, boats,
+// the sky) and art-cat.js (the cat).
 //
 // Everything that matters sits between the buttons (y = 60) and the top of the radio
 // console (y = 0.56 h); the desk runs on below so the console stands on it.
@@ -13,7 +13,7 @@
 import { cachedLayer, put, glowSprite, stamp, css, mix, rng, mark, paper, blink, clamp, poly } from './art-kit.js';
 import { paintInside } from './art-room-inside.js';
 import { paintOutside, outsideGeo, fogLayer, MOODS } from './art-room-outside.js';
-import { paintDeer, paintMoths, paintTow, windowSpill } from './art-room-life.js';
+import { paintDeer, paintMoths, paintTow, paintShip, paintSkyLife, windowSpill } from './art-room-life.js';
 import { paintCat } from './art-cat.js';
 import { paintSteam } from './art-room-desk.js';
 import { glassEffects } from './art-room-glass.js';
@@ -99,8 +99,10 @@ export function paintRoom(ctx, view, t, s, dpr) {
   L.out = geoFor(L);
   put(ctx, outside, view);
 
+  paintSkyLife(ctx, L, t, mood);
   movingOutside(ctx, L, M, t, view, dpr, mood);
   townLights(ctx, L, M, town, kid, t, mood);
+  paintShip(ctx, L, t, mood);
   mastLight(ctx, L, M, t, mood);
   windowSpill(ctx, L, lamp);
   paintTow(ctx, L, t, s, mood);

@@ -1,7 +1,9 @@
-// art-room-life.js: the living things in the station room scene, all drawn each frame and
-// all cheap: roe deer on the dune below the window (a doe, sometimes with her spotted
-// fawn), moths round the lamp, and on the fog night a rescue boat towing a fishing boat
-// home across the lagoon. The station cat has its own file, art-cat.js.
+// art-room-life.js: what lives and moves outside the station window and round the lamp,
+// all drawn each frame and all cheap: roe deer on the dune below the window (a doe,
+// sometimes with her spotted fawn), moths round the lamp, on the fog night a rescue boat
+// towing a fishing boat home across the lagoon, a ship's lights far off on the other
+// nights, and on the clear night a satellite and now and then a shooting star. The
+// station cat has its own file, art-cat.js.
 //
 // Nothing here keeps state between frames except the moths' memory of the lamp (so they
 // scatter when it goes out and drift back when it comes on). Everything else is worked out
@@ -10,7 +12,7 @@
 // Taps: the caller sets s.poked = { deer, fawn, cat } to the t of the tap; the doe lifts
 // her head and looks at the window, the fawn hops.
 
-import { css, mix, clamp, smooth, bump, glowSprite, stamp, mark, poly } from './art-kit.js';
+import { css, mix, clamp, smooth, bump, rng, glowSprite, stamp, mark, poly } from './art-kit.js';
 import { limb } from './art-people.js';
 
 // How many deer each look has unless the caller says (fog is too thick to see any).
@@ -282,4 +284,88 @@ export function paintTow(ctx, L, t, s, mood) {
 export function windowSpill(ctx, L, lamp) {
   if (lamp < 0.02) return;
   stamp(ctx, glowSprite('#ffb870'), L.U(0.5), L.sillY + 6 * L.k, L.colW * 0.45, 0.07 * lamp);
+}
+
+/**
+ * A ship far off on calm, clear and evening nights: only its lights, a white one high on
+ * the mast over a green one on its side, crawling along under the far shore for minutes.
+ * It goes behind the radio mast as it passes and is lost behind the pines on the right;
+ * then for a while the water is empty.
+ */
+export function paintShip(ctx, L, t, mood) {
+  if (mood !== 'calm' && mood !== 'clear' && mood !== 'evening') return;
+  const G = L.glass;
+  const k = L.k;
+  const cross = 300;
+  const local = (t + 90) % (cross + 120);
+  if (local > cross) return;
+  const x = G.x + G.w * (-0.04 + (local / cross) * 0.88);
+  if (x < G.x || x > G.x + G.w * 0.82 || Math.abs(x - L.out.mast.x) < 7 * k) return;
+  const y = L.out.shoreY + G.h * 0.045 + Math.sin(t * 0.9) * 0.3;
+  stamp(ctx, glowSprite('#fff4e0'), x, y - 3.5 * k, 6 * k, 0.35);
+  stamp(ctx, glowSprite('#5aff9a'), x + 1.4 * k, y - 1 * k, 5 * k, 0.3);
+  ctx.fillStyle = css('#fffaf0', 0.95);
+  ctx.fillRect(x - 0.6, y - 4 * k, 1.3, 1.3);
+  ctx.fillStyle = css('#8affb8', 0.95);
+  ctx.fillRect(x + 1.4 * k - 0.6, y - 1.4 * k, 1.2, 1.2);
+  // Their reflections, short and faint on the water.
+  ctx.fillStyle = css('#fff4e0', 0.18);
+  ctx.fillRect(x - 0.5, y + 2 * k, 1, 5 * k);
+  ctx.fillStyle = css('#8affb8', 0.14);
+  ctx.fillRect(x + 1.4 * k - 0.5, y + 2.5 * k, 1, 3.5 * k);
+}
+
+let streak = null;
+
+/** A shooting star's streak: faint at its tail, white at its head. Made once. */
+function streakSprite() {
+  if (streak) return streak;
+  streak = document.createElement('canvas');
+  streak.width = 64;
+  streak.height = 2;
+  const g = streak.getContext('2d');
+  const h = g.createLinearGradient(0, 0, 64, 0);
+  h.addColorStop(0, css('#dfe6ff', 0));
+  h.addColorStop(0.8, css('#eef2ff', 0.6));
+  h.addColorStop(1, css('#ffffff', 1));
+  g.fillStyle = h;
+  g.fillRect(0, 0, 64, 2);
+  return streak;
+}
+
+/**
+ * The clear night's sky: a satellite, a steady point that moves slowly across and fades as
+ * it goes into the earth's shadow, and now and then a shooting star, a short bright
+ * scratch gone in under a second. Both stay left of the mast.
+ */
+export function paintSkyLife(ctx, L, t, mood) {
+  if (mood !== 'clear') return;
+  const G = L.glass;
+  const k = L.k;
+  const sat = (t + 25) % 150;
+  if (sat < 80) {
+    const p = sat / 80;
+    const a = Math.min(1, p * 8) * (1 - smooth(clamp((p - 0.7) / 0.3)));
+    ctx.fillStyle = css('#f4f6ff', 0.6 * a);
+    ctx.fillRect(G.x + G.w * (0.04 + p * 0.6) - 0.6, G.y + G.h * (0.3 - p * 0.18) - 0.6, 1.3, 1.3);
+  }
+  // One chance of a shooting star every 23 seconds, not always taken.
+  const n = Math.floor(t / 23);
+  const rand = rng(n * 31 + 5);
+  if (rand() < 0.4) return;
+  const p = (t - (n * 23 + 2 + rand() * 18)) / 0.75;
+  if (p < 0 || p > 1) return;
+  const dir = rand() < 0.5 ? -1 : 1;
+  const x0 = G.x + G.w * (0.08 + rand() * 0.37 + (dir < 0 ? 0.2 : 0));
+  const y0 = G.y + G.h * (0.04 + rand() * 0.16);
+  const ang = 0.45 + rand() * 0.35;
+  const dist = (50 + rand() * 40) * k;
+  const len = 22 * k * (1 - p * 0.4);
+  ctx.save();
+  ctx.translate(x0 + Math.cos(ang) * dir * dist * p, y0 + Math.sin(ang) * dist * p);
+  ctx.rotate(dir > 0 ? ang : Math.PI - ang);
+  ctx.globalAlpha = Math.sin(p * Math.PI) * 0.9;
+  ctx.drawImage(streakSprite(), -len, -0.7, len, 1.4);
+  ctx.restore();
+  ctx.globalAlpha = 1;
 }
