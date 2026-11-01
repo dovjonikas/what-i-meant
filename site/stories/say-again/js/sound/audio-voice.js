@@ -7,7 +7,8 @@
 import { noise, gain, filter, loop, settle, rand, clamp, num } from './audio-kit.js';
 
 const BEHIND = {
-  skipper: windBehind, // an open deck in fog
+  skipper: windBehind, // an open deck
+  tern: windBehind, // a small yacht's cockpit
   rescue: engineBehind, // a fast boat under way
 };
 

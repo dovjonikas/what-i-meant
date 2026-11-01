@@ -284,9 +284,10 @@ export class Console {
 
   /**
    * A received transmission: the squelch opens, the words come in under a murmur. On the
-   * telephone (`phone`) there is no squelch and no receive lamp.
+   * telephone (`phone`) there is no squelch and no receive lamp. `broken`: the signal
+   * dies before the end, and the line says so.
    */
-  receive(who, text, voice = who, { phone = false } = {}) {
+  receive(who, text, voice = who, { phone = false, broken = false } = {}) {
     const body = this.line(who, '', phone ? 'is-phone' : '');
     if (!phone) {
       this.lamp('rx', true);
@@ -300,6 +301,7 @@ export class Console {
       stopVoice?.();
       this.sound.duck?.(false);
       if (lost) body.parentElement.classList.add('is-lost');
+      else if (broken) body.parentElement.classList.add('is-broken');
       if (!phone) {
         this.sound.rx?.(false);
         this.lamp('rx', false);

@@ -406,6 +406,13 @@ button {
   font-size: 12px;
 }
 
+/* The signal itself died halfway. */
+.c-line.is-broken .c-said::after {
+  content: " [signal lost]";
+  color: var(--tx);
+  font-size: 12px;
+}
+
 @keyframes line-in {
   from {
     opacity: 0;

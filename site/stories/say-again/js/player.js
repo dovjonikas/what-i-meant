@@ -6,7 +6,7 @@
 import { wait } from './ui.js';
 
 const SAVE_KEY = 'wim.say-again';
-const NAMES = { cape: 'CAPE', skipper: 'SEAGULL', rescue: 'RESCUE 1', pilot: 'PILOT', you: 'YOU' };
+const NAMES = { cape: 'CAPE', skipper: 'SEAGULL', tern: 'TERN', rescue: 'RESCUE 1', pilot: 'PILOT', you: 'YOU' };
 
 export class Player {
   constructor({ script, stage, radio, chart, notes, ui, sound, music }) {
@@ -209,14 +209,14 @@ export class Player {
   async rx(b) {
     const text = this.fill(b.text);
     for (;;) {
-      await this.onAir(undefined, b.rx);
+      await this.onAir(b.ch, b.rx);
       const df = b.df != null ? this.radio.df(b.df) : null;
-      const { lost } = await this.radio.receive(b.rx, text, b.voice);
+      const { lost } = await this.radio.receive(b.rx, text, b.voice, { broken: b.broken });
       if (df) await df;
       if (!lost) break;
       // Turned off the channel halfway: back on it, ask for the message again, as on any radio.
       await wait(600);
-      await this.onAir(undefined, b.rx);
+      await this.onAir(b.ch, b.rx);
       await this.transmit('Say again. Over.', b.rx, 'You missed the end. Ask them to say again: hold.');
       await this.notes.add('sayagain', 'SAY AGAIN', 'Missed the end of a message, or let go of the button too early? Ask SAY AGAIN and the whole message comes again. Army radio never says "repeat": on a gun net it means fire again.');
       await wait(700);
@@ -237,7 +237,7 @@ export class Player {
   /** How a hint names whoever is calling. */
   speaker(who) {
     if (who === 'kid') return this.flags.cs ?? 'The caller';
-    return { cape: 'Cape', skipper: 'Seagull', rescue: 'Rescue One', pilot: 'The pilot station' }[who] ?? 'They';
+    return { cape: 'Cape', skipper: 'Seagull', tern: 'Tern', rescue: 'Rescue One', pilot: 'The pilot station' }[who] ?? 'They';
   }
 
   /** The button held down with no voice: enough for the direction finder. */
