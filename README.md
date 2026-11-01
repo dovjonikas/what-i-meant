@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://dovjonikas.github.io/what-i-meant/">
-    <img src=".github/readme/banner.webp" alt="What I Meant" width="100%">
+    <img src=".github/readme/banner.webp" alt="What I Meant: Text me when you get home, and Say Again" width="100%">
   </a>
 </p>
 
@@ -16,7 +16,7 @@
 
 <p align="center">
   <a href="https://dovjonikas.github.io/what-i-meant/">
-    <img src=".github/readme/stories.webp" alt="Story cards: 01 Text me when you get home, 02 and 03 coming soon" width="100%">
+    <img src=".github/readme/stories.webp" alt="Story cards: 01 Text me when you get home, 02 Say Again, 03 coming soon" width="100%">
   </a>
 </p>
 
@@ -36,6 +36,20 @@
 
 <p align="center">
   <a href="https://dovjonikas.github.io/what-i-meant/stories/text-me/"><img src=".github/readme/play.png" alt="Play Text me when you get home" height="52"></a>
+</p>
+
+<br>
+
+<h3 align="center">02 · Say Again</h3>
+
+<p align="center">
+  <a href="https://dovjonikas.github.io/what-i-meant/stories/say-again/">
+    <img src=".github/readme/say-again.webp" alt="Three moments from Say Again: the radio on the desk, Morse to read, the chart of the bay" width="100%">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://dovjonikas.github.io/what-i-meant/stories/say-again/"><img src=".github/readme/play.png" alt="Play Say Again" height="52"></a>
 </p>
 
 <br>
