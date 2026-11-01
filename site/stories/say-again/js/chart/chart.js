@@ -63,6 +63,8 @@ export class Chart {
     this.fix = null;
     this.marked = false;
     this.view = { ...BAY };
+    // A chart opened straight after another must not be hidden by the last one's close.
+    clearTimeout(this.closing);
     this.root.hidden = false;
     requestAnimationFrame(() => this.root.classList.add('is-open'));
     this.sound.paper?.();
@@ -76,7 +78,7 @@ export class Chart {
 
   close() {
     this.root.classList.remove('is-open');
-    setTimeout(() => {
+    this.closing = setTimeout(() => {
       this.root.hidden = true;
       cancelAnimationFrame(this.raf);
     }, 450);
