@@ -152,6 +152,9 @@ export class Console {
     const end = () => {
       last = null;
       k.classList.remove('is-held');
+      // Let go a few channels off the one the story wants and the knob drops into it: a
+      // thumb on a small knob overshoots, and missing by one is not the lesson.
+      if (this.waitFor && Math.abs(this.channel - this.waitFor) <= 3) this.setChannel(this.waitFor);
     };
     k.addEventListener('pointerup', end);
     k.addEventListener('pointercancel', end);
@@ -169,9 +172,12 @@ export class Console {
       this.knobAngle += deg;
       k.style.setProperty('--turn', `${this.knobAngle}deg`);
       rest += deg;
-      while (Math.abs(rest) >= KNOB_DEG) {
+      for (;;) {
+        // The wanted channel holds the knob a little longer, so it is easy to stop on.
+        const need = this.channel === this.waitFor ? KNOB_DEG * 3 : KNOB_DEG;
+        if (Math.abs(rest) < need) break;
         const step = Math.sign(rest);
-        rest -= step * KNOB_DEG;
+        rest -= step * need;
         this.setChannel(this.channel + step);
       }
     };
