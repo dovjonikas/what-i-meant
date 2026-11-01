@@ -15,10 +15,12 @@
 //   { clicks: 'x x', df, ch }  microphone clicks, no voice ('.' is a pause); df shows a bearing;
 //                          ch: the channel they come on, if not the conversation's
 //   { carrier, df }        the button held down with no voice, for the direction finder
-//   { say: [...], prompt, to }              pick what to say, then hold the button to send it
+//   { say: [...], prompt, to, silence, quiet }   pick what to say, then hold the button to send it;
+//                          silence: ms after which not answering counts, and `quiet` beats play
 //   { ask: {...} }         a round of yes or no questions answered in clicks
 //   { tune, hint }         wait for the player to turn to a channel
-//   { morse, count, unit } received Morse; the player reads the first `count` letters
+//   { morse, count, unit, distinct } received Morse; the player reads the first `count` letters
+//                          (distinct: the wrong choices sound nothing like the right one)
 //   { key }                the player sends Morse with the button
 //   { chart: {...} }       lay bearing lines on the chart and mark the fix, or find a buoy on one
 //   { lamp: n }            blink the desk lamp n times by tapping it
@@ -37,7 +39,11 @@ const n1 = [
   { label: 'n1', save: true },
   { card: 'Night one' },
   { scene: 'room', s: { mood: 'calm', clock: '02:51', lamp: 1, town: 1, kid: 0, deer: 1 }, ambience: 'room', music: 'n1', channel: 16 },
-  { wait: 2600 },
+  { wait: 1200 },
+  { hint: 'Log, 0051 UTC. Nothing heard. The cat is on the logbook again.' },
+  { wait: 4200 },
+  { hint: '' },
+  { wait: 600 },
   { alert: true },
   { wait: 700 },
   { rx: 'skipper', df: 39, broken: true, text: 'Mayday, mayday, mayday. This is Seagull, Seagull, Seagull. Mayday, Seagull. Taking water, three persons on board. Position, we are north of the' },
@@ -52,13 +58,11 @@ const n1 = [
   { hint: 'Nothing. Only the hiss.' },
   { wait: 2600 },
   { hint: '' },
-  { note: ['overout', 'OVER and OUT', 'OVER: your turn. OUT: we are done. Never both together. Only one side talks at a time: RX lights while you listen, TX while you talk.'] },
   { note: ['df', 'DIRECTION FINDER', 'DF on the radio is the finder on the mast. While a radio transmits, even with no words, it shows which way the signal comes from, in degrees from north. It caught the mayday: 039°.'] },
   { chart: { lines: [{ from: 'dune', brg: 39 }], intro: 'Half a mayday, and one bearing. ' } },
   { note: ['line', 'ONE LINE', 'One bearing tells you which way, not how far. Seagull is somewhere along that line: two miles of dark water.'] },
   { phone: 'cape', text: 'Dune, it is Cape. I heard half a mayday. My finder missed it. Did yours get it?' },
   { call: [{ label: 'Give the bearing', text: 'Zero three nine degrees from Dune. No range. Somewhere on that line.' }] },
-  { note: ['figures', 'FIGURES', 'Numbers go one digit at a time, three figures for a bearing: zero three nine. Ships and the army say the digits the same way: WUN, TOO, TREE, FOW-ER, FIFE, SIX, SEV-EN, AIT, NIN-ER, ZE-RO.'] },
   { phone: 'cape', text: 'Rescue One is casting off. They cannot search two miles of line in the dark. Get me more, Dune.' },
   { wait: 1800 },
   { clock: '02:58' },
@@ -111,17 +115,14 @@ const n1 = [
   { note: ['hihi', 'HI HI', 'How radio people laugh in Morse: four dots, two dots, twice.'] },
   { say: [{ label: 'Move to 67', text: 'Now off one-six: it is for boats in trouble. Go to channel six seven, my working channel. Nobody is on it at this hour. Click twice if you got that. Over.' }] },
   { clicks: 'x x' },
-  { note: ['ch16', 'CHANNEL 16', 'For distress, urgency, safety and calling only. Once you have someone, you both move to a working channel.'] },
   { label: 'n1-67', save: true, mid: true },
   { tune: 67, hint: 'You sent the caller to 67. Turn the knob to 67 and meet there.' },
   { wait: 1400 },
   { clicks: 'x x' },
-  { say: [{ label: 'Who are you?', text: 'Who am I talking to? Send it in Morse. Over.' }] },
-  { morse: 'IM 8', count: 0, unit: 110 },
-  { say: [{ label: 'Eight?', text: 'Eight. And you know Morse. Who taught you? Over.' }] },
+  { say: [{ label: 'Who taught you?', text: 'You send a careful fist. Who taught you Morse? Over.' }] },
   { morse: 'GRANDPA', count: 0, unit: 95 },
   {
-    prompt: 'Eight years old, on a radio at three in the morning. On the radio, everyone has a call sign.',
+    prompt: "A grandfather's set, a grandfather's Morse, and a careful hand. On the radio, everyone has a call sign.",
     say: [
       { label: 'Sparrow', text: 'On the radio you need a call sign. You are Sparrow. Over.', set: { cs: 'Sparrow' }, callsign: true },
       { label: 'Little Bear', text: 'On the radio you need a call sign. You are Little Bear. Over.', set: { cs: 'Little Bear' }, callsign: true },
@@ -129,6 +130,7 @@ const n1 = [
     ],
   },
   { clicks: 'x x' },
+  { note: ['overout', 'OVER and OUT', 'OVER: your turn. OUT: we are done. Never both together. Only one side talks at a time: RX lights while you listen, TX while you talk.'] },
   {
     say: [
       { label: 'Good night. Over.', text: '{cs}, this is Dune Radio. It is late. Go to sleep. Over.', set: { n1end: 'over' } },
@@ -139,12 +141,13 @@ const n1 = [
   { if: { n1end: 'out' }, clicks: 'x' },
   { wait: 2400 },
   { clock: '06:58' },
+  { log: '0458 UTC. A caller on 67, no voice, a grandfather set. A kid, I think, up too late. Sent him to bed.' },
   { wait: 1800 },
   { scene: 'drive', s: { night: 1, p: 0 }, ambience: 'drive', music: 'home' },
   { tween: ['p', 1, 10000] },
   { scene: 'home', s: { night: 1 }, ambience: 'home' },
   { wait: 1600 },
-  { paper: 'Soup on the stove.\nHe was up in the night again.\nAnd he says "over" at the table now. Your fault.\n\nMom' },
+  { paper: 'Soup on the stove.\nHe was up in the night again.\nEat something.\n\nMom' },
 ];
 
 // Night two: fog, a yacht drifting onto the stones, and a spotter above the fog.
@@ -152,7 +155,11 @@ const n2 = [
   { label: 'n2', save: true },
   { card: 'Night two' },
   { scene: 'room', s: { mood: 'fog', clock: '01:56', lamp: 1, town: 1, kid: 0, deer: 0, tow: 0 }, ambience: 'fog', music: 'n2', channel: 67 },
-  { wait: 2200 },
+  { wait: 1200 },
+  { hint: 'Log, 2356 UTC. Fog coming in. Mast work done. My father climbed it in half the time.' },
+  { wait: 4600 },
+  { hint: '' },
+  { wait: 600 },
   { rx: 'cape', text: 'Dune Radio, this is Cape Radio, on six seven. Radio check after your mast work today. Over.' },
   {
     to: 'cape',
@@ -170,6 +177,7 @@ const n2 = [
   { note: ['check', 'RADIO CHECK', 'Answer with how you hear them: loud and clear. Ships also say a number, "I read you five". Army radio says it with a single ROGER.'] },
   { tune: 16, hint: 'A fog warning has come in. Warnings are announced on 16: go there. The 16 key is the quick way.' },
   { note: ['key16', 'THE 16 KEY', 'Channel 16 is watched day and night: a second receiver hears it whatever channel you are on. To talk on 16 you must be on it; this key jumps there. Any other channel you only hear while you are on it.'] },
+  { note: ['ch16', 'CHANNEL 16', 'For distress, urgency, safety and calling only. Once you have someone, you both move to a working channel.'] },
   { note: ['calls', 'PAN-PAN and SÉCURITÉ', 'Like mayday, each said three times. Pan-pan: urgent, short of grave danger. Sécurité: a warning, announced on 16 and read on a working channel.'] },
   {
     to: 'all',
@@ -193,12 +201,14 @@ const n2 = [
   { tune: 67, hint: 'Announced. Now go to 67, the channel you named, and read the warning there.' },
   { to: 'all', say: [{ label: 'Read the warning', text: 'Sécurité. This is Dune Radio. Fog warning, issued zero zero one zero UTC. Dense fog in the bay, visibility under two hundred metres. Out.' }] },
   { note: ['utc', 'UTC', 'Radio and logs keep one clock for everyone: UTC. In winter it is two hours behind the clock on this wall.'] },
-  { tune: 16, hint: 'Back to 16, where the calls come.' },
-  { wait: 2000 },
+  { wait: 1600 },
+  { rx: 'pilot', ch: 16, text: 'All ships, all ships, this is the pilot station. Pilot boarding suspended in fog until further notice. Out.' },
+  { wait: 1400 },
   { clock: '02:40' },
   { label: 'n2-kid', save: true, mid: true },
-  { tune: 67, hint: 'Nearly the time {cs} came on last night. Turn the knob to 67.' },
-  { wait: 1400 },
+  { hint: 'Nearly the time {cs} came on last night. You are on 67 already.' },
+  { wait: 3000 },
+  { hint: '' },
   { clicks: 'x x' },
   { say: [{ label: 'Answer {cs}', text: '{cs}, this is Dune Radio. You came back. Over.' }] },
   { morse: 'FOG', count: 1, unit: 110 },
@@ -218,6 +228,7 @@ const n2 = [
   { rx: 'tern', text: 'Tern.' },
   { phone: 'cape', text: 'Dune, it is Cape. My finder is down: the fog got into the mast cable. Yours is the only line tonight.' },
   { chart: { lines: [{ from: 'dune', brg: 44 }], intro: 'One line, and no second station. ' } },
+  { note: ['figures', 'FIGURES', 'Numbers go one digit at a time, three figures for a bearing: zero four four. Ships and the army say the digits the same way: WUN, TOO, TREE, FOW-ER, FIFE, SIX, SEV-EN, AIT, NIN-ER, ZE-RO.'] },
   { to: 'rescue', say: [{ label: 'Send Rescue One', text: 'Rescue One, Dune Radio. Tern, two persons, engine dead, a mile up wind of the stones off Cape. Bearing zero four four from Dune. No range. Over.' }] },
   { rx: 'rescue', text: 'Dune, Rescue One. Running up your line. I cannot see past my own bow. Out.' },
   { wait: 2800 },
@@ -244,19 +255,25 @@ const n2 = [
   { clicks: 'x x' },
   { morse: 'IS THE BOY OK', count: 0, unit: 90 },
   { say: [{ label: 'Cold, but safe', text: 'Cold, but safe. His dad was with him the whole time. Over.' }] },
-  { wait: 1400 },
+  { morse: 'HOW OLD', count: 0, unit: 95 },
+  { say: [{ label: 'About eight', text: 'About eight, they said. Over.' }] },
+  { morse: 'IM 8 TOO', count: 0, unit: 95 },
+  { wait: 1800 },
   { morse: 'CAN U FIND ME', count: 0, unit: 95 },
   {
+    prompt: 'He asks. Saying nothing is also an answer.',
+    silence: 14000,
+    quiet: [{ wait: 1600 }, { morse: 'OK', count: 0, unit: 110 }],
     say: [
-      { label: 'Only if you need help', text: 'Only if you need help, {cs}. Do you need help? Over.' },
-      { label: 'Why?', text: 'Why do you want me to find you? Over.' },
+      { label: 'Only if you need help', text: 'Only if you need help, {cs}. Do you need help? Over.', then: [{ clicks: '. . . x' }] },
+      { label: 'Why?', text: 'Why do you want me to find you? Over.', then: [{ clicks: '. . . x' }] },
     ],
   },
-  { clicks: '. . . x' },
   { say: [{ label: 'Then sleep', text: 'Then sleep, {cs}. Dune Radio, out.' }] },
   { clicks: 'x' },
   { wait: 2400 },
   { clock: '06:55' },
+  { log: '0455 UTC. The clicker again. Eight, he says, and sees the lagoon from a top window on the east shore. A fisherman boy, I think.' },
   { wait: 1600 },
   { scene: 'drive', s: { night: 2, p: 0 }, ambience: 'drive', music: 'home' },
   { tween: ['p', 1, 10000] },
@@ -270,7 +287,11 @@ const n3 = [
   { label: 'n3', save: true },
   { card: 'Night three' },
   { scene: 'room', s: { mood: 'clear', clock: '01:58', lamp: 1, town: 1, kid: 0, deer: 2 }, ambience: 'clear', music: 'n3', channel: 16 },
-  { wait: 2200 },
+  { wait: 1200 },
+  { hint: 'Log, 2358 UTC. Clear, no wind. The kind of night he used to switch the lamp off for.' },
+  { wait: 4600 },
+  { hint: '' },
+  { wait: 600 },
   { rx: 'skipper', text: 'Dune Radio, Seagull here, on a borrowed handheld in the harbour. Tell whoever saw our flare: thank you. My boy made me promise no more night fishing. Over.' },
   { to: 'skipper', say: [{ label: 'I will tell them', text: 'Seagull, Dune Radio. I will tell them. Keep one-six for trouble. Dune Radio, out.' }] },
   { wait: 2800 },
@@ -292,6 +313,7 @@ const n3 = [
     ],
   },
   { morse: 'DO U HAVE KIDS', count: 0, unit: 95 },
+  { wait: 2600 },
   {
     say: [
       { label: 'A boy, about your age', text: 'A boy. About your age. Over.', set: { kids: 'yes' } },
@@ -350,12 +372,13 @@ const n3 = [
   { clicks: 'x x' },
   { wait: 2400 },
   { clock: '06:50' },
+  { log: '0450 UTC. He asks about my father now. The same questions I had at his age, with nobody on the radio to ask.' },
   { wait: 1600 },
   { scene: 'drive', s: { night: 3, p: 0 }, ambience: 'drive', music: 'home' },
   { tween: ['p', 1, 10000] },
   { scene: 'home', s: { night: 3 }, ambience: 'home' },
   { wait: 1600 },
-  { paper: 'Storm tonight, they say. The lights might go.\nI am at the hospital until seven. He knows the neighbour has a key.\nAll the batteries from the drawer are gone.\n\nMom' },
+  { paper: 'Storm tonight, they say. The lights might go.\nI am at the hospital until seven. He knows the neighbour has a key.\nThe batteries from the drawer are gone again.\nAnd he says "over" at the table now. Your fault.\n\nMom' },
 ];
 
 // Night four: the storm, and an SOS from somebody alone.
@@ -363,7 +386,11 @@ const n4 = [
   { label: 'n4', save: true },
   { card: 'Night four' },
   { scene: 'room', s: { mood: 'storm', clock: '01:20', lamp: 1, town: 1, kid: 0, deer: 2 }, ambience: 'storm', music: 'storm', channel: 16 },
-  { wait: 2200 },
+  { wait: 1200 },
+  { hint: 'Log, 2320 UTC. Gale from the west. Generator checked. No batteries in the drawer at home either.' },
+  { wait: 4600 },
+  { hint: '' },
+  { wait: 600 },
   {
     to: 'all',
     prompt: 'A gale warning came in. Nobody is in trouble yet. Announce it here on 16.',
@@ -379,7 +406,6 @@ const n4 = [
   },
   { tune: 67, hint: 'Announced. Now go to 67 and read it there.' },
   { to: 'all', say: [{ label: 'Read the warning', text: 'Sécurité. This is Dune Radio. Gale warning, issued two three zero zero UTC. Westerly gale force eight, increasing severe gale nine later. Out.' }] },
-  { tune: 16, hint: 'Back to 16, where the calls come.' },
   { wait: 1600 },
   { tween: ['town', 0, 7000] },
   { phone: 'cape', text: 'Dune, it is Cape. Power is out over the whole town. I am on the generator.' },
@@ -387,34 +413,47 @@ const n4 = [
   { phone: 'cape', text: 'Long night. Call if you need me.' },
   { wait: 2400 },
   { clock: '02:40' },
-  { tune: 67, hint: 'Nearly time. Turn the knob to 67.' },
+  { hint: 'Nearly time. He comes on 67.' },
   { wait: 3200 },
   { hint: 'Nothing on 67.' },
-  { wait: 3600 },
+  { music: 'off' },
+  { wait: 4200 },
+  { clock: '02:51' },
+  { wait: 4200 },
   { clock: '03:02' },
   { hint: '' },
   { label: 'n4-sos', save: true, mid: true },
   { alert: true },
   { tune: 16, hint: 'Something on 16.' },
   { morse: 'SOS', count: 0, unit: 105 },
-  { note: ['sos', 'SOS', 'Sent as one sign with no gaps: three short, three long, three short. The letters stand for nothing; it was picked because it is hard to mistake.'] },
+  { note: ['sos', 'SOS', 'Sent as one sign with no gaps: three short, three long, three short. The letters stand for nothing; it was picked because it is hard to mistake. It is for lives in danger, and he was taught that.'] },
   { say: [{ label: 'Is that you?', text: 'Station sending SOS, this is Dune Radio. {cs}, is that you? Over.' }] },
   { clicks: 'x x' },
   {
     ask: {
       until: 3,
-      must: 'broken',
-      prompt: 'It is {cs}. Find out what happened: two clicks yes, one no.',
+      must: 'alone',
+      prompt: 'It is {cs}. SOS is for lives. Find out: two clicks yes, one no.',
       qs: [
         { id: 'hurt', label: 'Are you hurt?', text: 'Are you hurt? Over.', a: 'x' },
         { id: 'alone', label: 'Are you alone?', text: 'Are you alone in the house? Over.', a: 'x x' },
-        { id: 'broken', label: 'Is something broken?', text: 'Is something broken? Over.', a: 'x x' },
+        { id: 'house', label: 'Is the house damaged?', text: 'Is the house damaged? Over.', a: 'x' },
         { id: 'scared', label: 'Are you scared?', text: 'Are you scared? Over.', a: 'x x' },
       ],
     },
   },
-  { morse: 'TREE BROKE WINDOW', count: 0, unit: 95 },
-  { say: [{ label: 'Away from it', text: 'Stay away from that window. Take a blanket. You did right to call. Over.' }] },
+  { morse: 'TREE FELL NO LIGHT MOM AT WORK', count: 0, unit: 95 },
+  {
+    prompt: 'Nobody is hurt. The house is whole. He sent an SOS.',
+    say: [
+      {
+        label: 'SOS is for lives',
+        text: 'SOS is for lives in danger, {cs}. You know that. Are you in danger? Over.',
+        then: [{ morse: 'NO SORRY', count: 0, unit: 100 }],
+      },
+      { label: 'Blanket and a torch', text: 'Find a blanket and the torch. Away from the windows. Then talk to me. Over.', then: [{ clicks: 'x x' }] },
+    ],
+  },
   { hint: 'His signal is breaking up.' },
   {
     prompt: 'His signal is breaking up.',
@@ -451,9 +490,9 @@ const n4 = [
   { phone: 'cape', text: 'One six eight degrees from Cape.' },
   { phone: 'pilot', text: 'Zero four three degrees from the pilot station.' },
   { chart: { keep: [{ from: 'dune', brg: 84 }], lines: [{ from: 'cape', brg: 168 }, { from: 'pilot', brg: 43 }], mark: true, zoom: 'town', intro: "Last night's line is still on the chart. " } },
-  { music: 'reveal' },
+  { music: 'off' },
   { note: ['hat', 'COCKED HAT', 'Three bearings almost never meet in one point. The small triangle between them is the triangle of error, the cocked hat. The truth is usually inside.'], ms: 4200 },
-  { morse: 'DAD', count: 3, unit: 150 },
+  { morse: 'DAD', count: 3, unit: 150, distinct: true },
   { wait: 1400 },
   {
     say: [
@@ -462,9 +501,17 @@ const n4 = [
     ],
   },
   { clicks: 'x x' },
-  { call: [{ label: 'Tell Cape', text: 'Cape, that fix is not at sea. It is my house. I am leaving the desk.' }] },
-  { phone: 'cape', text: 'Go. I have your masts. I am sending a car to the house too.' },
-  { wait: 1800 },
+  { phone: 'cape', text: 'Dune, it is Cape. Nobody is in danger on that line. A scared kid in a dark house. You cannot leave the desk for that. Not in a gale.' },
+  {
+    prompt: 'Cape is right about the rules.',
+    call: [
+      { label: 'It is my house', text: 'Cape, that fix is my house. Take my masts. I am going.' },
+      { label: 'I know the rules', text: 'I know the rules, Cape. That is my boy. Take my masts.' },
+    ],
+  },
+  { phone: 'cape', text: 'Go. I have your masts.' },
+  { carrier: 3400, df: 84 },
+  { wait: 1200 },
   { scene: 'drive', s: { night: 4, p: 0 }, ambience: 'drive', music: 'reveal' },
   { tween: ['p', 1, 9000] },
   { scene: 'stairs', s: { p: 0 }, ambience: 'stairs' },
@@ -482,11 +529,10 @@ const kitchen = [
   { hold: 'Say again. Over.', hint: 'Hold the old radio\'s button' },
   { wait: 1400 },
   { line: 'I knew it was you. The first night.', who: 'kid' },
-  { line: 'You say "over" at dinner.', who: 'kid' },
   { if: { n1end: 'out' }, line: 'You said "out". I stayed on anyway.', who: 'kid' },
   { if: { n1end: 'over' }, line: 'You said "over". So I came back.', who: 'kid' },
   {
-    until: 2,
+    until: 1,
     pick: [
       { label: 'Why only clicks?', text: 'Why only clicks? Why not talk?', then: [{ line: 'You would know it was me. Then you would say go to sleep.', who: 'kid' }] },
       { label: 'The red flare', text: 'You saw that flare before anyone.', then: [{ line: 'Grandpa said red means help.', who: 'kid' }] },
@@ -500,6 +546,7 @@ const kitchen = [
   { if: { told: 'breakfast' }, line: 'You said tell him at breakfast. Out loud.', who: 'kid' },
   { if: { told: 'thinks' }, line: 'You said he thinks of me all night.', who: 'kid' },
   { line: "I can't sleep when you're not here.", who: 'kid' },
+  { music: 'off' },
   { hold: '', hint: 'Hold to reach for his hand', hand: true },
   { wait: 1200 },
   {
