@@ -305,8 +305,8 @@ const n3 = [
   { morse: 'I NEVER SEE HIM', count: 0, unit: 90 },
   {
     say: [
-      { label: 'Tell him that', text: 'Tell him. Out loud, at breakfast. He might not know. Over.' },
-      { label: 'He thinks of you', text: 'I bet he thinks of you all night. Over.' },
+      { label: 'Tell him that', text: 'Tell him. Out loud, at breakfast. He might not know. Over.', set: { told: 'breakfast' } },
+      { label: 'He thinks of you', text: 'I bet he thinks of you all night. Over.', set: { told: 'thinks' } },
     ],
   },
   { clicks: 'x x' },
@@ -497,6 +497,8 @@ const kitchen = [
       { if: { saw_deer: true, saw_fawn: undefined }, label: 'The deer by the mast', text: 'A deer comes up the dune by the mast at night. Every night.', then: [{ line: 'Can I come and see her?', who: 'kid' }] },
     ],
   },
+  { if: { told: 'breakfast' }, line: 'You said tell him at breakfast. Out loud.', who: 'kid' },
+  { if: { told: 'thinks' }, line: 'You said he thinks of me all night.', who: 'kid' },
   { line: "I can't sleep when you're not here.", who: 'kid' },
   { hold: '', hint: 'Hold to reach for his hand', hand: true },
   { wait: 1200 },
