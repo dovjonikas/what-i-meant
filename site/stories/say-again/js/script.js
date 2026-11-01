@@ -169,7 +169,7 @@ const n2 = [
   { rx: 'cape', text: 'Loud and clear here too. Fog coming in thick. Cape Radio, out.' },
   { note: ['check', 'RADIO CHECK', 'Answer with how you hear them: loud and clear. Ships also say a number, "I read you five". Army radio says it with a single ROGER.'] },
   { tune: 16, hint: 'A fog warning has come in. Warnings are announced on 16: go there. The 16 key is the quick way.' },
-  { note: ['key16', 'THE 16 KEY', 'Channel 16 is watched day and night: a second receiver hears it whatever channel you are on (dual watch). To talk on 16 you have to be on it, and this key jumps straight there. Any other channel you only hear while you are on it.'] },
+  { note: ['key16', 'THE 16 KEY', 'Channel 16 is watched day and night: a second receiver hears it whatever channel you are on. To talk on 16 you must be on it; this key jumps there. Any other channel you only hear while you are on it.'] },
   { note: ['calls', 'PAN-PAN and SÉCURITÉ', 'Like mayday, each said three times. Pan-pan: urgent, short of grave danger. Sécurité: a warning, announced on 16 and read on a working channel.'] },
   {
     to: 'all',
