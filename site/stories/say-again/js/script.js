@@ -85,7 +85,7 @@ const n1 = [
   { clicks: 'x x' },
   { note: ['ch16', 'CHANNEL 16', 'For distress, urgency, safety and calling only. Once you have someone, you both move to a working channel.'] },
   { label: 'n1-72', save: true, mid: true },
-  { tune: 72, hint: 'Turn the knob to channel 72.' },
+  { tune: 72, hint: 'You sent the caller to 72. Turn the knob to 72 and meet there.' },
   { wait: 1800 },
   { clicks: 'x x' },
   {
@@ -139,7 +139,7 @@ const n2 = [
   { note: ['calls', 'MAYDAY, PAN-PAN, SÉCURITÉ', "Each said three times. Mayday (from the French m'aider, help me): grave danger. Pan-pan: urgent, short of that. Sécurité: a warning, announced on 16 and read on a working channel."] },
   {
     to: 'all',
-    prompt: 'Thick fog in the bay. Nobody is in trouble: it is a warning. Announce it on 16, then read it on 67.',
+    prompt: 'Thick fog in the bay. Nobody is in trouble: it is a warning. Announce it here on 16.',
     say: [
       { label: 'Sécurité', text: 'Sécurité, sécurité, sécurité. All stations, this is Dune Radio. Fog warning. Listen on channel six seven. Out.' },
       {
@@ -156,7 +156,7 @@ const n2 = [
       },
     ],
   },
-  { tune: 67, hint: 'Now read the warning on 67.' },
+  { tune: 67, hint: 'Announced. Now go to 67, the channel you named, and read the warning there.' },
   { to: 'all', say: [{ label: 'Read the warning', text: 'Sécurité. This is Dune Radio. Fog warning, issued zero zero one zero UTC. Dense fog in the bay, visibility under two hundred metres. Out.' }] },
   { note: ['utc', 'UTC', 'Radio and logs keep one clock for everyone: UTC. In winter it is two hours behind the clock on this wall.'] },
   { tune: 16, hint: 'Back to 16.' },
@@ -281,11 +281,10 @@ const n3 = [
   { clicks: 'x x' },
   { wait: 900 },
   { say: [{ label: 'Get a bearing on him', text: '{cs}, go to channel one-six. Hold your button for ten seconds, then come back here. Over.' }] },
-  { clicks: 'x x' },
   { tune: 16, hint: 'The finder listens on 16. Go there with him.' },
   { carrier: 3800, df: 84 },
   { note: ['carrier', 'DF ON 16', 'The finder listens on channel 16. A button held down with no words is enough for a bearing.'] },
-  { tune: 72, hint: 'Back to 72.' },
+  { tune: 72, hint: 'Bearing taken. Back to 72, where you talk.' },
   { clicks: 'x x' },
   { chart: { lines: [{ from: 'dune', brg: 84 }], intro: 'Only your mast heard him. ' } },
   { note: ['line', 'ONE LINE', 'One bearing tells you which way, not how far. He is somewhere along it.'] },
@@ -319,7 +318,7 @@ const n4 = [
   { wait: 2200 },
   {
     to: 'all',
-    prompt: 'A gale warning came in. Nobody is in trouble yet. Announce it on 16, then read it on 67.',
+    prompt: 'A gale warning came in. Nobody is in trouble yet. Announce it here on 16.',
     say: [
       { label: 'Sécurité', text: 'Sécurité, sécurité, sécurité. All stations, this is Dune Radio. Gale warning. Listen on channel six seven. Out.' },
       {
@@ -330,7 +329,7 @@ const n4 = [
       },
     ],
   },
-  { tune: 67, hint: 'Now read it on 67.' },
+  { tune: 67, hint: 'Announced. Now go to 67 and read it there.' },
   { to: 'all', say: [{ label: 'Read the warning', text: 'Sécurité. This is Dune Radio. Gale warning, issued two three zero zero UTC. Westerly gale force eight, increasing severe gale nine later. Out.' }] },
   { tune: 16, hint: 'Back to 16.' },
   { wait: 1600 },
