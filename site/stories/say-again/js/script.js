@@ -299,7 +299,7 @@ const n3 = [
     ],
   },
   { if: { kids: 'yes' }, morse: 'LUCKY HIM', count: 0, unit: 95 },
-  { if: { kids: 'no' }, clicks: 'x' },
+  { if: { kids: 'no' }, morse: 'OK', count: 0, unit: 110 },
   { wait: 900 },
   { morse: 'MY DAD WORKS NIGHTS', count: 0, unit: 90 },
   { morse: 'I NEVER SEE HIM', count: 0, unit: 90 },
