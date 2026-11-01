@@ -14,7 +14,7 @@
 // storm it curls tighter with its tail over its nose and lays its ears back, flatter at a
 // flash; now and then the tip of its tail twitches.
 
-import { css, mix, clamp, bump, mark, rng, paper, line } from './art-kit.js';
+import { css, mix, rgb, clamp, bump, mark, rng, paper, line } from './art-kit.js';
 
 // Its colours in the lamp's light. In the dark each one sinks into the room's night colour.
 const FUR = {
@@ -26,9 +26,6 @@ const FUR = {
   earIn: '#c4928a',
   nose: '#a2625a',
 };
-// How much of each colour's own self is left: as good as all of it under the lamp, a
-// trace in the dark (the same amounts the rest of the room uses).
-const OWN = { lit: 0.9, dark: 0.12 };
 const WARM = '#ffd49c';
 
 // Its size on a 390 px wide phone: as long as the logbook is wide, a grown cat next to
@@ -38,10 +35,14 @@ const TALL = 36;
 
 const sets = new Map();
 
-/** The colours for one light: each fur colour sunk into the night, then `own` of it back. */
-function palette(M, own) {
+/**
+ * The colours for one light: as they are under the lamp, or sunk into the night's colour
+ * with only a trace of their own left, by the same sum as the rest of the room, so in the
+ * dark the cat is no brighter than the logbook it lies on.
+ */
+function palette(M, lit) {
   const out = {};
-  for (const [name, hex] of Object.entries(FUR)) out[name] = mix(mix(mix(hex, M.room, 0.8), '#04060c', 0.15), hex, own);
+  for (const [name, hex] of Object.entries(FUR)) out[name] = lit ? rgb(hex) : mix(mix(hex, M.room, 0.86), '#04060c', 0.12);
   return out;
 }
 
@@ -67,7 +68,7 @@ function spritesFor(M, W, H, scale) {
   if (sets.has(key)) return sets.get(key);
   if (sets.size > 6) sets.clear();
   const r = W * 0.165;
-  const set = { r, lit: palette(M, OWN.lit), dark: palette(M, OWN.dark) };
+  const set = { r, lit: palette(M, true), dark: palette(M, false) };
   for (const light of ['lit', 'dark']) {
     const p = set[light];
     const rim = light === 'lit' ? css(WARM, 0.55) : css(M.edge, 0.4);
