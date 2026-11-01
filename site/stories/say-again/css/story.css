@@ -1200,7 +1200,8 @@ button {
   background:
     repeating-linear-gradient(to bottom, transparent 0 27px, rgb(80 110 150 / 0.22) 27px 28px),
     #f6f1e4;
-  background-position: 0 18px;
+  /* The rule sits just under the handwriting's baseline, not through the letters. */
+  background-position: 0 20px;
   color: #2a3346;
   box-shadow: 0 14px 30px rgb(0 0 0 / 0.45);
   font-size: 18px;
