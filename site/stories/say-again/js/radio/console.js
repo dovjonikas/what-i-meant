@@ -8,6 +8,7 @@ import { MORSE, SOS, choicesFor, glyphs } from './morse.js';
 import { fmtBearing } from '../chart/geo.js';
 
 const TALK_CPS = 24; // characters per second while you hold the button: a brisk radio voice
+const HOLD_MAX_S = 4; // long messages go faster, so no hold runs past this: longer feels frozen
 const HEAR_CPS = 22; // received words appear at about the pace they are spoken
 const DOT_MAX_MS = 240; // a key press shorter than this is a dot, longer a dash
 const KNOB_DEG = 6; // degrees of turn per channel: one full turn covers 60 channels
@@ -377,7 +378,7 @@ export class Console {
     this.hint(hint);
     this.ptt.classList.add('is-armed');
     return new Promise((resolve) => {
-      this.armed = { text, typed: 0, resolve, body: null };
+      this.armed = { text, typed: 0, resolve, body: null, cps: Math.max(TALK_CPS, text.length / HOLD_MAX_S) };
     });
   }
 
@@ -400,10 +401,10 @@ export class Console {
       this.hint('');
       a.body = this.line('you');
       a.startAt = performance.now();
-      a.stopVoice = this.sound.voice?.(a.text.length / TALK_CPS, 'you');
+      a.stopVoice = this.sound.voice?.(a.text.length / a.cps, 'you');
       const step = (now) => {
         if (!this.down || this.armed !== a) return;
-        a.typed = Math.min(a.text.length, Math.floor(((now - a.startAt) / 1000) * TALK_CPS));
+        a.typed = Math.min(a.text.length, Math.floor(((now - a.startAt) / 1000) * a.cps));
         a.body.textContent = a.text.slice(0, a.typed);
         this.ring.style.strokeDashoffset = String(100 - (a.typed / a.text.length) * 100);
         this.scrollDown();
