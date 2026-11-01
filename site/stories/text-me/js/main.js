@@ -56,7 +56,14 @@ let soundOn = readSound();
 soundButton.setAttribute('aria-pressed', String(soundOn));
 let audio = null;
 
+// The gate's buttons keep focus after the tap, so Enter or Space could press them again and
+// start a second player over the first; the story starts once.
+let begun = false;
+
 async function begin(from) {
+  if (begun) return;
+  begun = true;
+  document.activeElement?.blur();
   audio = startAudio();
   closeInstall();
   document.body.classList.remove('is-gate');
