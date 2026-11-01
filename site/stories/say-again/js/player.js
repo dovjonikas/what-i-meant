@@ -139,6 +139,12 @@ export class Player {
       return;
     }
     if ('wait' in b) return wait(b.wait);
+    // Before the plain hint: a tune beat carries a hint too, and must wait for the knob.
+    if (b.tune) {
+      await radio.tuneTo(b.tune, b.hint ? this.fill(b.hint) : undefined);
+      radio.working = b.tune;
+      return wait(500);
+    }
     if ('hint' in b) return radio.hint(this.fill(b.hint));
     if (b.note) {
       const [id, title, body] = b.note;
@@ -162,11 +168,6 @@ export class Player {
     if (b.carrier) return this.carrier(b);
     if (b.say) return this.say(b);
     if (b.ask) return this.ask(b.ask);
-    if (b.tune) {
-      await radio.tuneTo(b.tune, b.hint ? this.fill(b.hint) : undefined);
-      radio.working = b.tune;
-      return wait(500);
-    }
     if (b.morse) {
       if (b.alert) sound.alert?.();
       // The decoder covers the screen, so the last line gets a moment to be read first.
