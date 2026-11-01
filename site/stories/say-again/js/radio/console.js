@@ -334,12 +334,33 @@ export class Console {
           this.sound.dialTick?.();
           this.choices.innerHTML = '';
           this.screen.classList.remove('has-choices');
+          this.root.style.setProperty('--grow', '0px');
           resolve(i);
         });
         this.choices.append(b);
       });
+      this.fit();
       this.scrollDown();
     });
+  }
+
+  /**
+   * While choosing, the last message must stay readable (it is what you answer) and every
+   * choice must be in reach. On a short phone the screen is too small for both, so the
+   * console grows up over the picture until they fit, and goes back down after the pick.
+   */
+  fit() {
+    const last = this.list.lastElementChild;
+    // A little over the last message, so its first line clears the fade at the top.
+    const logH = Math.max(last ? last.offsetHeight + 18 : 0, 60);
+    this.screen.style.setProperty('--log-h', `${logH}px`);
+    const box = getComputedStyle(this.choices);
+    const kids = [...this.choices.children];
+    const choicesH = kids.reduce((h, k) => h + k.offsetHeight, 0) + (parseFloat(box.rowGap) || 0) * (kids.length - 1) + parseFloat(box.paddingTop);
+    const pad = parseFloat(getComputedStyle(this.screen).paddingTop) * 2;
+    const grown = parseFloat(this.root.style.getPropertyValue('--grow')) || 0;
+    const room = this.screen.clientHeight - grown;
+    this.root.style.setProperty('--grow', `${Math.max(0, Math.ceil(logH + choicesH + pad - room))}px`);
   }
 
   /**

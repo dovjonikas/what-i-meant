@@ -144,7 +144,8 @@ button {
 .console {
   position: absolute;
   inset: auto 0 0;
-  height: var(--console-h);
+  /* --grow: extra height while choosing on a short screen (console.js fit()); the bar stays clear. */
+  height: min(calc(var(--console-h) + var(--grow, 0px)), calc(100svh - 64px));
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 8px;
@@ -156,7 +157,7 @@ button {
     linear-gradient(to bottom, var(--panel-hi), var(--panel-lo));
   box-shadow: 0 -1px 0 rgb(255 255 255 / 0.08) inset, 0 -18px 40px rgb(0 0 0 / 0.45);
   transform: translateY(105%);
-  transition: transform 700ms var(--ease-out);
+  transition: transform 700ms var(--ease-out), height 240ms var(--ease-out);
 }
 
 .console.is-shown {
@@ -392,15 +393,22 @@ button {
   flex: none;
 }
 
+/* While choosing, the log keeps room for the last message (console.js fit() measures it),
+   and the choices take the rest. If even the grown console cannot hold them, they scroll;
+   margin-top: auto keeps them at the bottom without making the top ones unreachable. */
 .c-screen.has-choices .c-log {
-  flex: 0 1 auto;
-  max-height: 32%;
+  flex: 0 0 var(--log-h, 32%);
 }
 
 .c-screen.has-choices .c-choices {
   flex: 1;
-  justify-content: flex-end;
+  min-height: 0;
+  overflow-y: auto;
   padding-top: 6px;
+}
+
+.c-screen.has-choices .c-choices > :first-child {
+  margin-top: auto;
 }
 
 .c-ask {
