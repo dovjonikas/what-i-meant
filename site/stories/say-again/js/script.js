@@ -11,7 +11,8 @@
 //   { rx, text, df, voice }                 a transmission comes in (df: the bearing it shows)
 //   { phone, text }        a station on the telephone (stations talk by phone, not on 16)
 //   { call: [...] }        pick what you say on the telephone (no button to hold)
-//   { clicks: 'x x', df }  microphone clicks, no voice ('.' is a pause); df shows a bearing
+//   { clicks: 'x x', df, ch }  microphone clicks, no voice ('.' is a pause); df shows a bearing;
+//                          ch: the channel they come on, if not the conversation's
 //   { carrier, df }        the button held down with no voice, for the direction finder
 //   { say: [...], prompt, to }              pick what to say, then hold the button to send it
 //   { ask: {...} }         a round of yes or no questions answered in clicks
@@ -55,9 +56,10 @@ const n1 = [
   { clock: '03:12' },
   { wait: 1600 },
   { label: 'n1-clicks', save: true, mid: true },
-  { clicks: 'x . x' },
+  // Heard on 16 while the radio is on 67: the station's second receiver never leaves 16.
+  { clicks: 'x . x', ch: 16 },
   { tune: 16, hint: 'Clicks on 16, the channel the station always listens to. The 16 key takes you straight there.' },
-  { note: ['key16', 'THE 16 KEY', 'Channel 16 is watched day and night. Marine radios have a key that jumps straight to it, wherever the knob is.'] },
+  { note: ['key16', 'THE 16 KEY', 'Channel 16 is watched day and night: a second receiver hears it whatever channel you are on (dual watch). To talk on 16 you have to be on it, and this key jumps straight there. Any other channel you only hear while you are on it.'] },
   { clicks: 'x x', df: 84 },
   { note: ['df', 'DIRECTION FINDER', 'DF on the radio is the finder on the mast. While a radio transmits, even with no words, it shows which way the signal comes from, in degrees from north. One station gives one line.'] },
   { say: [{ label: 'Answer it', text: 'Station clicking on channel one-six, this is Dune Radio. Are you in danger? Over.' }] },

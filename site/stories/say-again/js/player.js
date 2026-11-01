@@ -72,11 +72,15 @@ export class Player {
         radio.show(b.scene === 'room');
         radio.reset();
         if (b.channel) radio.setChannel(b.channel, { silent: true });
+        radio.working = b.channel ?? null;
       }
       if (b.clock) stage.set({ clock: b.clock });
       if (b.state) stage.set(b.state);
       if (b.tween) stage.set({ [b.tween[0]]: b.tween[1] });
-      if (b.tune) radio.setChannel(b.tune, { silent: true });
+      if (b.tune) {
+        radio.setChannel(b.tune, { silent: true });
+        radio.working = b.tune;
+      }
       if (b.music) music = b.music;
       if (b.ambience) ambience = b.ambience;
     }
@@ -120,6 +124,7 @@ export class Player {
       if (b.ambience) sound.ambience?.(b.ambience);
       if (b.music) this.music?.play(b.music);
       if (b.channel) radio.setChannel(b.channel, { silent: true });
+      radio.working = b.channel ?? null;
       return;
     }
     if (b.music) return this.music?.play(b.music);
@@ -142,6 +147,7 @@ export class Player {
     }
     if (b.rx) return this.rx(b);
     if (b.clicks) {
+      await this.onAir(b.ch);
       const df = b.df != null ? radio.df(b.df) : null;
       await radio.clicks(b.clicks, b.from ?? 'kid');
       if (df) await df;
@@ -158,12 +164,14 @@ export class Player {
     if (b.ask) return this.ask(b.ask);
     if (b.tune) {
       await radio.tuneTo(b.tune, b.hint ? this.fill(b.hint) : undefined);
+      radio.working = b.tune;
       return wait(500);
     }
     if (b.morse) {
       if (b.alert) sound.alert?.();
       // The decoder covers the screen, so the last line gets a moment to be read first.
       await wait(900);
+      await this.onAir();
       await radio.decode(b.morse, { count: b.count ?? 0, unit: b.unit ?? 110 });
       return wait(800);
     }
@@ -200,14 +208,34 @@ export class Player {
   /** A received transmission, then time to read it. */
   async rx(b) {
     const text = this.fill(b.text);
-    const df = b.df != null ? this.radio.df(b.df) : null;
-    await this.radio.receive(b.rx, text, b.voice);
-    if (df) await df;
+    for (;;) {
+      await this.onAir();
+      const df = b.df != null ? this.radio.df(b.df) : null;
+      const { lost } = await this.radio.receive(b.rx, text, b.voice);
+      if (df) await df;
+      if (!lost) break;
+      // Turned off the channel halfway: back on it, ask for the message again, as on any radio.
+      await wait(600);
+      await this.onAir();
+      await this.transmit('Say again. Over.', b.rx, 'You missed the end. Ask them to say again: hold.');
+      await this.notes.add('sayagain', 'SAY AGAIN', 'Missed the end of a message, or let go of the button too early? Ask SAY AGAIN and the whole message comes again. Army radio never says "repeat": on a gun net it means fire again.');
+      await wait(700);
+    }
     await wait(b.after ?? Math.max(800, text.length * 16));
+  }
+
+  /**
+   * Waits until the radio hears `ch` (the conversation's channel unless given). Off it, the
+   * story waits and the hint says where to turn back to, so wandering off loses nothing.
+   */
+  async onAir(ch = this.radio.working) {
+    if (this.radio.hears(ch)) return;
+    await this.radio.tuneTo(ch, `Nothing comes through here. They are on ${ch}: turn back.`);
   }
 
   /** The button held down with no voice: enough for the direction finder. */
   async carrier(b) {
+    await this.onAir();
     this.radio.lamp('rx', true);
     this.sound.rx?.(true);
     const body = this.radio.line(b.from ?? 'kid', 'carrier, no voice', 'is-clicks');
@@ -247,9 +275,9 @@ export class Player {
   }
 
   /** Sends words; if the button was let go too early, the other side asks for them again. */
-  async transmit(text, to) {
+  async transmit(text, to, hint) {
     for (;;) {
-      const r = await this.radio.transmit(text);
+      const r = await this.radio.transmit(text, hint);
       if (!r.cut) return;
       await wait(700);
       this.cuts += 1;
@@ -257,7 +285,7 @@ export class Player {
       else if (to === 'kid') await this.radio.decode('?', { count: 0, unit: 90 });
       else await this.radio.receive(to, to === 'cape' ? 'Dune, Cape. Say again. Over.' : 'Dune, say again. Over.');
       if (this.cuts === 1) {
-        await this.notes.add('sayagain', 'SAY AGAIN', 'Let go of the button too early and they get half. They ask SAY AGAIN, and you send all of it again. Army radio never says "repeat": on a gun net it means fire again.');
+        await this.notes.add('sayagain', 'SAY AGAIN', 'Missed the end of a message, or let go of the button too early? Ask SAY AGAIN and the whole message comes again. Army radio never says "repeat": on a gun net it means fire again.');
         await wait(2400);
       }
     }
@@ -274,6 +302,7 @@ export class Player {
       const q = avail[await this.radio.choose(avail.map((x) => ({ label: this.fill(x.label) })), this.fill(n === 0 ? a.prompt ?? '' : ''))];
       await this.transmit(this.fill(q.text), a.to ?? 'kid');
       await wait(q.delay ?? 600);
+      await this.onAir();
       await this.radio.clicks(q.a, a.from ?? 'kid');
       asked.add(q.id);
       n += 1;

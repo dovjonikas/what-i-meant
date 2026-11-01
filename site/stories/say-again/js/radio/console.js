@@ -35,6 +35,9 @@ export class Console {
     this.ring = root.querySelector('.c-ptt-ring circle');
     this.key16 = root.querySelector('.c-16');
     this.channel = 16;
+    // The channel the conversation is on (player.js sets it). Off it you do not hear it and
+    // cannot talk on it; 16 is always heard, on the station's second receiver (dual watch).
+    this.working = null;
     this.knobAngle = 0;
     this.names = { you: 'YOU' };
     this.armed = null;
@@ -92,7 +95,16 @@ export class Console {
       clearTimeout(this.staticOff);
       this.staticOff = setTimeout(() => this.sound.staticLevel?.(0), 260);
     }
+    // With words ready to send, the hint follows the knob: where to go, or how to send them.
+    if (this.armed && this.working != null) {
+      if (n === this.working) this.hint(this.armed.hint);
+      else this.offHint();
+    }
     this.onChannel?.(n);
+  }
+
+  offHint() {
+    this.hint(`You are on ${this.channel}. They are on ${this.working}: turn back, then hold.`);
   }
 
   /** Waits until the player has turned to a channel and left it there for a moment. */
@@ -248,13 +260,23 @@ export class Console {
     }
     this.sound.duck?.(true);
     const stopVoice = this.sound.voice?.(text.length / HEAR_CPS, voice);
-    return this.typeInto(body, text, HEAR_CPS).then(() => {
+    // Turn off the channel halfway and the rest of the message is gone.
+    const heard = () => phone || this.hears(this.working);
+    return this.typeInto(body, text, HEAR_CPS, heard).then((lost) => {
       stopVoice?.();
       this.sound.duck?.(false);
-      if (phone) return;
-      this.sound.rx?.(false);
-      this.lamp('rx', false);
+      if (lost) body.parentElement.classList.add('is-lost');
+      if (!phone) {
+        this.sound.rx?.(false);
+        this.lamp('rx', false);
+      }
+      return { lost };
     });
+  }
+
+  /** Can the station hear channel `ch` now? 16 always, on the second receiver. */
+  hears(ch) {
+    return ch == null || ch === 16 || ch === this.channel;
   }
 
   /** Your own words on the telephone: they just appear, quickly. */
@@ -263,11 +285,17 @@ export class Console {
     return this.typeInto(body, text, 40);
   }
 
-  typeInto(el, text, cps) {
+  /** Types `text` into `el`; resolves true if `heard()` turned false before the end. */
+  typeInto(el, text, cps, heard = null) {
     return new Promise((resolve) => {
       let i = 0;
       const start = performance.now();
       const step = (now) => {
+        if (heard && !heard()) {
+          this.skip = null;
+          resolve(true);
+          return;
+        }
         const want = Math.min(text.length, Math.floor(((now - start) / 1000) * cps));
         if (want !== i) {
           i = want;
@@ -375,10 +403,11 @@ export class Console {
    * button was let go before the end, so the story can have the other side ask again.
    */
   transmit(text, hint = 'Hold to talk. Let go when it is all said.') {
-    this.hint(hint);
     this.ptt.classList.add('is-armed');
     return new Promise((resolve) => {
-      this.armed = { text, typed: 0, resolve, body: null, cps: Math.max(TALK_CPS, text.length / HOLD_MAX_S) };
+      this.armed = { text, hint, typed: 0, resolve, body: null, cps: Math.max(TALK_CPS, text.length / HOLD_MAX_S) };
+      if (this.working != null && this.channel !== this.working) this.offHint();
+      else this.hint(hint);
     });
   }
 
@@ -400,6 +429,11 @@ export class Console {
       if (!a) {
         // Pressed before a line is picked: say so, or the button just seems dead.
         if (this.choices.querySelector('.c-choice')) this.hint('First pick what to say, then hold.');
+        return;
+      }
+      // Keyed on the wrong channel: it goes out to nobody, and the hint says where to go.
+      if (this.working != null && this.channel !== this.working) {
+        this.offHint();
         return;
       }
       this.hint('');

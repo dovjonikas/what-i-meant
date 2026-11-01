@@ -379,6 +379,13 @@ button {
   font-size: 12px;
 }
 
+/* The player turned off the channel while it came in. */
+.c-line.is-lost .c-said::after {
+  content: " [lost]";
+  color: var(--tx);
+  font-size: 12px;
+}
+
 @keyframes line-in {
   from {
     opacity: 0;
