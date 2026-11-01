@@ -65,10 +65,13 @@ export class Ui {
     this.name('');
   }
 
-  /** Waits for a tap anywhere, with a quiet "tap" shown after a moment. */
+  /**
+   * Waits for a tap anywhere. The "tap to go on" comes up soon after: the line has already
+   * had its reading time, and a player left waiting with no sign thinks the story froze.
+   */
   tapToGo() {
     return new Promise((resolve) => {
-      const show = setTimeout(() => this.go.classList.add('is-on'), 2200);
+      const show = setTimeout(() => this.go.classList.add('is-on'), 900);
       const done = (e) => {
         if (e.target.closest('button, a')) return;
         clearTimeout(show);
