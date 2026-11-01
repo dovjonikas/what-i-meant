@@ -75,7 +75,7 @@ function paintGlass(c, L, M, mood) {
 /** Two faint slanting bands of light: the way a dark window shows it is glass. */
 function sheen(c, p) {
   const slant = p.h * 0.32;
-  for (const [u0, u1, a] of [[0.56, 0.66, 0.03], [0.7, 0.725, 0.022]]) {
+  for (const [u0, u1, a] of [[0.56, 0.66, 0.018], [0.7, 0.725, 0.014]]) {
     c.fillStyle = css('#dfe8ff', a);
     c.beginPath();
     c.moveTo(p.x + p.w * u0, p.y);
