@@ -132,6 +132,8 @@ export class Player {
     }
     if (b.morse) {
       if (b.alert) sound.alert?.();
+      // The decoder covers the screen, so the last line gets a moment to be read first.
+      await wait(900);
       await radio.decode(b.morse, { count: b.count ?? 0, unit: b.unit ?? 110 });
       return wait(800);
     }
@@ -254,7 +256,8 @@ export class Player {
   async plot(b) {
     const c = b.chart;
     this.radio.hint('');
-    await wait(400);
+    // The chart covers the radio: the last line gets a moment to be read first.
+    await wait(1400);
     await this.chart.run({ ...c, intro: this.fill(c.intro ?? '') });
     await wait(600);
   }
