@@ -1,7 +1,7 @@
 // player.js: plays script.js beat by beat. A beat is a small object; its keys say what it
 // does (see the top of script.js for the list). Choices are kept as flags, and any beat
-// with `if` only plays when the flags match. The place is saved at each night's label, so
-// the start screen can offer to continue.
+// with `if` only plays when the flags match. The place is saved at each night's label and
+// at a few labels inside a night, so the start screen can offer to continue near it.
 
 import { wait } from './ui.js';
 
@@ -50,8 +50,38 @@ export class Player {
       this.notes.restore(from.notes);
       at = Math.max(0, this.script.findIndex((b) => b.label === from.label));
       if (this.flags.cs) this.radio.names.kid = this.flags.cs.toUpperCase();
+      if (this.script[at]?.mid) this.restore(at);
     }
     await this.run(this.script.slice(at));
+  }
+
+  /**
+   * Continuing from the middle of a night (a label with `mid`): sets the picture, the
+   * channel and the sound as the beats before the label left them, without playing them.
+   */
+  restore(at) {
+    const { stage, radio } = this;
+    let i = at;
+    while (i > 0 && !this.script[i].scene) i -= 1;
+    let music = null;
+    let ambience = null;
+    for (const b of this.script.slice(i, at)) {
+      if (b.if && !this.matches(b.if)) continue;
+      if (b.scene) {
+        stage.show(b.scene, b.s ?? {}, { instant: true });
+        radio.show(b.scene === 'room');
+        radio.reset();
+        if (b.channel) radio.setChannel(b.channel, { silent: true });
+      }
+      if (b.clock) stage.set({ clock: b.clock });
+      if (b.state) stage.set(b.state);
+      if (b.tween) stage.set({ [b.tween[0]]: b.tween[1] });
+      if (b.tune) radio.setChannel(b.tune, { silent: true });
+      if (b.music) music = b.music;
+      if (b.ambience) ambience = b.ambience;
+    }
+    if (ambience) this.sound.ambience?.(ambience);
+    if (music) this.music?.play(music);
   }
 
   async run(beats) {

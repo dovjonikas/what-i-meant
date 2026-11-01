@@ -2,7 +2,7 @@
 // be played from start to end; the author rewrites them (see the repo CLAUDE.md).
 //
 // Beats (player.js plays them):
-//   { label, save }        a place to continue from; `save` stores it
+//   { label, save, mid }   a place to continue from; `save` stores it; `mid`: inside a night
 //   { card, sub }          a night's name on a dark card
 //   { scene, s, ambience, music, channel }   a new picture (art.js) and its sound
 //   { clock } { state }    change values in the picture
@@ -54,6 +54,7 @@ const n1 = [
   { wait: 2600 },
   { clock: '03:12' },
   { wait: 1600 },
+  { label: 'n1-clicks', save: true, mid: true },
   { clicks: 'x . x' },
   { tune: 16, hint: 'Clicks on 16, the channel the station always listens to. The 16 key takes you straight there.' },
   { note: ['key16', 'THE 16 KEY', 'Channel 16 is watched day and night. Marine radios have a key that jumps straight to it, wherever the knob is.'] },
@@ -81,6 +82,7 @@ const n1 = [
   { say: [{ label: 'Move him off 16', text: 'One-six is for boats in trouble. Go to channel seven-two. It is a ship channel, but nobody is on it at this hour. Click twice if you got that. Over.' }] },
   { clicks: 'x x' },
   { note: ['ch16', 'CHANNEL 16', 'For distress, urgency, safety and calling only. Once you have someone, you both move to a working channel.'] },
+  { label: 'n1-72', save: true, mid: true },
   { tune: 72, hint: 'Turn the knob to channel 72.' },
   { wait: 1800 },
   { clicks: 'x x' },
@@ -158,6 +160,7 @@ const n2 = [
   { tune: 16, hint: 'Back to 16.' },
   { wait: 2200 },
   { clock: '02:47' },
+  { label: 'n2-panpan', save: true, mid: true },
   { alert: true },
   { wait: 900 },
   { rx: 'skipper', text: 'Pan-pan, pan-pan, pan-pan. All stations, this is fishing vessel Seagull, Seagull, Seagull. Position unknown. Last fix two miles north of Dune mast, an hour ago. Engine dead, batteries going, plotter dark. Three persons on board. Require tow. Over.' },
@@ -194,6 +197,7 @@ const n2 = [
   { music: 'n2' },
   { wait: 2600 },
   { clock: '03:44' },
+  { label: 'n2-kid', save: true, mid: true },
   { tune: 72, hint: 'Something on channel 72.' },
   { clicks: 'x x' },
   { say: [{ label: 'Answer him', text: '{cs}, this is Dune Radio. You are up again. Over.' }] },
@@ -241,6 +245,7 @@ const n3 = [
   { rx: 'skipper', text: 'Asleep on the couch at home. Made me promise no more night fishing. Seagull, out.' },
   { wait: 2800 },
   { clock: '02:40' },
+  { label: 'n3-kid', save: true, mid: true },
   { tune: 72, hint: 'Nearly time. Channel 72.' },
   { wait: 1200 },
   { clicks: 'x x' },
@@ -267,6 +272,7 @@ const n3 = [
   },
   { clicks: '. . x x' },
   { wait: 1200 },
+  { label: 'n3-light', save: true, mid: true },
   { morse: 'RED LIGHT', count: 0, unit: 95 },
   { say: [{ label: 'That is my mast', text: 'That red light is my mast. Watch the window under it. Over.' }] },
   { lamp: 2 },
@@ -338,6 +344,7 @@ const n4 = [
   { wait: 3600 },
   { clock: '03:02' },
   { hint: '' },
+  { label: 'n4-sos', save: true, mid: true },
   { alert: true },
   { tune: 16, hint: 'Something on 16.' },
   { morse: 'SOS', count: 0, unit: 105 },
@@ -379,6 +386,7 @@ const n4 = [
   { clicks: 'x x' },
   { phone: 'cape', text: 'Dune, it is Cape. Someone just came up on one-six. Weak, but now I hear him too.' },
   { note: ['height', 'WEAK SIGNAL?', 'Check the settings, then the radio and its antenna, then move: higher, by a window. Height beats power.'] },
+  { label: 'n4-bat', save: true, mid: true },
   { morse: 'BAT', count: 1, unit: 110 },
   { say: [{ label: 'Warm the battery', text: 'Take the battery out. Hold it under your shirt, on your belly, and count to sixty. Then put it back. Over.' }] },
   { note: ['cold', 'COLD BATTERY', 'A cold battery gives less. Warmed against your body, it gives some back for a while.'] },
