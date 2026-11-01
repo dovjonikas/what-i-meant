@@ -1,0 +1,1383 @@
+/* story.css: styles for "Say Again".
+   Like the menu and the first story, everything you read and tap sits in a phone-wide
+   column (.column); on a computer the picture carries on at both sides under frosted
+   glass. Order: tokens, the picture, the column and its bar, the radio console (top strip,
+   screen, decoder and key, knob and button), the words away from the radio, the chart,
+   the notes, the paper note, cards, the start screen, the side glass, reduced motion. */
+
+:root {
+  --ink: #0a1220;
+  --paper: #eef0ea;
+  --dim: rgb(238 240 234 / 0.62);
+  --amber: #e9a24c;
+  --kid: #f2c94c;
+
+  --panel-hi: #2a332f;
+  --panel-lo: #161c1a;
+  --engrave: #8d9c93;
+  --lcd-bg: #06130d;
+  --lcd: #9cf3b8;
+  --lcd-dim: rgb(156 243 184 / 0.45);
+  --lcd-faint: rgb(156 243 184 / 0.14);
+  --rx: #63f08d;
+  --tx: #ff5a3c;
+  --rubber: #cf5730;
+  --rubber-lo: #8f3519;
+  --note: #f3e38c;
+
+  --lcd-font: "MONO" 1, "CASL" 0, "wght" 430, "slnt" 0, "CRSV" 0;
+  --label: "MONO" 1, "CASL" 0, "wght" 560, "slnt" 0, "CRSV" 0;
+  --told: "MONO" 0, "CASL" 0.3, "wght" 420, "slnt" 0, "CRSV" 0;
+  --name: "MONO" 0, "CASL" 0.8, "wght" 560, "slnt" 0, "CRSV" 0;
+  --hand: "MONO" 0, "CASL" 1, "wght" 470, "slnt" -9, "CRSV" 1;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --app-w: min(100vw, 430px);
+  --gutter: 20px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --console-h: clamp(318px, 44svh, 420px);
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--ink);
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  color: var(--paper);
+  font-family: "Recursive", ui-sans-serif, system-ui, sans-serif;
+  font-variation-settings: var(--told);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* The picture. */
+#stage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* The column. */
+.column {
+  position: fixed;
+  inset: 0 auto 0 50%;
+  z-index: 5;
+  width: var(--app-w);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.column > * {
+  pointer-events: auto;
+}
+
+.bar {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  padding: max(10px, env(safe-area-inset-top, 0px)) 10px 0;
+  pointer-events: none;
+}
+
+.back,
+.sound {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(10 18 32 / 0.35);
+  color: var(--dim);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: color 160ms ease, transform 160ms var(--ease-out);
+}
+
+.back svg,
+.sound svg {
+  width: 22px;
+  height: 22px;
+}
+
+.back:active,
+.sound:active {
+  transform: scale(0.94);
+}
+
+.sound .cross,
+.sound[aria-pressed="false"] .waves {
+  display: none;
+}
+
+.sound[aria-pressed="false"] .cross {
+  display: inline;
+}
+
+/* The radio console: a metal panel on the desk. */
+.console {
+  position: absolute;
+  inset: auto 0 0;
+  height: var(--console-h);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px;
+  padding: 10px 10px calc(10px + var(--safe-b));
+  border-radius: 18px 18px 0 0;
+  background:
+    radial-gradient(circle at 12px 12px, #4a554f 0 2px, transparent 2.6px),
+    radial-gradient(circle at calc(100% - 12px) 12px, #4a554f 0 2px, transparent 2.6px),
+    linear-gradient(to bottom, var(--panel-hi), var(--panel-lo));
+  box-shadow: 0 -1px 0 rgb(255 255 255 / 0.08) inset, 0 -18px 40px rgb(0 0 0 / 0.45);
+  transform: translateY(105%);
+  transition: transform 700ms var(--ease-out);
+}
+
+.console.is-shown {
+  transform: none;
+}
+
+.c-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.c-ch,
+.c-df {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: var(--lcd-bg);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.8);
+  color: var(--lcd);
+  font-variation-settings: var(--lcd-font);
+  text-shadow: 0 0 6px rgb(156 243 184 / 0.45);
+}
+
+.c-ch-label,
+.c-df span {
+  font-size: 10px;
+  color: var(--lcd-dim);
+  letter-spacing: 0.08em;
+}
+
+.c-ch-num {
+  min-width: 2ch;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.c-df {
+  margin-left: auto;
+}
+
+.c-df-val {
+  min-width: 4ch;
+  font-size: 15px;
+  font-weight: inherit;
+}
+
+.c-df-val.is-live {
+  color: #e6ffd9;
+}
+
+.c-16 {
+  width: 34px;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: linear-gradient(#3c4642, #262d2a);
+  box-shadow: 0 2px 0 #0d100f, inset 0 1px 0 rgb(255 255 255 / 0.12);
+  color: var(--engrave);
+  font-size: 12px;
+  font-variation-settings: var(--label);
+  cursor: pointer;
+}
+
+.c-16:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 #0d100f;
+}
+
+.c-lamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--engrave);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  font-variation-settings: var(--label);
+}
+
+.c-lamp i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #233026;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.7);
+  transition: background 80ms linear, box-shadow 80ms linear;
+}
+
+.c-rx.is-on i {
+  background: var(--rx);
+  box-shadow: 0 0 10px var(--rx);
+}
+
+.c-tx i {
+  background: #3a2320;
+}
+
+.c-tx.is-on i {
+  background: var(--tx);
+  box-shadow: 0 0 10px var(--tx);
+}
+
+.c-notes {
+  position: relative;
+  width: 34px;
+  height: 32px;
+  border: 0;
+  border-radius: 3px;
+  background: var(--note);
+  color: #4a3d10;
+  box-shadow: 2px 3px 0 #c9b75e, 0 4px 8px rgb(0 0 0 / 0.35);
+  transform: rotate(-4deg);
+  font-size: 13px;
+  font-variation-settings: var(--name);
+  cursor: pointer;
+  transition: transform 300ms var(--ease-out);
+}
+
+.c-notes[hidden] {
+  display: none;
+}
+
+.c-notes.is-bump {
+  transform: rotate(-4deg) scale(1.18);
+}
+
+/* The screen: the conversation, the choices, the decoder. */
+.c-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(to bottom, rgb(255 255 255 / 0.025) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 50% 0%, #0c2418, var(--lcd-bg) 70%);
+  box-shadow: inset 0 2px 8px rgb(0 0 0 / 0.9), 0 1px 0 rgb(255 255 255 / 0.07);
+  color: var(--lcd);
+  font-variation-settings: var(--lcd-font);
+  font-size: 14px;
+  line-height: 1.38;
+  text-shadow: 0 0 5px rgb(156 243 184 / 0.35);
+  overflow: hidden;
+}
+
+.c-log {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to bottom, transparent, #000 22px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 22px);
+}
+
+.c-log::-webkit-scrollbar {
+  display: none;
+}
+
+.c-line {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 6px;
+  padding: 2px 0;
+  animation: line-in 260ms var(--ease-out);
+}
+
+.c-line:not(:last-child) {
+  opacity: 0.62;
+}
+
+.c-who {
+  color: var(--lcd-dim);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.c-line.is-you .c-said {
+  color: #f6d8a4;
+  text-shadow: 0 0 5px rgb(246 216 164 / 0.3);
+}
+
+.c-line.is-phone .c-said {
+  color: #d9e6ef;
+  text-shadow: none;
+}
+
+.c-line.is-kid .c-said {
+  color: var(--kid);
+  text-shadow: 0 0 6px rgb(242 201 76 / 0.35);
+}
+
+.c-line.is-clicks .c-said {
+  font-style: italic;
+  font-variation-settings: "MONO" 1, "CASL" 0, "wght" 430, "slnt" -10;
+}
+
+.c-said.is-flash {
+  color: #fffbe0;
+}
+
+.c-line.is-morse .c-said {
+  letter-spacing: 0.22em;
+}
+
+.c-line.is-cut .c-said::after {
+  content: " [cut off]";
+  color: var(--tx);
+  font-size: 12px;
+}
+
+@keyframes line-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.c-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: none;
+}
+
+.c-screen.has-choices .c-log {
+  flex: 0 1 auto;
+  max-height: 32%;
+}
+
+.c-screen.has-choices .c-choices {
+  flex: 1;
+  justify-content: flex-end;
+  padding-top: 6px;
+}
+
+.c-ask {
+  margin: 0;
+  color: var(--lcd-dim);
+  font-size: 12px;
+}
+
+.c-choice {
+  display: block;
+  width: 100%;
+  padding: 7px 10px 7px 24px;
+  border: 1px solid var(--lcd-dim);
+  border-radius: 7px;
+  background: var(--lcd-faint);
+  color: var(--lcd);
+  text-align: left;
+  font-variation-settings: var(--lcd-font);
+  font-size: 15px;
+  line-height: 1.25;
+  text-shadow: inherit;
+  cursor: pointer;
+  position: relative;
+  animation: choice-in 320ms var(--ease-out) both;
+  animation-delay: calc(var(--i) * 60ms);
+  transition: background 120ms ease, transform 120ms var(--ease-out);
+}
+
+.c-choice::before {
+  content: "›";
+  position: absolute;
+  left: 10px;
+  color: var(--lcd-dim);
+}
+
+.c-choice:active {
+  background: rgb(156 243 184 / 0.3);
+  transform: scale(0.98);
+}
+
+@keyframes choice-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* The decoder and the key take over the screen. */
+.c-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  min-height: 0;
+  text-align: center;
+}
+
+.c-panel > * {
+  flex: none;
+}
+
+.c-panel[hidden] {
+  display: none;
+}
+
+.c-screen.has-panel .c-log,
+.c-screen.has-panel .c-choices {
+  display: none;
+}
+
+.d-head {
+  margin: 0;
+  color: var(--lcd-dim);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+}
+
+.d-word {
+  display: flex;
+  gap: 6px;
+  min-height: 30px;
+}
+
+.d-word i {
+  display: grid;
+  place-items: end center;
+  min-width: 22px;
+  height: 28px;
+  padding: 0 2px;
+  border-bottom: 2px solid var(--lcd-dim);
+  font-style: normal;
+  font-size: 20px;
+  color: var(--kid);
+}
+
+.d-word i.gap {
+  min-width: 10px;
+  border: 0;
+}
+
+.d-word i.is-now {
+  border-color: var(--lcd);
+  box-shadow: 0 6px 10px -6px var(--lcd);
+}
+
+.d-big {
+  margin: 0;
+  min-height: 36px;
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: 0.18em;
+  color: #e7ffe9;
+}
+
+.d-tip,
+.k-tip {
+  margin: 0;
+  min-height: 18px;
+  color: var(--lcd-dim);
+  font-size: 12px;
+}
+
+.d-pick {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.d-letter {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  padding: 6px 2px;
+  border: 1px solid var(--lcd-dim);
+  border-radius: 8px;
+  background: var(--lcd-faint);
+  color: var(--lcd);
+  font-variation-settings: var(--lcd-font);
+  text-shadow: inherit;
+  cursor: pointer;
+  transition: background 140ms ease, opacity 200ms ease;
+}
+
+.d-letter b {
+  font-size: 22px;
+  font-weight: inherit;
+}
+
+.d-letter small {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--lcd-dim);
+}
+
+.d-letter.is-right {
+  background: rgb(156 243 184 / 0.4);
+}
+
+.d-letter.is-wrong {
+  opacity: 0.3;
+  animation: shake 320ms ease;
+}
+
+.d-letter.is-hint {
+  box-shadow: 0 0 0 2px var(--lcd), 0 0 14px rgb(156 243 184 / 0.5);
+}
+
+.k-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin: 8px 0 4px;
+}
+
+.k-letter {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  opacity: 0.45;
+}
+
+.k-letter.is-now,
+.k-letter.is-done {
+  opacity: 1;
+}
+
+.k-letter b {
+  font-size: 26px;
+  font-weight: inherit;
+  color: var(--kid);
+}
+
+.k-els {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.k-els i {
+  height: 9px;
+  border-radius: 5px;
+  background: var(--lcd-faint);
+  box-shadow: inset 0 0 0 1px var(--lcd-dim);
+}
+
+.k-els i.dot {
+  width: 9px;
+}
+
+.k-els i.dash {
+  width: 26px;
+}
+
+.k-els i.is-sent {
+  background: var(--lcd);
+  box-shadow: 0 0 8px var(--lcd);
+}
+
+.k-letter.is-shake {
+  animation: shake 320ms ease;
+}
+
+@keyframes shake {
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+/* The knob and the button. */
+.c-controls {
+  display: grid;
+  grid-template-columns: 104px 1fr 104px;
+  align-items: center;
+  gap: 8px;
+  /* Room for the ring round the button, so it stays inside the panel. */
+  padding: 0 8px;
+}
+
+.c-knob {
+  --turn: 0deg;
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from var(--turn), #1b201e 0 4deg, #2e3532 4deg 8deg);
+  box-shadow: 0 6px 12px rgb(0 0 0 / 0.55), inset 0 2px 0 rgb(255 255 255 / 0.1);
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+
+.c-knob-cap {
+  position: absolute;
+  inset: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 30%, #4a5450, #232927 70%);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.15);
+  transform: rotate(var(--turn));
+}
+
+.c-knob-cap::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: 4px;
+  height: 18px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--amber);
+  box-shadow: 0 0 6px rgb(233 162 76 / 0.6);
+}
+
+.c-knob.is-wanted {
+  animation: want 1.6s ease-in-out infinite;
+}
+
+.c-knob.is-held {
+  cursor: grabbing;
+}
+
+.c-knob:focus-visible {
+  box-shadow: 0 0 0 3px var(--amber);
+}
+
+@keyframes want {
+  50% {
+    box-shadow: 0 6px 12px rgb(0 0 0 / 0.55), 0 0 0 4px rgb(233 162 76 / 0.45), 0 0 22px rgb(233 162 76 / 0.4);
+  }
+}
+
+.c-hint {
+  margin: 0;
+  color: var(--engrave);
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+  font-variation-settings: var(--told);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.c-hint.is-on {
+  opacity: 1;
+  color: #f1d6a8;
+}
+
+.c-ptt {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  justify-self: end;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 30%, #e7744a, var(--rubber) 55%, var(--rubber-lo));
+  box-shadow: 0 7px 0 #5c230f, 0 10px 18px rgb(0 0 0 / 0.5), inset 0 2px 0 rgb(255 255 255 / 0.2);
+  color: #fff4ea;
+  touch-action: none;
+  cursor: pointer;
+  transition: transform 90ms var(--ease-out), box-shadow 90ms var(--ease-out), filter 200ms ease;
+}
+
+.c-ptt-ring {
+  position: absolute;
+  inset: -7px;
+  width: calc(100% + 14px);
+  height: calc(100% + 14px);
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.c-ptt-ring circle {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 3px rgb(233 162 76 / 0.8));
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+/* The ring shows only while the button is held, or a round cap leaves a dot at the top. */
+.c-ptt.is-down .c-ptt-ring circle,
+.hand-ptt.is-down circle {
+  opacity: 1;
+}
+
+.c-ptt span {
+  font-size: 11px;
+  line-height: 1.15;
+  letter-spacing: 0.08em;
+  text-align: center;
+  font-variation-settings: var(--label);
+}
+
+.c-ptt-key {
+  display: none;
+}
+
+.c-ptt.is-key .c-ptt-talk {
+  display: none;
+}
+
+.c-ptt.is-key .c-ptt-key {
+  display: inline;
+  font-size: 15px;
+}
+
+.c-ptt.is-armed,
+.c-ptt.is-key {
+  animation: armed 1.4s ease-in-out infinite;
+}
+
+.c-ptt.is-down {
+  transform: translateY(5px) scale(0.98);
+  box-shadow: 0 2px 0 #5c230f, 0 4px 8px rgb(0 0 0 / 0.5), inset 0 2px 6px rgb(0 0 0 / 0.35);
+  animation: none;
+  filter: brightness(0.92);
+}
+
+.c-ptt.is-full .c-ptt-ring circle {
+  stroke: #fff1d8;
+}
+
+@keyframes armed {
+  50% {
+    box-shadow: 0 7px 0 #5c230f, 0 10px 18px rgb(0 0 0 / 0.5), 0 0 0 5px rgb(233 162 76 / 0.35), 0 0 26px rgb(233 162 76 / 0.45);
+  }
+}
+
+/* Words away from the radio: the drive, the hall, the kitchen. */
+.words {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 26px var(--gutter) calc(30px + var(--safe-b));
+  background: linear-gradient(to bottom, transparent, rgb(6 10 18 / 0.72) 40%);
+  pointer-events: none;
+}
+
+.words[hidden] {
+  display: none;
+}
+
+.words > * {
+  pointer-events: auto;
+}
+
+.words-line {
+  margin: 0;
+  min-height: 1.4em;
+  font-size: 19px;
+  line-height: 1.4;
+  text-align: center;
+  text-wrap: balance;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 600ms ease, transform 600ms var(--ease-out);
+}
+
+.words-line.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.words-line.is-kid {
+  color: var(--kid);
+  font-variation-settings: var(--name);
+}
+
+.words-line.is-you {
+  color: #f6d8a4;
+}
+
+.words-picks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.pick {
+  min-height: 48px;
+  padding: 10px 16px;
+  border: 1px solid rgb(238 240 234 / 0.35);
+  border-radius: 999px;
+  background: rgb(10 18 32 / 0.55);
+  font-size: 16px;
+  cursor: pointer;
+  animation: choice-in 320ms var(--ease-out) both;
+  animation-delay: calc(var(--i) * 70ms);
+  transition: transform 120ms var(--ease-out), background 120ms ease;
+}
+
+.pick:active {
+  transform: scale(0.97);
+  background: rgb(238 240 234 / 0.16);
+}
+
+.hand-ptt {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 30%, #555b57, #2b302d 70%);
+  box-shadow: 0 6px 0 #121513, 0 10px 18px rgb(0 0 0 / 0.5);
+  touch-action: none;
+  cursor: pointer;
+  animation: armed 1.4s ease-in-out infinite;
+}
+
+.hand-ptt[hidden] {
+  display: none;
+}
+
+.hand-ptt svg {
+  position: absolute;
+  inset: -7px;
+  width: calc(100% + 14px);
+  height: calc(100% + 14px);
+  transform: rotate(-90deg);
+}
+
+.hand-ptt circle {
+  opacity: 0;
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+}
+
+.hand-ptt.is-down {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #121513, 0 4px 8px rgb(0 0 0 / 0.5);
+  animation: none;
+}
+
+.hand-hint {
+  position: absolute;
+  top: calc(100% + 14px);
+  width: 220px;
+  color: var(--dim);
+  font-size: 13px;
+  text-align: center;
+}
+
+.words:has(.hand-ptt:not([hidden])) {
+  padding-bottom: calc(64px + var(--safe-b));
+}
+
+.words-go {
+  position: fixed;
+  z-index: 8;
+  left: 50%;
+  bottom: calc(10px + var(--safe-b));
+  transform: translateX(-50%);
+  pointer-events: none;
+  margin: 0;
+  color: var(--dim);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+.words-go.is-on {
+  opacity: 0.8;
+}
+
+/* The chart of the bay. */
+.chart {
+  position: fixed;
+  z-index: 7;
+  /* It opens under the bar, so the back arrow and the sound switch stay in reach. */
+  top: calc(max(10px, env(safe-area-inset-top, 0px)) + 48px);
+  bottom: 0;
+  border-radius: 16px 16px 0 0;
+  left: 50%;
+  width: var(--app-w);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 0 var(--safe-b);
+  background: #efe5cb;
+  color: #2c3a42;
+  box-shadow: 0 -10px 40px rgb(0 0 0 / 0.5);
+  transform: translate(-50%, 100%);
+  transition: transform 520ms var(--ease-out);
+}
+
+.chart.is-open {
+  transform: translate(-50%, 0);
+}
+
+.chart[hidden] {
+  display: none;
+}
+
+.chart-say {
+  margin: 0;
+  min-height: 3.6em;
+  padding: 0 var(--gutter) 8px;
+  font-size: 15px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.chart-intro {
+  color: #7b5a3a;
+}
+
+.chart canvas {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.chart-help {
+  position: absolute;
+  right: 14px;
+  bottom: calc(14px + var(--safe-b));
+  color: #2c3a42;
+  border: 1px solid rgb(44 58 66 / 0.4);
+}
+
+.chart-help[hidden] {
+  display: none;
+}
+
+/* Sticky notes. */
+.notes {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  background: rgb(4 8 14 / 0.6);
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+
+.notes[hidden] {
+  display: none;
+}
+
+.notes.is-open {
+  opacity: 1;
+}
+
+.notes-sheet {
+  width: var(--app-w);
+  max-height: 86svh;
+  overflow-y: auto;
+  padding: 22px var(--gutter) calc(22px + var(--safe-b));
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(var(--panel-hi), var(--panel-lo));
+  transform: translateY(30px);
+  transition: transform 320ms var(--ease-out);
+}
+
+.notes.is-open .notes-sheet {
+  transform: none;
+}
+
+.notes-title {
+  margin: 0 0 14px;
+  color: var(--engrave);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-variation-settings: var(--label);
+}
+
+.notes-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.note,
+.note-fly {
+  display: grid;
+  gap: 6px;
+  padding: 12px 12px 14px;
+  background: var(--note);
+  color: #3b3210;
+  box-shadow: 0 6px 12px rgb(0 0 0 / 0.35);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.note {
+  transform: rotate(var(--tilt));
+}
+
+.note b,
+.note-fly b {
+  font-variation-settings: var(--name);
+  font-size: 13px;
+  font-weight: inherit;
+  letter-spacing: 0.02em;
+}
+
+.note span,
+.note-fly span {
+  font-variation-settings: var(--hand);
+}
+
+.note-fly small {
+  margin-top: 4px;
+  color: #7a6a2a;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.note-fly {
+  border: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  position: fixed;
+  z-index: 9;
+  left: 50%;
+  top: 30%;
+  width: min(250px, 70vw);
+  transform: translate(-50%, -50%) rotate(-3deg);
+  animation: note-in 420ms var(--ease-out) both;
+  transition: left 600ms var(--ease-out), top 600ms var(--ease-out), transform 600ms var(--ease-out), opacity 600ms ease;
+}
+
+.note-fly.is-going {
+  left: var(--to-x);
+  top: var(--to-y);
+  transform: translate(-50%, -50%) rotate(-4deg) scale(0.14);
+  opacity: 0.5;
+}
+
+@keyframes note-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -40%) rotate(-8deg) scale(0.9);
+  }
+}
+
+/* A note left on the table at home. */
+.paper {
+  position: fixed;
+  inset: 0;
+  z-index: 7;
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  background: rgb(4 8 14 / 0.35);
+  opacity: 0;
+  transition: opacity 500ms ease;
+  pointer-events: none;
+}
+
+.paper[hidden] {
+  display: none;
+}
+
+.paper.is-on {
+  opacity: 1;
+}
+
+.paper-text {
+  width: min(320px, calc(var(--app-w) - 2 * var(--gutter)));
+  margin: 0;
+  padding: 26px 24px 30px;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 27px, rgb(80 110 150 / 0.22) 27px 28px),
+    #f6f1e4;
+  background-position: 0 18px;
+  color: #2a3346;
+  box-shadow: 0 14px 30px rgb(0 0 0 / 0.45);
+  font-size: 18px;
+  line-height: 28px;
+  font-variation-settings: var(--hand);
+  white-space: pre-line;
+  transform: rotate(-2deg) translateY(10px);
+  transition: transform 600ms var(--ease-out);
+}
+
+.paper.is-on .paper-text {
+  transform: rotate(-2deg);
+}
+
+/* Night cards and the end. */
+.card {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: var(--gutter);
+  background: var(--ink);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 900ms ease;
+  /* Only shown, never tapped (the end card's link excepted), so the back arrow stays usable. */
+  pointer-events: none;
+}
+
+.card a {
+  pointer-events: auto;
+}
+
+.card[hidden] {
+  display: none;
+}
+
+.card.is-on {
+  opacity: 1;
+}
+
+.card.is-end {
+  background: rgb(10 18 32 / 0.86);
+}
+
+.card-kicker {
+  margin: 0;
+  color: var(--dim);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-variation-settings: var(--label);
+}
+
+.card-title {
+  margin: 0;
+  font-size: 30px;
+  font-variation-settings: var(--name);
+}
+
+.card-title.is-big {
+  font-size: clamp(40px, 12vw, 56px);
+}
+
+.card-sub {
+  margin: 0;
+  color: var(--dim);
+}
+
+.btn {
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--amber);
+  color: #1d1208;
+  font-size: 16px;
+  font-variation-settings: var(--name);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 150ms var(--ease-out), opacity 160ms ease;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn[hidden] {
+  display: none;
+}
+
+.btn.is-quiet {
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgb(238 240 234 / 0.35);
+}
+
+/* The start screen. */
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 calc((100vw - var(--app-w)) / 2 + var(--gutter)) calc(40px + var(--safe-b));
+  background: linear-gradient(to bottom, rgb(10 18 32 / 0.05), rgb(10 18 32 / 0.25) 45%, rgb(10 18 32 / 0.94));
+  transition: opacity 900ms ease;
+  /* It covers the bar, so taps pass through it to the back arrow; only its buttons take them. */
+  pointer-events: none;
+}
+
+/* Only while the start screen is up: once it fades, its buttons must not catch taps. */
+.is-gate .gate .btn {
+  pointer-events: auto;
+}
+
+body:not(.is-gate) .gate {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gate-kicker {
+  margin: 0;
+  color: var(--dim);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-variation-settings: var(--label);
+}
+
+.gate-title {
+  margin: 0;
+  font-weight: 400;
+  font-size: clamp(40px, 12vw, 56px);
+  line-height: 1.04;
+  font-variation-settings: var(--name);
+}
+
+.gate-note {
+  margin: 0;
+  color: var(--dim);
+}
+
+.gate-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.gate-actions .btn {
+  flex: 1;
+}
+
+.noscript {
+  position: fixed;
+  inset: auto 0 40%;
+  text-align: center;
+}
+
+/* The side glass on screens wider than a phone (the same treatment as the menu). */
+.glass {
+  --edge: calc((100% - var(--app-w)) / 2);
+  --fade: 48px;
+  --cutout: linear-gradient(
+    to right,
+    #000 calc(var(--edge) - var(--fade)),
+    transparent var(--edge),
+    transparent calc(100% - var(--edge)),
+    #000 calc(100% - var(--edge) + var(--fade))
+  );
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: none;
+  pointer-events: none;
+  background: rgb(10 18 32 / 0.32);
+  -webkit-backdrop-filter: blur(22px) saturate(115%);
+  backdrop-filter: blur(22px) saturate(115%);
+  -webkit-mask-image: var(--cutout);
+  mask-image: var(--cutout);
+}
+
+@media (min-width: 500px) {
+  .glass {
+    display: block;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .back:hover,
+  .sound:hover {
+    color: var(--paper);
+  }
+
+  .c-choice:hover,
+  .d-letter:hover {
+    background: rgb(156 243 184 / 0.22);
+  }
+
+  .pick:hover {
+    border-color: rgb(238 240 234 / 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
