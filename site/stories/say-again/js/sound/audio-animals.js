@@ -3,8 +3,8 @@
 // little far), a cat purring on the desk and its sleepy chirp, and a moth against the lamp
 // shade. All soft; none of them is meant to startle.
 //
-// The calls are made like the radio voices (audio-voice.js): a buzz at the animal's pitch
-// shaped by a couple of formant filters, with air mixed in. Pitches and lengths come from
+// The calls are a buzz at the animal's pitch shaped by a couple of formant filters (the
+// filters a throat makes), with air mixed in. Pitches and lengths come from
 // how these animals sound, nudged a little at random so no two calls are the same.
 
 import { noise, gain, filter, panner, loop, burst, ping, rand, clamp, num } from './audio-kit.js';

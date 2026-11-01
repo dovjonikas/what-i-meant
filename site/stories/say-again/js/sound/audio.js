@@ -1,6 +1,6 @@
 // audio.js: every sound in Say Again that is not music, made live with the Web Audio API.
 // createAudio(ctx, out) returns the calls the story makes: the place you are in, thunder,
-// the radio (hiss, squelch, clicks, voices, Morse), the desk and the house, the animals at
+// the radio (hiss, squelch, clicks, Morse), the desk and the house, the animals at
 // the window, and duck() to lower the music under a call. The parts are in the audio-*.js files next to this one;
 // dev/audio-test.html renders all of them and prints their levels.
 //

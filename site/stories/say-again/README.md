@@ -39,7 +39,7 @@ and `?check&at=n3` starts at a label (a night, or one inside it such as `n4-sos`
 | `js/chart/chart-place.js` | Finds a free spot for each name, off the pencil lines and the houses |
 | `js/chart/geo.js` | The bay as data: coasts, stations, the town, and bearing maths |
 | `js/art/` | The paintings: `art.js` is the entry (`paint(ctx, view, scene, t, s)`), one file per scene or part |
-| `js/sound/` | The sound: `audio.js` (effects, radio, voices, places, animals), `score.js` (the music), helpers |
+| `js/sound/` | The sound: `audio.js` (effects, radio, places, animals), `score.js` (the music), helpers |
 | `dev/` | The two work pages above |
 
 ## How the pieces connect

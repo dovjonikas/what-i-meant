@@ -11,7 +11,8 @@ import { parseMorse } from '../js/sound/audio-radio.js';
 const RATE = 44100;
 const PLACES = ['room', 'fog', 'clear', 'storm', 'evening', 'drive', 'home', 'stairs'];
 const ACT_NAMES = ['n1', 'n2', 'rescue', 'n3', 'storm', 'reveal', 'home', 'ending'];
-const VOICES = ['cape', 'pilot', 'rescue', 'skipper', 'kid', 'you'];
+// The speakers with something heard behind them; a voice itself makes no sound.
+const VOICES = ['skipper', 'rescue'];
 
 // Each test: what to render, for how long, and the part to measure. `at(t, fn)` runs fn at
 // t seconds into the render, with the context's clock at t.
@@ -39,7 +40,8 @@ const TESTS = [
   { group: 'radio', name: 'click', seconds: 0.5, run: ({ a }) => a.click() },
   { group: 'radio', name: 'click click (yes)', seconds: 0.8, run: ({ a, at }) => (a.click(), at(0.25, () => a.click())) },
   ...VOICES.map((who) => ({ group: 'voice', name: `voice ${who}`, seconds: 6, run: ({ a }) => a.voice(5.5, who) })),
-  { group: 'voice', name: 'voice cape stopped at 1 s', seconds: 2, from: 1.1, silent: true, run: ({ a, at }) => { const stop = a.voice(5, 'cape'); at(1, () => stop()); } },
+  { group: 'voice', name: 'voice skipper stopped at 1 s', seconds: 2, from: 1.1, silent: true, run: ({ a, at }) => { const stop = a.voice(5, 'skipper'); at(1, () => stop()); } },
+  { group: 'voice', name: 'voice cape (nothing behind)', seconds: 2, silent: true, run: ({ a }) => a.voice(1.5, 'cape') },
   { group: 'morse', name: 'own key (toneOn/Off)', seconds: 1, run: ({ a, at }) => (a.toneOn(), at(0.6, () => a.toneOff())) },
   { group: 'morse', name: 'rx tone on/off', seconds: 1, run: ({ a, at }) => (a.rx(true), a.rxToneOn(), at(0.5, () => (a.rxToneOff(), a.rx(false)))) },
   { group: 'morse', name: "morse '.... ..'", seconds: 2.5, run: ({ a }) => a.morse('.... ..', 80) },
@@ -105,37 +107,10 @@ async function render(test) {
   a.ambience('off');
   s.play('off');
   const m = measure(buffer, test.from ?? 0, test.to ?? test.seconds);
-  if (test.group === 'voice' && !test.silent) m.rate = syllableRate(buffer);
   return m;
 }
 
 const db = (power) => 10 * Math.log10(power || 1e-15);
-
-// Syllables a second: peaks of the 20 ms level that stand 6 dB over the dip before them
-// and come at least 110 ms apart.
-function syllableRate(buffer) {
-  const d = buffer.getChannelData(0);
-  const win = Math.floor(buffer.sampleRate * 0.02);
-  const level = [];
-  for (let w = 0; w + win <= d.length; w += win) {
-    let s = 0;
-    for (let i = w; i < w + win; i += 1) s += d[i] * d[i];
-    level.push(db(s / win));
-  }
-  let count = 0;
-  let dip = Infinity;
-  let last = -100;
-  for (let i = 1; i < level.length - 1; i += 1) {
-    dip = Math.min(dip, level[i]);
-    const isPeak = level[i] >= level[i - 1] && level[i] > level[i + 1];
-    if (isPeak && level[i] - dip > 6 && level[i] > -50 && i - last >= 6) {
-      count += 1;
-      last = i;
-      dip = Infinity;
-    }
-  }
-  return count / (buffer.duration - 0.5);
-}
 
 // The Morse timing the radio uses, checked against hand-counted units.
 function checkMorse() {
@@ -241,7 +216,7 @@ const fmt = (v) => (v <= -149 ? '-inf' : v.toFixed(1));
 async function main() {
   const status = document.getElementById('status');
   const table = document.getElementById('levels');
-  table.innerHTML = '<tr><th>group</th><th>sound</th><th>peak</th><th>rms</th><th>active</th><th>loud</th><th>phone</th><th>syl/s</th><th>notes</th></tr>';
+  table.innerHTML = '<tr><th>group</th><th>sound</th><th>peak</th><th>rms</th><th>active</th><th>loud</th><th>phone</th><th>notes</th></tr>';
   const rows = [];
   const lines = [];
   // ?only=voice renders only the tests whose group or name contains "voice".
@@ -260,9 +235,9 @@ async function main() {
     rows.push({ group: test.group, name: test.name, ...m, notes });
     const tr = document.createElement('tr');
     if (notes.length) tr.className = 'warn';
-    tr.innerHTML = `<td>${test.group}</td><td>${test.name}</td><td>${fmt(m.peak)}</td><td>${fmt(m.rms)}</td><td>${fmt(m.active)}</td><td>${fmt(m.loud)}</td><td>${fmt(m.phone)}</td><td>${m.rate ? m.rate.toFixed(1) : ''}</td><td>${notes.join('; ')}</td>`;
+    tr.innerHTML = `<td>${test.group}</td><td>${test.name}</td><td>${fmt(m.peak)}</td><td>${fmt(m.rms)}</td><td>${fmt(m.active)}</td><td>${fmt(m.loud)}</td><td>${fmt(m.phone)}</td><td>${notes.join('; ')}</td>`;
     table.append(tr);
-    lines.push(`${test.group.padEnd(8)} ${test.name.padEnd(34)} peak ${fmt(m.peak).padStart(6)}  rms ${fmt(m.rms).padStart(6)}  active ${fmt(m.active).padStart(6)}  loud ${fmt(m.loud).padStart(6)}  phone ${fmt(m.phone).padStart(6)}  ${m.rate ? `syl/s ${m.rate.toFixed(1)}  ` : ''}${notes.join('; ')}`);
+    lines.push(`${test.group.padEnd(8)} ${test.name.padEnd(34)} peak ${fmt(m.peak).padStart(6)}  rms ${fmt(m.rms).padStart(6)}  active ${fmt(m.active).padStart(6)}  loud ${fmt(m.loud).padStart(6)}  phone ${fmt(m.phone).padStart(6)}  ${notes.join('; ')}`);
   }
   console.log(`[levels] dBFS\n${lines.join('\n')}`);
   const result = { rows, done: false };

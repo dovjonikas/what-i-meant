@@ -1,7 +1,7 @@
 // audio-radio.js: the receiver and the handset. The band-pass that makes a sound come over
 // VHF, the hiss and squelch tail as a carrier comes and goes, a microphone keyed far away,
-// static between channels, voices, Morse tones received and sent, and the handset's
-// press-to-talk switch.
+// static between channels, what is heard behind a caller, Morse tones received and sent,
+// and the handset's press-to-talk switch.
 //
 // How FM squelch sounds, for whoever tunes this: while a carrier is on, the receiver is
 // almost quiet, since the carrier quiets the noise, so an open channel is only a low hiss.
@@ -122,7 +122,7 @@ export function createRadio(ctx, dest) {
   }
 
   function voice(seconds, who) {
-    return speak(ctx, input, dest, seconds, who);
+    return speak(ctx, input, seconds, who);
   }
 
   // Your own Morse key: a clean sine, straight to the ear, with 5 ms edges so it never
