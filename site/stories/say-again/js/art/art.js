@@ -20,8 +20,8 @@
 //   'kitchen'  hand (0..1, the father's hand to the son's). Returns { hands }.
 //   'drawing'  nothing. Returns { page }.
 //
-// The files: art-room.js with art-room-outside.js, art-room-inside.js, art-room-life.js
-// and art-cat.js (the station cat); art-drive.js; art-home.js; art-stairs.js; art-kitchen.js;
+// The files: art-room.js with art-room-outside.js, art-room-inside.js, art-room-desk.js
+// (what stands on the desk), art-room-life.js and art-cat.js (the station cat); art-drive.js; art-home.js; art-stairs.js; art-kitchen.js;
 // art-drawing.js; art-people.js (the father, the son, the old radio); art-coast.js (sky,
 // town, water, mast, pines); art-kit.js (shared tools and the layer cache). Still parts
 // are cached per scene, look and screen size, so a frame only redraws what moves.

@@ -12,6 +12,7 @@ import { paintInside } from './art-room-inside.js';
 import { paintOutside, outsideGeo, fogLayer, MOODS } from './art-room-outside.js';
 import { paintDeer, paintMoths, paintTow, windowSpill } from './art-room-life.js';
 import { paintCat } from './art-cat.js';
+import { paintSteam } from './art-room-desk.js';
 
 const TOP = 60;
 const geos = new Map();
@@ -60,6 +61,7 @@ export function roomLayout(view) {
     clock: { x: U(0.72), y: Y(0.04), w: colW * 0.19, h: Math.min(Z * 0.08, colW * 0.085) },
     drawing: { x: U(0.05), y: sillY - dh + 2 * k, w: dw, h: dh, angle: -0.035 },
     mug: { x: U(0.22), y: Y(0.975) - 27 * k, w: 21 * k, h: 27 * k },
+    thermos: { x: U(0.055), base: Y(0.975), w: 15 * k, h: 46 * k },
     book: { x: U(0.4), y: Y(0.905), w: colW * 0.27, h: Z * 0.085 },
     lamp: {
       base: lampBase,
@@ -111,6 +113,7 @@ export function paintRoom(ctx, view, t, s, dpr) {
   });
   put(ctx, dark, view);
   put(ctx, lit, view, lamp);
+  paintSteam(ctx, L, t, lamp);
   const catHits = paintCat(ctx, L, M, t, s, mood);
   if (lamp > 0.01) lampGlow(ctx, L, lamp, view, dpr);
   paintMoths(ctx, L, t, s, mood);
