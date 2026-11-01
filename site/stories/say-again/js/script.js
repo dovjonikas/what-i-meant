@@ -29,6 +29,7 @@
 //   { pick: [...], until } choose what to say in the kitchen
 //   { hold, hand }         the old radio's button in the kitchen
 //   { paper }              a note left on the table at home
+//   { log }                a line of the station log on the screen, in the operator's own voice
 //   { hint } { set } { if } { tap } { end }
 // Options in `say` and `pick` take: label (what the button shows), text (what is said),
 // set (flags), then (beats after it), retry (after it, choose again without it), if.
@@ -40,10 +41,7 @@ const n1 = [
   { card: 'Night one' },
   { scene: 'room', s: { mood: 'calm', clock: '02:51', lamp: 1, town: 1, kid: 0, deer: 1 }, ambience: 'room', music: 'n1', channel: 16 },
   { wait: 1200 },
-  { hint: 'Log, 0051 UTC. Nothing heard. The cat is on the logbook again.' },
-  { wait: 4200 },
-  { hint: '' },
-  { wait: 600 },
+  { log: '0051 UTC. Nothing heard. The cat is on the logbook again.' },
   { alert: true },
   { wait: 700 },
   { rx: 'skipper', df: 39, broken: true, text: 'Mayday, mayday, mayday. This is Seagull, Seagull, Seagull. Mayday, Seagull. Taking water, three persons on board. Position, we are north of the' },
@@ -156,10 +154,7 @@ const n2 = [
   { card: 'Night two' },
   { scene: 'room', s: { mood: 'fog', clock: '01:56', lamp: 1, town: 1, kid: 0, deer: 0, tow: 0 }, ambience: 'fog', music: 'n2', channel: 67 },
   { wait: 1200 },
-  { hint: 'Log, 2356 UTC. Fog coming in. Mast work done. My father climbed it in half the time.' },
-  { wait: 4600 },
-  { hint: '' },
-  { wait: 600 },
+  { log: '2356 UTC. Fog coming in. Mast work done. My father climbed it in half the time.' },
   { rx: 'cape', text: 'Dune Radio, this is Cape Radio, on six seven. Radio check after your mast work today. Over.' },
   {
     to: 'cape',
@@ -288,10 +283,7 @@ const n3 = [
   { card: 'Night three' },
   { scene: 'room', s: { mood: 'clear', clock: '01:58', lamp: 1, town: 1, kid: 0, deer: 2 }, ambience: 'clear', music: 'n3', channel: 16 },
   { wait: 1200 },
-  { hint: 'Log, 2358 UTC. Clear, no wind. The kind of night he used to switch the lamp off for.' },
-  { wait: 4600 },
-  { hint: '' },
-  { wait: 600 },
+  { log: '2358 UTC. Clear, no wind. The kind of night he used to switch the lamp off for.' },
   { rx: 'skipper', text: 'Dune Radio, Seagull here, on a borrowed handheld in the harbour. Tell whoever saw our flare: thank you. My boy made me promise no more night fishing. Over.' },
   { to: 'skipper', say: [{ label: 'I will tell them', text: 'Seagull, Dune Radio. I will tell them. Keep one-six for trouble. Dune Radio, out.' }] },
   { wait: 2800 },
@@ -387,10 +379,7 @@ const n4 = [
   { card: 'Night four' },
   { scene: 'room', s: { mood: 'storm', clock: '01:20', lamp: 1, town: 1, kid: 0, deer: 2 }, ambience: 'storm', music: 'storm', channel: 16 },
   { wait: 1200 },
-  { hint: 'Log, 2320 UTC. Gale from the west. Generator checked. No batteries in the drawer at home either.' },
-  { wait: 4600 },
-  { hint: '' },
-  { wait: 600 },
+  { log: '2320 UTC. Gale from the west. Generator checked. No batteries in the drawer at home either.' },
   {
     to: 'all',
     prompt: 'A gale warning came in. Nobody is in trouble yet. Announce it here on 16.',

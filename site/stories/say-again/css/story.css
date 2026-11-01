@@ -370,6 +370,13 @@ button {
   text-shadow: 0 0 5px rgb(246 216 164 / 0.3);
 }
 
+/* The station log: the operator's own hand, quieter than the traffic. */
+.c-line.is-log .c-said {
+  color: var(--lcd-dim);
+  font-style: italic;
+  font-variation-settings: "MONO" 1, "CASL" 0, "wght" 430, "slnt" -10;
+}
+
 .c-line.is-phone .c-said {
   color: #d9e6ef;
   text-shadow: none;

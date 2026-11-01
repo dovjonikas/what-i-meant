@@ -6,7 +6,7 @@
 import { wait } from './ui.js';
 
 const SAVE_KEY = 'wim.say-again';
-const NAMES = { cape: 'CAPE', skipper: 'SEAGULL', tern: 'TERN', rescue: 'RESCUE 1', pilot: 'PILOT', you: 'YOU' };
+const NAMES = { cape: 'CAPE', skipper: 'SEAGULL', tern: 'TERN', rescue: 'RESCUE 1', pilot: 'PILOT', you: 'YOU', log: 'LOG' };
 
 export class Player {
   constructor({ script, stage, radio, chart, notes, ui, sound, music }) {
@@ -150,6 +150,11 @@ export class Player {
       return wait(600);
     }
     if ('hint' in b) return radio.hint(this.fill(b.hint));
+    if (b.log) {
+      const text = this.fill(b.log);
+      radio.line('log', text, 'is-log');
+      return wait(Math.max(2200, text.length * 40));
+    }
     if (b.note) {
       const [id, title, body] = b.note;
       await this.notes.add(id, title, body);
