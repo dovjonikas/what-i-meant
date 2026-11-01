@@ -31,7 +31,8 @@ browsers do not load ES modules from `file://` pages.
 | `stories/` | One folder per story, each with its own README |
 
 Stories live in `stories/<id>/`, one folder each, linked from the menu once their entry
-in `js/stories.js` is set to `out`. The first is `stories/text-me/`.
+in `js/stories.js` is set to `out`: `stories/text-me/` and `stories/say-again/`. How a
+story folder is laid out, and what it may use from the rest of the site: `stories/README.md`.
 
 ## Notes
 
