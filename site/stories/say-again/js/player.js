@@ -57,6 +57,8 @@ export class Player {
   async run(beats) {
     for (const b of beats) {
       if (b.if && !this.matches(b.if)) continue;
+      // Reading the notes holds the story between beats, so nothing new comes in unseen.
+      await this.notes.closed();
       await this.beat(b);
     }
   }
@@ -155,6 +157,9 @@ export class Player {
     if (b.tap) return ui.tapToGo();
     if (b.end) {
       Player.forget();
+      // The radio and its notes go down for the end card, so nothing opens under the title.
+      this.notes.close();
+      radio.show(false);
       return ui.end();
     }
     console.warn('Unknown beat', b);

@@ -14,6 +14,8 @@ export class Notes {
     this.sound = sound;
     this.list = sheet.querySelector('.notes-list');
     this.items = [];
+    this.isOpen = false;
+    this.waiters = [];
     button.addEventListener('click', () => this.open());
     sheet.querySelector('.notes-close').addEventListener('click', () => this.close());
     sheet.addEventListener('click', (e) => e.target === sheet && this.close());
@@ -23,11 +25,13 @@ export class Notes {
    * Adds a note and shows it big until the player taps it, so it is always read; then it
    * flies onto the stack. Resolves when it has gone. Ids keep a note from repeating.
    */
-  add(id, title, body, { quiet = false } = {}) {
-    if (this.items.some((n) => n.id === id)) return Promise.resolve();
+  async add(id, title, body, { quiet = false } = {}) {
+    if (this.items.some((n) => n.id === id)) return;
     this.items.push({ id, title, body });
     this.render();
-    if (quiet) return Promise.resolve();
+    if (quiet) return;
+    // Never on top of the open notes: it waits until the player is back at the radio.
+    await this.closed();
     this.sound.note?.();
     const first = this.items.length === 1;
     const fly = document.createElement('button');
@@ -64,14 +68,25 @@ export class Notes {
   }
 
   open() {
+    this.isOpen = true;
     this.sheet.hidden = false;
     this.sound.paper?.();
     requestAnimationFrame(() => this.sheet.classList.add('is-open'));
   }
 
   close() {
+    this.isOpen = false;
     this.sheet.classList.remove('is-open');
-    setTimeout(() => (this.sheet.hidden = true), 300);
+    setTimeout(() => !this.isOpen && (this.sheet.hidden = true), 300);
+    const waiting = this.waiters;
+    this.waiters = [];
+    waiting.forEach((resolve) => resolve());
+  }
+
+  /** Resolves at once if the notes are shut, otherwise when the player closes them. */
+  closed() {
+    if (!this.isOpen) return Promise.resolve();
+    return new Promise((resolve) => this.waiters.push(resolve));
   }
 
   /** For saving: the ids, titles and bodies. */
