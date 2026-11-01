@@ -255,7 +255,10 @@ export class Player {
   /** Blink the desk lamp `times` times by tapping it; a window in town answers. */
   async lamp(times) {
     const { stage, radio, sound } = this;
-    radio.hint('Tap the desk lamp to blink it.');
+    // One tap is one blink, so the hint says how many, and counts down; otherwise the first
+    // blink looks like the whole job and the player waits.
+    const count = ['', 'once', 'twice', 'three times'][times] ?? `${times} times`;
+    radio.hint(`Tap the desk lamp to blink it ${count}.`);
     for (let i = 0; i < times; i++) {
       await Promise.race([stage.waitTap('lamp'), radio.hintTap()]);
       sound.lamp?.();
@@ -263,6 +266,8 @@ export class Player {
       await wait(420);
       sound.lamp?.();
       stage.set({ lamp: 1 });
+      const left = times - i - 1;
+      if (left) radio.hint(left === 1 ? 'Once more: tap the lamp.' : `${left} more: tap the lamp.`);
       await wait(260);
     }
     radio.hint('');
