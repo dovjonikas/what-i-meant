@@ -231,8 +231,9 @@ function townLights(ctx, L, M, town, kid, t, mood) {
     // A torch under a blanket: not steady like a lamp, it wavers.
     const f = 0.78 + 0.12 * Math.sin(t * 6.1) + 0.07 * Math.sin(t * 13.7 + 1.3) + 0.03 * Math.sin(t * 29);
     const b = kid * f;
-    // Whiter than the town's lamps, so it can be told apart even among them.
-    stamp(ctx, glowSprite('#fff2c8'), kw.x, kw.y, (fog ? 16 : 9) * L.k, 0.6 * b);
+    // Whiter than the town's lamps, so it can be told apart even among them; at full
+    // (the answer to the desk lamp) the glow spreads, so a blink across the water is seen.
+    stamp(ctx, glowSprite('#fff2c8'), kw.x, kw.y, (fog ? 16 : 9 + 12 * kid) * L.k, (0.6 + 0.3 * kid) * b);
     ctx.fillStyle = css('#fffbea', Math.min(1, b));
     ctx.fillRect(kw.x - kw.w / 2 - 0.3, kw.y - kw.h / 2 - 0.3, kw.w + 0.6, kw.h + 0.6);
     if (reflect) reflection(ctx, kw.x, base, reflect * L.k * 1.2, t, 99, '#fff2c8', 0.7 * b);
