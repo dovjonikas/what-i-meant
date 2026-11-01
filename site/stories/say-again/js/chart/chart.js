@@ -88,7 +88,7 @@ export class Chart {
       const st = STATIONS[line.from];
       this.say.innerHTML =
         (intro ? `<span class="chart-intro">${intro}</span>` : '') +
-        `${st.name} heard it on <b>${fmtBearing(line.brg)}</b>. Drag from the mast until the pencil reads ${fmtBearing(line.brg)}.`;
+        `${st.name} heard it on <b>${fmtBearing(line.brg)}</b>. Drag a line out from the ringed mast until its number reads ${fmtBearing(line.brg)}.`;
     } else if (t.mark && !this.marked) {
       this.say.innerHTML =
         this.laid.length >= 3
@@ -172,7 +172,7 @@ export class Chart {
       this.lay({ from: a.from, brg: t.lines[t.next].brg });
     } else {
       t.tries += 1;
-      this.say.innerHTML = `Not on it yet. Watch the number by the pencil: it has to read <b>${fmtBearing(t.lines[t.next].brg)}</b>.`;
+      this.say.innerHTML = `Not on it yet. Watch the number at the end of the line: it has to read <b>${fmtBearing(t.lines[t.next].brg)}</b>.`;
       if (t.tries >= 3) this.help.hidden = false;
     }
   }
@@ -310,10 +310,13 @@ export class Chart {
     if (next) {
       const st = STATIONS[next.from];
       const k = (Math.sin(this.pulse * 3) + 1) / 2;
-      ctx.strokeStyle = `rgb(184 69 47 / ${0.35 + k * 0.4})`;
-      ctx.lineWidth = 2;
+      // Strong at the faint end of the breath too: it is where the drag starts.
+      ctx.fillStyle = 'rgb(184 69 47 / 0.12)';
+      ctx.strokeStyle = `rgb(184 69 47 / ${0.65 + k * 0.35})`;
+      ctx.lineWidth = 2.4;
       ctx.beginPath();
       ctx.arc(X(st.x), Y(st.y), 12 + k * 6, 0, Math.PI * 2);
+      ctx.fill();
       ctx.stroke();
     }
 
