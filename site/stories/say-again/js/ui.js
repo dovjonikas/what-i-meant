@@ -22,18 +22,22 @@ export class Ui {
     this.paperEl = document.querySelector('.paper');
   }
 
-  /** A night's name on a dark card. */
+  /**
+   * A night's name on a dark card. Resolves while the card is still dark, so the next
+   * picture and the radio come in under it, and the card fades off them a moment later.
+   */
   card(title, sub = '', ms = 2800) {
     const c = this.cardEl;
     c.innerHTML = `<p class="card-title">${title}</p>${sub ? `<p class="card-sub">${sub}</p>` : ''}`;
     c.hidden = false;
     requestAnimationFrame(() => c.classList.add('is-on'));
-    return wait(ms).then(() => {
+    wait(ms).then(() => {
       c.classList.remove('is-on');
       return wait(900);
     }).then(() => {
       c.hidden = true;
     });
+    return wait(ms - 1000);
   }
 
   /**
