@@ -67,7 +67,14 @@ let audio = null;
 const params = new URLSearchParams(location.search);
 const checking = params.has('check');
 
+// The gate's buttons keep focus after the tap, so Enter or Space could press them again and
+// start a second player over the first; the story starts once.
+let begun = false;
+
 async function begin(from) {
+  if (begun) return;
+  begun = true;
+  document.activeElement?.blur();
   closeInstall();
   document.body.classList.remove('is-gate');
   audio = await startAudio();
