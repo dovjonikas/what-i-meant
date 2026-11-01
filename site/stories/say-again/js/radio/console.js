@@ -137,12 +137,12 @@ export class Console {
   tuneTo(ch, hint) {
     this.waitFor = ch;
     this.showWant();
-    this.hint(hint ?? `Turn the knob to channel ${ch}.`);
-    // For anyone who cannot turn it, a tap on the hint does it; after a while the hint says so.
-    this.hintResolve = () => this.setChannel(ch);
     const base = hint ?? `Turn the knob to channel ${ch}.`;
+    this.hint(base);
+    // Only the knob (or the 16 key, for 16) gets there: the move is the player's to make.
+    // After a while the hint says how.
     clearTimeout(this.stuck);
-    this.stuck = setTimeout(() => this.waitFor === ch && this.hint(`${base} Drag it round, or tap here.`), 9000);
+    this.stuck = setTimeout(() => this.waitFor === ch && this.hint(`${base} Drag the knob round until it reads ${ch}.`), 9000);
     this.knob.classList.add('is-wanted');
     return new Promise((resolve) => {
       const check = () => {
@@ -155,7 +155,6 @@ export class Console {
           this.showWant();
           this.knob.classList.remove('is-wanted');
           this.hint('');
-          this.hintResolve = null;
           resolve();
         }, 450);
       };
