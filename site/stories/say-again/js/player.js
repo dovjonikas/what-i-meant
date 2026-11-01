@@ -177,7 +177,7 @@ export class Player {
       // The decoder covers the screen, so the last line gets a moment to be read first.
       await wait(900);
       await this.onAir(undefined, 'kid');
-      await radio.decode(b.morse, { count: b.count ?? 0, unit: b.unit ?? 110 });
+      await radio.decode(b.morse, { count: b.count ?? 0, unit: b.unit ?? 110, distinct: !!b.distinct });
       return wait(800);
     }
     if (b.key) {
@@ -259,7 +259,12 @@ export class Player {
   async say(b) {
     let opts = b.say.filter((o) => !o.if || this.matches(o.if));
     for (;;) {
-      const i = await this.radio.choose(opts.map((o) => ({ label: this.fill(o.label) })), this.fill(b.prompt ?? ''));
+      const i = await this.radio.choose(opts.map((o) => ({ label: this.fill(o.label) })), this.fill(b.prompt ?? ''), { silence: b.silence });
+      // Said nothing, and the story allowed it: the other side takes the silence as the answer.
+      if (i < 0) {
+        await this.run(b.quiet ?? []);
+        break;
+      }
       const o = opts[i];
       await this.transmit(this.fill(o.text), o.to ?? b.to ?? 'kid');
       if (o.set) Object.assign(this.flags, o.set);

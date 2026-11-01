@@ -385,8 +385,9 @@ export class Console {
    * Shows what you can say and resolves with the index picked. Each option is
    * { label } (the gist, kept short so it fits); the full words go out when you transmit.
    */
-  choose(options, prompt = '') {
+  choose(options, prompt = '', { silence = 0 } = {}) {
     this.choices.innerHTML = '';
+    clearTimeout(this.silent);
     if (prompt) {
       const p = document.createElement('p');
       p.className = 'c-ask';
@@ -395,6 +396,16 @@ export class Console {
     }
     this.screen.classList.add('has-choices');
     return new Promise((resolve) => {
+      // With `silence`, not picking for that long is itself the answer (resolves -1).
+      if (silence) {
+        this.silent = setTimeout(() => {
+          if (!this.choices.querySelector('.c-choice')) return;
+          this.choices.innerHTML = '';
+          this.screen.classList.remove('has-choices');
+          this.root.style.setProperty('--grow', '0px');
+          resolve(-1);
+        }, silence);
+      }
       options.forEach((o, i) => {
         const b = document.createElement('button');
         b.type = 'button';
@@ -403,6 +414,7 @@ export class Console {
         b.style.setProperty('--i', i);
         b.addEventListener('click', (e) => {
           e.stopPropagation();
+          clearTimeout(this.silent);
           this.sound.dialTick?.();
           this.choices.innerHTML = '';
           this.screen.classList.remove('has-choices');
@@ -541,7 +553,7 @@ export class Console {
    * from four choices; the rest the player "starts to hear" and they fill in by themselves.
    * Resolves with the decoded text.
    */
-  async decode(text, { count = 1, unit = 110, who = 'kid' } = {}) {
+  async decode(text, { count = 1, unit = 110, who = 'kid', distinct = false } = {}) {
     const panel = this.openPanel('decode');
     const slots = panel.querySelector('.d-word');
     const big = panel.querySelector('.d-big');
@@ -562,19 +574,28 @@ export class Console {
     const skipTip = setTimeout(() => count === 0 && (tip.textContent = 'Tap the screen to read it all at once.'), 2500);
     let n = 0;
     let c = 0;
+    // His fist: uneven dots and dashes and a long breath before each word. Everyone else
+    // on the air sends like a machine; he is the one you learn to hear.
+    const fist = who === 'kid';
     for (const ch of letters) {
       if (ch === ' ') {
-        await wait(unit * 7);
+        await wait(unit * (fist ? 10 : 7));
         continue;
       }
       const cell = cells[c++];
       const pattern = ch === 'SOS' ? SOS : MORSE[ch];
+      // A sign the table does not know (a full stop, say) is shown and not played.
+      if (!pattern) {
+        cell.textContent = ch;
+        cell.classList.add('is-read');
+        continue;
+      }
       cell.classList.add('is-now');
       big.textContent = '';
-      if (!this.skipMorse) await this.playPattern(pattern, unit, (shown) => (big.textContent = glyphs(shown)));
+      if (!this.skipMorse) await this.playPattern(pattern, unit, (shown) => (big.textContent = glyphs(shown)), fist);
       if (n < count && ch !== 'SOS') {
         tip.textContent = n === 0 ? 'Short beep: dot. Long: dash. Which letter?' : 'And this one?';
-        await this.pickLetter(pick, ch, tip);
+        await this.pickLetter(pick, ch, tip, distinct);
         tip.textContent = '';
       } else if (!this.skipMorse) {
         await wait(unit * 3);
@@ -594,7 +615,7 @@ export class Console {
     return text;
   }
 
-  async playPattern(pattern, unit, onShow) {
+  async playPattern(pattern, unit, onShow, fist = false) {
     let shown = '';
     this.lamp('rx', true);
     this.sound.rx?.(true);
@@ -603,19 +624,20 @@ export class Console {
       this.sound.rxToneOn?.();
       shown += el;
       onShow(shown);
-      await wait(el === '.' ? unit : unit * 3);
+      const u = fist ? unit * (0.85 + Math.random() * 0.3) : unit;
+      await wait(el === '.' ? u : u * 3);
       this.sound.rxToneOff?.();
-      await wait(unit);
+      await wait(fist ? unit * (0.9 + Math.random() * 0.4) : unit);
     }
     this.sound.rx?.(false);
     this.lamp('rx', false);
   }
 
-  pickLetter(pick, letter, tip) {
+  pickLetter(pick, letter, tip, distinct = false) {
     pick.innerHTML = '';
     let wrong = 0;
     return new Promise((resolve) => {
-      for (const ch of choicesFor(letter)) {
+      for (const ch of choicesFor(letter, Math.random, { distinct })) {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'd-letter';

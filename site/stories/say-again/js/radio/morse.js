@@ -31,8 +31,10 @@ export function decodeLetter(pattern) {
 /**
  * Four letters to pick from when decoding: the right one and three that sound close to it
  * (same length or one element off), so the choice teaches the code instead of guessing.
+ * With `distinct`, the three sound nothing like it (other lengths, other first sign), for
+ * the one word that must not be fumbled into.
  */
-export function choicesFor(letter, rng = Math.random) {
+export function choicesFor(letter, rng = Math.random, { distinct = false } = {}) {
   const want = MORSE[letter];
   const kind = /[0-9]/.test(letter) ? /[0-9]/ : /[A-Z]/;
   const others = Object.keys(MORSE).filter((ch) => ch !== letter && kind.test(ch));
@@ -40,6 +42,7 @@ export function choicesFor(letter, rng = Math.random) {
     const p = MORSE[ch];
     let s = Math.abs(p.length - want.length) * 2;
     for (let i = 0; i < Math.max(p.length, want.length); i++) if (p[i] !== want[i]) s += 1;
+    if (distinct) s = (p.length === want.length ? 6 : 0) + (p[0] === want[0] ? 3 : 0) - Math.abs(p.length - want.length);
     return s + rng() * 1.5;
   };
   const scored = new Map(others.map((ch) => [ch, score(ch)]));
