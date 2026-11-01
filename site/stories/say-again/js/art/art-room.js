@@ -62,6 +62,8 @@ export function roomLayout(view) {
     drawing: { x: U(0.05), y: sillY - dh + 2 * k, w: dw, h: dh, angle: -0.035 },
     mug: { x: U(0.22), y: Y(0.975) - 27 * k, w: 21 * k, h: 27 * k },
     thermos: { x: U(0.055), base: Y(0.975), w: 15 * k, h: 46 * k },
+    headset: { x: U(0.47), y: Y(0.03), r: 12 * k },
+    binoculars: { x: U(0.48), y: sillY + Math.max(4, 7 * k) * 0.7, w: 24 * k },
     book: { x: U(0.4), y: Y(0.905), w: colW * 0.27, h: Z * 0.085 },
     lamp: {
       base: lampBase,
