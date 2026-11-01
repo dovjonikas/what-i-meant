@@ -1,0 +1,28 @@
+<!doctype html>
+<!-- audio-test.html: renders every sound and every music act of Say Again offline and
+     prints peak and RMS levels, so levels can be checked without listening. Not linked from
+     the game; open it by address. ?live also runs a live check that sounds started and
+     stopped many times do not pile up. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Say Again sound levels</title>
+    <link rel="icon" href="data:," />
+    <style>
+      body { margin: 16px; background: #111; color: #ddd; font: 14px/1.4 system-ui, sans-serif; }
+      table { border-collapse: collapse; }
+      th, td { padding: 2px 10px; text-align: right; }
+      th:first-child, td:first-child, td:nth-child(2) { text-align: left; }
+      tr.warn td { color: #f99; }
+      button { margin: 4px 4px 12px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>Sound levels</h1>
+    <p id="status">Rendering</p>
+    <div id="listen"></div>
+    <table id="levels"></table>
+    <script type="module" src="audio-test.js"></script>
+  </body>
+</html>
