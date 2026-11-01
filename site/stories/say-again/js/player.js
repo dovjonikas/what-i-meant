@@ -211,7 +211,7 @@ export class Player {
     for (;;) {
       await this.onAir(b.ch, b.rx);
       const df = b.df != null ? this.radio.df(b.df) : null;
-      const { lost } = await this.radio.receive(b.rx, text, b.voice, { broken: b.broken });
+      const { lost } = await this.radio.receive(b.rx, text, b.voice, { broken: b.broken, ch: b.ch });
       if (df) await df;
       if (!lost) break;
       // Turned off the channel halfway: back on it, ask for the message again, as on any radio.
