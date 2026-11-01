@@ -11,7 +11,7 @@
 // from the rack and the slippers wait under it.
 
 import { cachedLayer, put, paper, css, mix, rng, roundRect, poly, line, mark, vGrad, glowSprite, stamp } from './art-kit.js';
-import { writeWord } from './art-drawing.js';
+import { writeWord, paintKidDrawing } from './art-drawing.js';
 
 function layout(view) {
   const { w, h, colW, colX } = view;
@@ -184,7 +184,9 @@ function kitchen(g, L, night) {
   g.fillRect(fridge.x + 0.04 * mF, fridge.y + fridge.h * 0.22, 0.02 * mF, 0.14 * mF);
   // Drawings held up by magnets: sizes in fridge widths, so they keep their shape.
   const pics = [
-    [0.22, 0.05, 0.56, 0.46, -0.06, '#fdf8ea', 'sun', '#d84a3a'],
+    // The top one is the same drawing taped to the station window: the mast, the house,
+    // DAD. Seen here first, in the hall, before the station makes anything of it.
+    [0.18, 0.05, 0.64, 0.5, -0.05, '#fdf8ea', 'mast', '#d84a3a'],
     [0.1, 0.42, 0.5, 0.4, 0.05, '#f2f6fa', 'boat', '#3a7ad8'],
     [0.4, 0.58, 0.52, 0.5, -0.03, '#fbf2e2', 'family', '#f0c030'],
   ];
@@ -198,7 +200,8 @@ function kitchen(g, L, night) {
     g.rotate(rot);
     g.fillStyle = css(bg);
     g.fillRect(0, 0, dw, dh);
-    crayonDoodle(g, what, dw, dh);
+    if (what === 'mast') paintKidDrawing(g, 0, 0, dw, dh, 1);
+    else crayonDoodle(g, what, dw, dh);
     g.restore();
     g.fillStyle = css(magnet);
     g.beginPath();
@@ -269,7 +272,7 @@ function table_(g, L) {
   mark('table', cx - half, top - depth, half * 2, hang + depth, 'high');
 }
 
-/** Little drawings on the fridge, as a child does them: a sun, a boat, three people. */
+/** Little drawings on the fridge, as a child does them: a boat, three people (the mast drawing is art-drawing.js). */
 function crayonDoodle(g, what, w, h) {
   g.lineWidth = Math.max(0.8, h * 0.06);
   g.lineCap = 'round';
