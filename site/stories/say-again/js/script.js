@@ -42,7 +42,7 @@ const n1 = [
   { wait: 700 },
   { rx: 'skipper', df: 39, broken: true, text: 'Mayday, mayday, mayday. This is Seagull, Seagull, Seagull. Mayday, Seagull. Taking water, three persons on board. Position, we are north of the' },
   { music: 'rescue' },
-  { note: ['mayday', 'MAYDAY', 'Said three times: a boat or a life in grave danger. Everything else on 16 stops, and the station answers at once.'] },
+  { note: ['mayday', 'MAYDAY', 'Said three times: a boat or a life in grave danger. Then, in this order: the name, the position, what is wrong, the help needed, and persons on board (the count the rescuers work from). Everything else on 16 stops.'] },
   {
     to: 'skipper',
     prompt: 'A mayday, cut off halfway. Answer it.',
