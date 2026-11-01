@@ -139,11 +139,15 @@ export class Player {
       return;
     }
     if ('wait' in b) return wait(b.wait);
-    // Before the plain hint: a tune beat carries a hint too, and must wait for the knob.
+    // Before the plain hint: a tune beat and a hold carry a hint too, and must wait.
     if (b.tune) {
       await radio.tuneTo(b.tune, b.hint ? this.fill(b.hint) : undefined);
       radio.working = b.tune;
       return wait(500);
+    }
+    if ('hold' in b) {
+      await ui.hold(this.fill(b.hold), b.hint ?? 'Hold the button', b.hand ? (k) => stage.set({ hand: k }) : null);
+      return wait(600);
     }
     if ('hint' in b) return radio.hint(this.fill(b.hint));
     if (b.note) {
@@ -190,10 +194,6 @@ export class Player {
     }
     if (b.line) return ui.line(this.fill(b.line), b.who, { tap: b.tap !== false });
     if (b.pick) return this.pick(b);
-    if (b.hold) {
-      await ui.hold(this.fill(b.hold), b.hint ?? 'Hold the button', b.hand ? (k) => stage.set({ hand: k }) : null);
-      return wait(600);
-    }
     if (b.paper) return ui.paper(this.fill(b.paper));
     if (b.tap) return ui.tapToGo();
     if (b.end) {
@@ -219,7 +219,7 @@ export class Player {
       await wait(600);
       await this.onAir(b.ch, b.rx);
       await this.transmit('Say again. Over.', b.rx, 'You missed the end. Ask them to say again: hold.');
-      await this.notes.add('sayagain', 'SAY AGAIN', 'Missed the end of a message, or let go of the button too early? Ask SAY AGAIN and the whole message comes again. Army radio never says "repeat": on a gun net it means fire again.');
+      await this.notes.add('sayagain', 'SAY AGAIN', 'Missed the end, or let go too early? Ask SAY AGAIN and the whole message comes again. Radio never says "repeat": on a gun net it means fire again.');
       await wait(700);
     }
     await wait(b.after ?? Math.max(800, text.length * 16));
@@ -293,7 +293,7 @@ export class Player {
       else if (to === 'kid') await this.radio.decode('?', { count: 0, unit: 90 });
       else await this.radio.receive(to, to === 'cape' ? 'Dune, Cape. Say again. Over.' : 'Dune, say again. Over.');
       if (this.cuts === 1) {
-        await this.notes.add('sayagain', 'SAY AGAIN', 'Missed the end of a message, or let go of the button too early? Ask SAY AGAIN and the whole message comes again. Army radio never says "repeat": on a gun net it means fire again.');
+        await this.notes.add('sayagain', 'SAY AGAIN', 'Missed the end, or let go too early? Ask SAY AGAIN and the whole message comes again. Radio never says "repeat": on a gun net it means fire again.');
         await wait(2400);
       }
     }
@@ -304,8 +304,7 @@ export class Player {
     const asked = new Set();
     let n = 0;
     while (n < a.until || (a.must && !asked.has(a.must))) {
-      let avail = a.qs.filter((q) => !asked.has(q.id) && (!q.need || asked.has(q.need)));
-      if (a.must && !asked.has(a.must) && n >= a.until - 1) avail = a.qs.filter((q) => q.id === a.must);
+      const avail = a.qs.filter((q) => !asked.has(q.id) && (!q.need || asked.has(q.need)));
       if (!avail.length) break;
       const q = avail[await this.radio.choose(avail.map((x) => ({ label: this.fill(x.label) })), this.fill(n === 0 ? a.prompt ?? '' : ''))];
       await this.transmit(this.fill(q.text), a.to ?? 'kid');
