@@ -389,6 +389,21 @@ export class Chart {
         ctx.arc(X(f.x), Y(f.y), 2.2, 0, Math.PI * 2);
         ctx.fill();
       }
+      // Zoomed on the town with the fix marked: one window in that house is lit, the
+      // yellow one from the drawing on the station window.
+      if (this.marked && t?.zoom === 'town' && this.view.w < 400) {
+        const [hx, hy, hw, hh] = TOWN.houses[4];
+        const wx = X(hx + hw * 0.62);
+        const wy = Y(hy + hh * 0.5);
+        const k = (Math.sin(this.pulse * 2.2) + 1) / 2;
+        const glow = ctx.createRadialGradient(wx, wy, 0, wx, wy, 14 + k * 4);
+        glow.addColorStop(0, 'rgb(242 201 76 / 0.55)');
+        glow.addColorStop(1, 'rgb(242 201 76 / 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(wx - 20, wy - 20, 40, 40);
+        ctx.fillStyle = '#f2c94c';
+        ctx.fillRect(wx - 2.2, wy - 2.2, 4.4, 4.4);
+      }
     }
   }
 
