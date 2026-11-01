@@ -396,7 +396,7 @@ function tail(ctx, pts, tw, c, from = 0, to = pts.length - 1) {
 let heard = 0;
 let heardT = null;
 
-/** How much the cat is listening: eased, so its ears turn rather than jump. */
+/** How much the cat is listening, eased over a moment so its ears turn smoothly. */
 function listening(t, rx) {
   const dt = heardT == null ? 1 : clamp(t - heardT, 0, 0.1);
   heardT = t;
