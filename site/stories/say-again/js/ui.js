@@ -186,6 +186,7 @@ export class Ui {
   /** The end: the title, and the way back to the stories. */
   end() {
     const c = this.cardEl;
+    this.go.classList.remove('is-on');
     c.innerHTML = `<p class="card-kicker">What I Meant · 02</p><p class="card-title is-big">Say Again</p>
       <a class="btn" href="../../">Back to the stories</a>`;
     c.hidden = false;
