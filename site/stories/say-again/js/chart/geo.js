@@ -14,9 +14,28 @@ export const STATIONS = {
 
 // Where transmissions come from. Only the chart knows; the story never shows these points.
 export const TARGETS = {
-  boat: { x: 470, y: 360 },
+  boat: { x: 470, y: 360 }, // Seagull, sinking by green buoy 3 on night one (039° from Dune)
+  tern: { x: 600, y: 270 }, // Tern, drifting toward the stones off Cape on night two (044°)
   home: { x: 792, y: 584 },
 };
+
+// The buoyed channel across the lagoon, from the open water in the north toward the
+// harbour. IALA region A, numbered from seaward: green cones (odd) on the starboard hand
+// going in, here the west side; red cans (even) on the port hand. At night each blinks its
+// colour. Green 3 sits on Dune's 039° line, so a flare seen "by a green blink" can be found.
+export const BUOYS = [
+  { id: 'g1', side: 'green', n: 1, x: 418, y: 170 },
+  { id: 'r2', side: 'red', n: 2, x: 522, y: 160 },
+  { id: 'g3', side: 'green', n: 3, x: 478, y: 352 },
+  { id: 'r4', side: 'red', n: 4, x: 566, y: 322 },
+  { id: 'g5', side: 'green', n: 5, x: 578, y: 482 },
+  { id: 'r6', side: 'red', n: 6, x: 634, y: 452 },
+];
+
+/** A buoy as the story names it: "green buoy 3". */
+export function buoyName(b) {
+  return `${b.side} buoy ${b.n}`;
+}
 
 // The mainland on the east and south, then the spit, as outlines (clockwise).
 export const MAINLAND = [

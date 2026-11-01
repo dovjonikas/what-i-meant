@@ -4,7 +4,7 @@
 // magnetic ring, a scale bar in nautical miles, the harbour with its moles and IALA region A
 // buoys (red to port, green to starboard going in). chart.js draws the pencil on top.
 
-import { STATIONS, MAINLAND, SPIT, TOWN, dir } from './geo.js';
+import { STATIONS, MAINLAND, SPIT, TOWN, BUOYS, dir } from './geo.js';
 import { placeName } from './chart-place.js';
 
 const INK = '#2f3e47';
@@ -27,9 +27,10 @@ const SOUNDINGS = [
   [600, 690, '3'], [330, 900, '2'], [610, 300, '4'], [470, 220, '5'], [610, 600, '5'],
   [165, 300, '18'], [172, 720, '21'], [175, 880, '16'], [160, 150, '14'],
 ];
+// `label`: which point carries the depth figure; the east one sits clear of the buoyed channel.
 const CONTOURS = [
   { depth: 5, pts: [[332, 980], [320, 880], [312, 760], [306, 640], [300, 500], [289, 360], [272, 220], [252, 110], [236, 70]] },
-  { depth: 5, pts: [[738, 30], [714, 116], [690, 168], [650, 212], [640, 250], [684, 285], [656, 378], [636, 470], [644, 548], [628, 640], [598, 748], [528, 828], [458, 856], [390, 892], [338, 924]] },
+  { depth: 5, label: 9, pts: [[738, 30], [714, 116], [690, 168], [650, 212], [640, 250], [684, 285], [656, 378], [636, 470], [644, 548], [628, 640], [598, 748], [528, 828], [458, 856], [390, 892], [338, 924]] },
   { depth: 10, label: 3, pts: [[120, 1000], [136, 900], [144, 760], [152, 640], [144, 500], [130, 360], [114, 220], [104, 110], [110, 30]] },
 ];
 const HARBOUR = {
@@ -96,6 +97,7 @@ export function paintChart(g, w, h, { X, Y, s, map, zoomed, lines = [] }) {
   grid(g, X, Y, map);
   if (!zoomed) soundings(g, X, Y, map);
   harbour(g, X, Y, s);
+  fairway(g, X, Y, s, avoid);
   if (!zoomed) {
     const r = Math.max(34, 92 * s);
     rose(g, X(470), Y(690), r);
@@ -200,18 +202,40 @@ function harbour(g, X, Y, s) {
     g.stroke();
   }
   const r = Math.max(2.6, 4 * s);
-  // A can for port (red), a cone for starboard (green): IALA region A.
-  const [rx, ry] = HARBOUR.red;
+  can(g, X(HARBOUR.red[0]), Y(HARBOUR.red[1]), r);
+  cone(g, X(HARBOUR.green[0]), Y(HARBOUR.green[1]), r);
+}
+
+// A can for port (red), a cone for starboard (green): IALA region A.
+function can(g, x, y, r) {
   g.fillStyle = '#c0392b';
-  g.fillRect(X(rx) - r * 0.7, Y(ry) - r, r * 1.4, r * 1.6);
-  const [gx, gy] = HARBOUR.green;
+  g.fillRect(x - r * 0.7, y - r, r * 1.4, r * 1.6);
+}
+
+function cone(g, x, y, r) {
   g.fillStyle = '#2e8b57';
   g.beginPath();
-  g.moveTo(X(gx), Y(gy) - r * 1.1);
-  g.lineTo(X(gx) + r * 0.85, Y(gy) + r * 0.6);
-  g.lineTo(X(gx) - r * 0.85, Y(gy) + r * 0.6);
+  g.moveTo(x, y - r * 1.1);
+  g.lineTo(x + r * 0.85, y + r * 0.6);
+  g.lineTo(x - r * 0.85, y + r * 0.6);
   g.closePath();
   g.fill();
+}
+
+/** The buoyed channel (geo.js BUOYS), each mark with its number beside it, as on a chart. */
+function fairway(g, X, Y, s, avoid) {
+  const r = Math.max(3.2, 4.4 * s);
+  g.font = '600 10px Recursive, sans-serif';
+  g.textAlign = 'left';
+  for (const b of BUOYS) {
+    const x = X(b.x);
+    const y = Y(b.y);
+    if (b.side === 'green') cone(g, x, y, r);
+    else can(g, x, y, r);
+    g.fillStyle = b.side === 'green' ? '#2e6b47' : '#a5342a';
+    ink(g, String(b.n), x + r + 2, y + 4);
+    avoid.boxes.push({ x: x - r - 2, y: y - r - 3, w: 2 * r + 14, h: 2 * r + 6 });
+  }
 }
 
 function town(g, X, Y, s, map, zoomed, avoid) {
