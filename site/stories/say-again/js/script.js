@@ -271,7 +271,7 @@ const n3 = [
   { lamp: 2 },
   { clicks: 'x x' },
   { wait: 900 },
-  { say: [{ label: 'Find his window', text: '{cs}, go to channel one-six. Hold your button for ten seconds, then come back here. Over.' }] },
+  { say: [{ label: 'Get a bearing on him', text: '{cs}, go to channel one-six. Hold your button for ten seconds, then come back here. Over.' }] },
   { clicks: 'x x' },
   { tune: 16, hint: 'The finder listens on 16. Go there with him.' },
   { carrier: 3800, df: 84 },
