@@ -198,6 +198,22 @@ button {
   line-height: 1.1;
 }
 
+/* Off the channel the story needs: amber, with the wanted channel beside it. */
+.c-ch.is-off .c-ch-num {
+  color: var(--amber);
+  text-shadow: 0 0 6px rgb(233 162 76 / 0.45);
+}
+
+.c-ch-want {
+  color: var(--amber);
+  font-size: 13px;
+  text-shadow: 0 0 6px rgb(233 162 76 / 0.45);
+}
+
+.c-ch-want:empty {
+  display: none;
+}
+
 .c-df {
   margin-left: auto;
 }

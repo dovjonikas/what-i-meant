@@ -35,9 +35,11 @@ export class Console {
     this.ring = root.querySelector('.c-ptt-ring circle');
     this.key16 = root.querySelector('.c-16');
     this.channel = 16;
-    // The channel the conversation is on (player.js sets it). Off it you do not hear it and
-    // cannot talk on it; 16 is always heard, on the station's second receiver (dual watch).
-    this.working = null;
+    this.chBox = root.querySelector('.c-ch');
+    this.chWant = root.querySelector('.c-ch-want');
+    // The channel the conversation is on (player.js sets it through `working`). Off it you
+    // do not hear it and cannot talk on it; 16 is always heard, on the second receiver.
+    this.talkOn = null;
     this.knobAngle = 0;
     this.names = { you: 'YOU' };
     this.armed = null;
@@ -55,6 +57,28 @@ export class Console {
       this.hintResolve = null;
       r?.();
     });
+  }
+
+  get working() {
+    return this.talkOn;
+  }
+
+  set working(ch) {
+    this.talkOn = ch;
+    this.showWant();
+  }
+
+  /**
+   * Off the channel the story needs (the one it waits for, or the conversation's), the
+   * channel number turns amber and the wanted one shows beside it, so where to go is always
+   * on the radio itself, not only in the hint.
+   */
+  showWant() {
+    const want = this.waitFor ?? this.talkOn;
+    // 16 is heard on any channel, so it is only wanted when you must talk on it.
+    const off = want != null && want !== this.channel && !(this.waitFor == null && want === 16 && !this.armed);
+    this.chBox.classList.toggle('is-off', off);
+    this.chWant.textContent = off ? `→${String(want).padStart(2, '0')}` : '';
   }
 
   show(on) {
@@ -96,6 +120,7 @@ export class Console {
       clearTimeout(this.staticOff);
       this.staticOff = setTimeout(() => this.sound.staticLevel?.(0), 260);
     }
+    this.showWant();
     // With words ready to send, the hint follows the knob: where to go, or how to send them.
     if (this.armed && this.working != null) {
       if (n === this.working) this.hint(this.armed.hint);
@@ -105,12 +130,13 @@ export class Console {
   }
 
   offHint() {
-    this.hint(`You are on ${this.channel}. They are on ${this.working}: turn back, then hold.`);
+    this.hint(`You are on ${this.channel}. This goes out on ${this.working}: turn back to it, then hold.`);
   }
 
   /** Waits until the player has turned to a channel and left it there for a moment. */
   tuneTo(ch, hint) {
     this.waitFor = ch;
+    this.showWant();
     this.hint(hint ?? `Turn the knob to channel ${ch}.`);
     // For anyone who cannot turn it, a tap on the hint does it; after a while the hint says so.
     this.hintResolve = () => this.setChannel(ch);
@@ -126,6 +152,7 @@ export class Console {
           if (this.channel !== ch) return;
           this.onChannel = null;
           this.waitFor = null;
+          this.showWant();
           this.knob.classList.remove('is-wanted');
           this.hint('');
           this.hintResolve = null;
@@ -413,6 +440,7 @@ export class Console {
     this.ptt.classList.add('is-armed');
     return new Promise((resolve) => {
       this.armed = { text, hint, typed: 0, resolve, body: null, cps: Math.max(TALK_CPS, text.length / HOLD_MAX_S) };
+      this.showWant();
       if (this.working != null && this.channel !== this.working) this.offHint();
       else this.hint(hint);
     });
@@ -475,6 +503,7 @@ export class Console {
       a.stopVoice?.();
       const done = a.typed >= a.text.length;
       this.armed = null;
+      this.showWant();
       p.classList.remove('is-armed');
       if (!done) {
         a.body.textContent = a.text.slice(0, a.typed);

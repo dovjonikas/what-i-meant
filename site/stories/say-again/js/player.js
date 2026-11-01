@@ -147,7 +147,7 @@ export class Player {
     }
     if (b.rx) return this.rx(b);
     if (b.clicks) {
-      await this.onAir(b.ch);
+      await this.onAir(b.ch, b.from ?? 'kid');
       const df = b.df != null ? radio.df(b.df) : null;
       await radio.clicks(b.clicks, b.from ?? 'kid');
       if (df) await df;
@@ -171,7 +171,7 @@ export class Player {
       if (b.alert) sound.alert?.();
       // The decoder covers the screen, so the last line gets a moment to be read first.
       await wait(900);
-      await this.onAir();
+      await this.onAir(undefined, 'kid');
       await radio.decode(b.morse, { count: b.count ?? 0, unit: b.unit ?? 110 });
       return wait(800);
     }
@@ -209,14 +209,14 @@ export class Player {
   async rx(b) {
     const text = this.fill(b.text);
     for (;;) {
-      await this.onAir();
+      await this.onAir(undefined, b.rx);
       const df = b.df != null ? this.radio.df(b.df) : null;
       const { lost } = await this.radio.receive(b.rx, text, b.voice);
       if (df) await df;
       if (!lost) break;
       // Turned off the channel halfway: back on it, ask for the message again, as on any radio.
       await wait(600);
-      await this.onAir();
+      await this.onAir(undefined, b.rx);
       await this.transmit('Say again. Over.', b.rx, 'You missed the end. Ask them to say again: hold.');
       await this.notes.add('sayagain', 'SAY AGAIN', 'Missed the end of a message, or let go of the button too early? Ask SAY AGAIN and the whole message comes again. Army radio never says "repeat": on a gun net it means fire again.');
       await wait(700);
@@ -228,14 +228,21 @@ export class Player {
    * Waits until the radio hears `ch` (the conversation's channel unless given). Off it, the
    * story waits and the hint says where to turn back to, so wandering off loses nothing.
    */
-  async onAir(ch = this.radio.working) {
+  async onAir(ch = this.radio.working, who = '') {
     if (this.radio.hears(ch)) return;
-    await this.radio.tuneTo(ch, `Nothing comes through here. They are on ${ch}: turn back.`);
+    const name = this.speaker(who);
+    await this.radio.tuneTo(ch, `Nothing on ${this.radio.channel}. ${name} ${name === 'They' ? 'are' : 'is'} on ${ch}: turn back to it.`);
+  }
+
+  /** How a hint names whoever is calling. */
+  speaker(who) {
+    if (who === 'kid') return this.flags.cs ?? 'The caller';
+    return { cape: 'Cape', skipper: 'Seagull', rescue: 'Rescue One', pilot: 'The pilot station' }[who] ?? 'They';
   }
 
   /** The button held down with no voice: enough for the direction finder. */
   async carrier(b) {
-    await this.onAir();
+    await this.onAir(undefined, b.from ?? 'kid');
     this.radio.lamp('rx', true);
     this.sound.rx?.(true);
     const body = this.radio.line(b.from ?? 'kid', 'carrier, no voice', 'is-clicks');
@@ -302,7 +309,7 @@ export class Player {
       const q = avail[await this.radio.choose(avail.map((x) => ({ label: this.fill(x.label) })), this.fill(n === 0 ? a.prompt ?? '' : ''))];
       await this.transmit(this.fill(q.text), a.to ?? 'kid');
       await wait(q.delay ?? 600);
-      await this.onAir();
+      await this.onAir(undefined, a.from ?? 'kid');
       await this.radio.clicks(q.a, a.from ?? 'kid');
       asked.add(q.id);
       n += 1;
