@@ -1,12 +1,12 @@
 # Say Again
 
 The second story. Four night shifts at a coast radio station on a dune by the Baltic.
-Someone on channel 16 never speaks, only clicks and sends Morse. You answer on the radio
-on the desk: pick what to say, then hold the button while it goes out. Along the way the
-player learns how radio is really worked: OVER and OUT, channel 16, MAYDAY, PAN-PAN and
-SÉCURITÉ, Morse, bearings, a fix and a cocked hat on a chart. The pictures are painted in
-code, the sound and music are made live in the browser. Plain HTML, CSS and ES modules;
-nothing to build or install.
+A mayday breaks off, and then someone on channel 16 who never speaks, only clicks and
+sends Morse. You answer on the radio on the desk: pick what to say, then hold the button
+while it goes out. Along the way the player learns how radio is really worked: OVER and
+OUT, channel 16, MAYDAY, PAN-PAN and SÉCURITÉ, Morse, bearings, buoys, a fix and a cocked
+hat on a chart. The pictures are painted in code, the sound and music are made live in
+the browser. Plain HTML, CSS and ES modules; nothing to build or install.
 
 **The text is a draft.** Every line in `js/script.js` was drafted so the story can be
 played from start to end. The author rewrites them; see the repo `CLAUDE.md`.
