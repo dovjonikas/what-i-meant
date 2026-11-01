@@ -44,7 +44,7 @@
 
 <p align="center">
   <a href="https://dovjonikas.github.io/what-i-meant/stories/say-again/">
-    <img src=".github/readme/say-again.webp" alt="Three moments from Say Again: the radio on the desk, Morse to read, the chart of the bay" width="100%">
+    <img src=".github/readme/say-again.webp" alt="Three moments from Say Again: a mayday that breaks off, the chart of the bay, Morse to read" width="100%">
   </a>
 </p>
 
