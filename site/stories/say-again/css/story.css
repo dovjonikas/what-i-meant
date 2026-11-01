@@ -315,8 +315,12 @@ button {
   list-style: none;
   overflow-y: auto;
   scrollbar-width: none;
-  mask-image: linear-gradient(to bottom, transparent, #000 22px);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 22px);
+}
+
+/* A soft top edge only when older lines sit above it, so it never dims the line being read. */
+.c-log.is-scrolled {
+  mask-image: linear-gradient(to bottom, transparent, #000 12px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12px);
 }
 
 .c-log::-webkit-scrollbar {

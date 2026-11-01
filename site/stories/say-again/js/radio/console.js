@@ -48,6 +48,7 @@ export class Console {
     this.key16.addEventListener('click', () => this.setChannel(16));
     // A tap on the screen shows the rest of a line that is still appearing.
     this.screen.addEventListener('click', () => this.skip?.());
+    this.list.addEventListener('scroll', () => this.edge(), { passive: true });
     // The hint can stand in for a tap on the picture (the lamp), for anyone who cannot find it.
     this.hintEl.addEventListener('click', () => {
       const r = this.hintResolve;
@@ -246,6 +247,12 @@ export class Console {
 
   scrollDown() {
     this.list.scrollTop = this.list.scrollHeight;
+    this.edge();
+  }
+
+  /** The faded top edge shows only when there is something above to fade. */
+  edge() {
+    this.list.classList.toggle('is-scrolled', this.list.scrollTop > 1);
   }
 
   /**
@@ -386,8 +393,8 @@ export class Console {
    */
   fit() {
     const last = this.list.lastElementChild;
-    // A little over the last message, so its first line clears the fade at the top.
-    const logH = Math.max(last ? last.offsetHeight + 18 : 0, 60);
+    // A little over the last message, so its first line clears the faded top edge.
+    const logH = Math.max(last ? last.offsetHeight + 14 : 0, 60);
     this.screen.style.setProperty('--log-h', `${logH}px`);
     const box = getComputedStyle(this.choices);
     const kids = [...this.choices.children];
