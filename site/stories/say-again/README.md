@@ -18,7 +18,7 @@ http://localhost:5173/stories/say-again/. Work pages, not linked from the story:
 `dev/art.html` shows one painted scene (`?scene=room&mood=storm`; `?check` lists anything
 outside the phone-wide column), `dev/audio-test.html` renders every sound offline and
 prints its level. Playing with `?check` puts the parts on `window.__say` for test scripts,
-and `?check&at=n3` starts at a night's label.
+and `?check&at=n3` starts at a label (a night, or one inside it such as `n4-sos`).
 
 ## What is where
 
@@ -54,8 +54,12 @@ deer, the fawn or the cat sets a flag too, and the kitchen remembers it.
 The bearings in the story come from the map in `chart/geo.js`, so the number on the radio,
 the line on the chart and the fix always agree.
 
-The player's place is saved in `localStorage` under `wim.say-again` at each night's label,
-with the flags and the notes, so the start screen offers to continue.
+The player's place is saved in `localStorage` under `wim.say-again` at each night's label
+and at the labels marked `mid` inside a night, with the flags and the notes, so the start
+screen offers to continue. From a `mid` label, `player.js` sets the room, the clock and the
+channel from the beats before it without playing them.
+
+While the notes are open the story waits between beats, so nothing comes in unseen.
 
 ## Notes
 
