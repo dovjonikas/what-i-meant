@@ -10,7 +10,8 @@
 import { cachedLayer, put, glowSprite, stamp, css, mix, rng, mark, paper, blink, clamp, poly } from './art-kit.js';
 import { paintInside } from './art-room-inside.js';
 import { paintOutside, outsideGeo, fogLayer, MOODS } from './art-room-outside.js';
-import { paintDeer, paintCat, paintMoths, paintTow, windowSpill } from './art-room-life.js';
+import { paintDeer, paintMoths, paintTow, windowSpill } from './art-room-life.js';
+import { paintCat } from './art-cat.js';
 
 const TOP = 60;
 const geos = new Map();

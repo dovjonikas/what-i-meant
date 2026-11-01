@@ -1,24 +1,21 @@
 // art-room-life.js: the living things in the station room scene, all drawn each frame and
 // all cheap: roe deer on the dune below the window (a doe, sometimes with her spotted
-// fawn), the station cat asleep on the desk by the logbook, moths round the lamp, and on
-// the fog night a rescue boat towing a fishing boat home across the lagoon.
+// fawn), moths round the lamp, and on the fog night a rescue boat towing a fishing boat
+// home across the lagoon. The station cat has its own file, art-cat.js.
 //
 // Nothing here keeps state between frames except the moths' memory of the lamp (so they
 // scatter when it goes out and drift back when it comes on). Everything else is worked out
 // from t, so a scene that is shown again picks up where the clock says.
 //
 // Taps: the caller sets s.poked = { deer, fawn, cat } to the t of the tap; the doe lifts
-// her head and looks at the window, the fawn hops, the cat stretches and settles.
+// her head and looks at the window, the fawn hops.
 
-import { css, mix, clamp, smooth, glowSprite, stamp, mark, poly } from './art-kit.js';
+import { css, mix, clamp, smooth, bump, glowSprite, stamp, mark, poly } from './art-kit.js';
 import { limb } from './art-people.js';
 
 // How many deer each look has unless the caller says (fog is too thick to see any).
 const DEER = { calm: 1, fog: 0, clear: 2, storm: 2, evening: 2 };
 const CYCLE = 50;
-
-/** A smooth bump: 0 before a, up by a + rise, down from b - fall to 0 at b. */
-const bump = (t, a, b, rise = 0.5, fall = 0.6) => Math.min(smooth(clamp((t - a) / rise)), 1 - smooth(clamp((t - (b - fall)) / fall)));
 
 /**
  * Where the doe and fawn are and what they are doing at time t. Returns [] or
@@ -205,111 +202,6 @@ function deer(ctx, x, y, S, d, c, t) {
     }
   }
   ctx.restore();
-}
-
-/**
- * The station cat, a grey tabby curled asleep on the desk by the logbook, lit by the lamp.
- * Breathing; ears turn to the radio when it receives (s.rx); a tap makes it stretch, lift
- * its head and settle. In the storm it curls up tighter and flattens its ears at a flash.
- */
-export function paintCat(ctx, L, M, t, s, mood) {
-  if (s.cat === false) return {};
-  const lamp = clamp(s.lamp ?? 1);
-  const k = L.k;
-  const storm = mood === 'storm';
-  const cx = L.U(0.715);
-  const base = L.Y(0.985);
-  const tight = storm ? 0.85 : 1;
-  const poke = s.poked?.cat != null ? t - s.poked.cat : -1;
-  const stretch = poke >= 0 && poke < 3.4 ? bump(poke, 0, 3.4, 0.7, 1.1) : 0;
-  const lift = Math.max(stretch, s.rx ? 0.4 : 0);
-  const W = 74 * k * tight * (1 + stretch * 0.14);
-  const H = 30 * k * (storm ? 1.08 : 1) * (1 - stretch * 0.1);
-  const breath = 1 + Math.sin(t * 1.3) * 0.03;
-  // Its colours, as the lamp lights it or as the night leaves it.
-  const lit = 0.12 + 0.78 * lamp;
-  const tone = (hex) => css(mix(mix(mix(hex, M.room, 0.8), '#04060c', 0.15), hex, lit));
-  const fur = '#7c6a5c';
-  const stripe = '#4c3e34';
-  const pale = '#d8cfc2';
-  ctx.save();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.fillStyle = css('#000000', 0.25);
-  ctx.beginPath();
-  ctx.ellipse(cx, base, W * 0.58, H * 0.16, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // The body: a round back, higher behind, curled toward the head at the front.
-  const top = base - H * breath;
-  ctx.fillStyle = tone(fur);
-  ctx.beginPath();
-  ctx.moveTo(cx - W * 0.34, base);
-  ctx.bezierCurveTo(cx - W * 0.4, top + H * 0.1, cx - W * 0.05, top - H * 0.04, cx + W * 0.2, top + H * 0.06);
-  ctx.bezierCurveTo(cx + W * 0.5, top + H * 0.2, cx + W * 0.55, base - H * 0.1, cx + W * 0.38, base);
-  ctx.closePath();
-  ctx.fill();
-  // Tabby stripes over the back.
-  ctx.strokeStyle = tone(stripe);
-  ctx.lineWidth = Math.max(1, W * 0.032);
-  for (let i = 0; i < 4; i++) {
-    const sx = cx - W * 0.06 + i * W * 0.11;
-    ctx.beginPath();
-    ctx.moveTo(sx, top + H * (0.05 + Math.abs(i - 1.2) * 0.05));
-    ctx.quadraticCurveTo(sx + W * 0.05, top + H * 0.3, sx + W * 0.03, top + H * 0.55);
-    ctx.stroke();
-  }
-  // The tail round the front, its dark tip near the nose (in the storm, over it).
-  ctx.strokeStyle = tone(fur);
-  ctx.lineWidth = H * 0.24;
-  const twitch = Math.sin(t * 0.7) > 0.93 ? Math.sin(t * 9) * W * 0.025 : 0;
-  const tipX = cx - W * (storm ? 0.42 : 0.3);
-  const tipY = base - H * (storm ? 0.3 : 0.1) + twitch;
-  ctx.beginPath();
-  ctx.moveTo(cx + W * 0.4, base - H * 0.12);
-  ctx.quadraticCurveTo(cx + W * 0.05, base + H * 0.02, tipX, tipY);
-  ctx.stroke();
-  ctx.strokeStyle = tone(stripe);
-  ctx.beginPath();
-  ctx.moveTo(tipX + W * 0.06, tipY + H * 0.02);
-  ctx.lineTo(tipX, tipY);
-  ctx.stroke();
-  // A front paw, stretched out ahead when it stretches.
-  ctx.fillStyle = tone(pale);
-  ctx.beginPath();
-  ctx.ellipse(cx - W * (0.42 + stretch * 0.2), base - H * 0.06, W * 0.07, H * 0.07, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // The head: round, at the front of the curl, chin down; it lifts when it wakes or listens.
-  const hr = W * 0.15;
-  const hx = cx - W * (0.36 + stretch * 0.06);
-  const hy = base - H * (0.46 + lift * 0.45) - hr * 0.1;
-  ctx.fillStyle = tone(fur);
-  ctx.beginPath();
-  ctx.ellipse(hx, hy, hr * 1.12, hr * 0.95, -0.1, 0, Math.PI * 2);
-  ctx.fill();
-  // Ears: up when calm, turned toward the radio below when it receives, flat in the storm.
-  const flat = storm ? 0.45 + 0.55 * clamp(s.flash ?? 0) : 0;
-  const toRadio = s.rx ? 0.55 : 0;
-  for (const side of [-1, 1]) {
-    const ex = hx + side * hr * 0.55;
-    const ey = hy - hr * 0.55;
-    const lean = side * (0.22 + flat * 0.9) - toRadio;
-    const tall = hr * (0.85 - flat * 0.45);
-    ctx.fillStyle = tone(fur);
-    poly(ctx, [[ex - hr * 0.32, ey + hr * 0.2], [ex + Math.sin(lean) * tall, ey - Math.cos(lean) * tall], [ex + hr * 0.32, ey + hr * 0.2]]);
-    ctx.fill();
-  }
-  // A darker stripe or two on the forehead, the tabby's mark.
-  ctx.strokeStyle = tone(stripe);
-  ctx.lineWidth = Math.max(0.8, W * 0.022);
-  ctx.beginPath();
-  ctx.moveTo(hx - hr * 0.15, hy - hr * 0.8);
-  ctx.lineTo(hx - hr * 0.1, hy - hr * 0.35);
-  ctx.moveTo(hx + hr * 0.2, hy - hr * 0.8);
-  ctx.lineTo(hx + hr * 0.15, hy - hr * 0.35);
-  ctx.stroke();
-  ctx.restore();
-  mark('cat', cx - W * 0.62, hy - hr * 1.8, W * 1.2, base - hy + hr * 1.8 + H * 0.2, 'room');
-  return { cat: { x: cx, y: base - H * 0.5, r: Math.max(26, W * 0.55) } };
 }
 
 let mothLamp = 1;

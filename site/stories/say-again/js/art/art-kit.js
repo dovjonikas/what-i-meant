@@ -58,6 +58,8 @@ export const lerp = (a, b, t) => a + (b - a) * t;
 export const smooth = (t) => t * t * (3 - 2 * t);
 /** 0 before `a`, 1 after `b`, smooth in between: for things that arrive in turn. */
 export const ramp = (t, a, b) => smooth(clamp((t - a) / (b - a)));
+/** A smooth bump: 0 before a, up by a + rise, down from b - fall to 0 at b. */
+export const bump = (t, a, b, rise = 0.5, fall = 0.6) => Math.min(smooth(clamp((t - a) / rise)), 1 - smooth(clamp((t - (b - fall)) / fall)));
 
 export function rgb(c) {
   if (Array.isArray(c)) return c;
