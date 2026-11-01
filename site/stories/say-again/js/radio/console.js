@@ -11,7 +11,7 @@ const TALK_CPS = 24; // characters per second while you hold the button: a brisk
 const HOLD_MAX_S = 4; // long messages go faster, so no hold runs past this: longer feels frozen
 const HEAR_CPS = 22; // received words appear at about the pace they are spoken
 const DOT_MAX_MS = 240; // a key press shorter than this is a dot, longer a dash
-const KNOB_DEG = 6; // degrees of turn per channel: one full turn covers 60 channels
+const KNOB_DEG = 5; // degrees of turn per channel: one full turn covers 72 channels
 
 export class Console {
   /**
@@ -551,6 +551,13 @@ export class Console {
     slots.innerHTML = words.map((w) => `<span class="d-w">${w.map(() => '<i></i>').join('')}</span>`).join('');
     const cells = [...slots.querySelectorAll('i')];
     this.fitPanel();
+    // Nothing to read in it: it plays faster, and a tap on the screen shows the rest at once.
+    if (count === 0) unit = Math.min(unit, 70);
+    this.skipMorse = false;
+    this.skip = () => {
+      this.skipMorse = true;
+    };
+    const skipTip = setTimeout(() => count === 0 && (tip.textContent = 'Tap the screen to read it all at once.'), 2500);
     let n = 0;
     let c = 0;
     for (const ch of letters) {
@@ -562,12 +569,12 @@ export class Console {
       const pattern = ch === 'SOS' ? SOS : MORSE[ch];
       cell.classList.add('is-now');
       big.textContent = '';
-      await this.playPattern(pattern, unit, (shown) => (big.textContent = glyphs(shown)));
+      if (!this.skipMorse) await this.playPattern(pattern, unit, (shown) => (big.textContent = glyphs(shown)));
       if (n < count && ch !== 'SOS') {
         tip.textContent = n === 0 ? 'Short beep: dot. Long: dash. Which letter?' : 'And this one?';
         await this.pickLetter(pick, ch, tip);
         tip.textContent = '';
-      } else {
+      } else if (!this.skipMorse) {
         await wait(unit * 3);
       }
       cell.textContent = ch === 'SOS' ? 'SOS' : ch;
@@ -575,7 +582,9 @@ export class Console {
       cell.classList.add('is-read');
       n += 1;
     }
-    await wait(700);
+    clearTimeout(skipTip);
+    this.skip = null;
+    await wait(this.skipMorse ? 1200 : 700);
     this.closePanel();
     const shown = text === 'SOS' ? 'SOS' : text;
     const body = this.line(who, shown, 'is-morse');
@@ -588,6 +597,7 @@ export class Console {
     this.lamp('rx', true);
     this.sound.rx?.(true);
     for (const el of pattern) {
+      if (this.skipMorse) break;
       this.sound.rxToneOn?.();
       shown += el;
       onShow(shown);
