@@ -1125,6 +1125,7 @@ button {
 }
 
 .notes-list {
+  align-items: start;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
