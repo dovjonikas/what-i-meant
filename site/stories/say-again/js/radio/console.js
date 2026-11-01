@@ -397,7 +397,11 @@ export class Console {
         return;
       }
       const a = this.armed;
-      if (!a) return;
+      if (!a) {
+        // Pressed before a line is picked: say so, or the button just seems dead.
+        if (this.choices.querySelector('.c-choice')) this.hint('First pick what to say, then hold.');
+        return;
+      }
       this.hint('');
       a.body = this.line('you');
       a.startAt = performance.now();
@@ -484,7 +488,7 @@ export class Console {
       await this.playPattern(pattern, unit, (shown) => (big.textContent = glyphs(shown)));
       if (n < count && ch !== 'SOS') {
         tip.textContent = n === 0 ? 'Short beep: dot. Long: dash. Which letter?' : 'And this one?';
-        await this.pickLetter(pick, ch, pattern);
+        await this.pickLetter(pick, ch, tip);
         tip.textContent = '';
       } else {
         await wait(unit * 3);
@@ -518,7 +522,7 @@ export class Console {
     this.lamp('rx', false);
   }
 
-  pickLetter(pick, letter, pattern) {
+  pickLetter(pick, letter, tip) {
     pick.innerHTML = '';
     let wrong = 0;
     return new Promise((resolve) => {
@@ -540,6 +544,7 @@ export class Console {
             wrong += 1;
             b.classList.add('is-wrong');
             b.disabled = true;
+            tip.textContent = `Not ${ch}. Find the dots and dashes you heard.`;
             if (wrong >= 2) [...pick.children].forEach((c) => c.textContent.startsWith(letter) && c.classList.add('is-hint'));
           }
         });
