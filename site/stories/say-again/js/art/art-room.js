@@ -2,7 +2,10 @@
 // window at the mast, the water and the town. Five looks (s.mood): calm, fog, clear,
 // storm and evening. The still parts are painted once into cached layers; each frame adds
 // what moves: the town's windows as the caller lights them, the son's window, the mast's
-// light, rain on the glass, fog, waves, lightning, the lamp and the clock.
+// light, fog, waves, lightning, the lamp and the clock. The parts have their own files:
+// art-room-outside.js (the view), art-room-glass.js (the window glass), art-room-inside.js
+// and art-room-desk.js (the room and the desk), art-room-life.js (deer, moths, boats) and
+// art-cat.js (the cat).
 //
 // Everything that matters sits between the buttons (y = 60) and the top of the radio
 // console (y = 0.56 h); the desk runs on below so the console stands on it.
@@ -13,6 +16,7 @@ import { paintOutside, outsideGeo, fogLayer, MOODS } from './art-room-outside.js
 import { paintDeer, paintMoths, paintTow, windowSpill } from './art-room-life.js';
 import { paintCat } from './art-cat.js';
 import { paintSteam } from './art-room-desk.js';
+import { glassEffects } from './art-room-glass.js';
 
 const TOP = 60;
 const geos = new Map();
@@ -234,23 +238,6 @@ function townLights(ctx, L, M, town, kid, t, mood) {
   mark('son window', kw.x - 3, kw.y - 3, 6, 6, 'room');
 }
 
-let trail = null;
-
-/** The wet trail behind a sliding drop: clear at the top, brightest at the drop. Made once. */
-function trailSprite() {
-  if (trail) return trail;
-  trail = document.createElement('canvas');
-  trail.width = 2;
-  trail.height = 32;
-  const g = trail.getContext('2d');
-  const v = g.createLinearGradient(0, 0, 0, 32);
-  v.addColorStop(0, css('#cfe0ff', 0));
-  v.addColorStop(1, css('#cfe0ff', 1));
-  g.fillStyle = v;
-  g.fillRect(0, 0, 2, 32);
-  return trail;
-}
-
 const streaks = new Map();
 
 /** A soft vertical streak, made once per colour: a light's reflection on still water. */
@@ -408,83 +395,6 @@ function lightning(ctx, L, flash, t) {
   ctx.strokeStyle = css('#ffffff', flash);
   ctx.lineWidth = 1.6;
   ctx.stroke();
-}
-
-/** Rain on the glass and the lamp's reflection in it. */
-function glassEffects(ctx, L, M, t, view, dpr, mood, lamp) {
-  const g = L.glass;
-  if (M.rain) {
-    const layer = cachedLayer(`room-glass-${mood}`, view, dpr, (c) => paintGlass(c, L, M));
-    put(ctx, layer, view);
-  }
-  if (mood === 'calm' || mood === 'storm') {
-    // Drops sliding down the glass: slow ones in light rain, quick streams in the storm.
-    const storm = mood === 'storm';
-    const rand = rng(storm ? 61 : 29);
-    const count = storm ? 18 : 6;
-    for (let i = 0; i < count; i++) {
-      const pane = L.panes[Math.floor(rand() * L.panes.length)];
-      const x = pane.x + 3 + rand() * (pane.w - 6);
-      const speed = storm ? 40 + rand() * 60 : 5 + rand() * 7;
-      const y = pane.y + ((rand() * 400 + t * speed) % (pane.h + 30)) - 15;
-      const r = (storm ? 0.9 : 1.5) * L.k + rand() * 0.8;
-      const trail = (storm ? 30 : 7) * L.k;
-      ctx.globalAlpha = storm ? 0.22 : 0.12;
-      ctx.drawImage(trailSprite(), x - 0.5, y - trail, 1, trail);
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = css('#dfe8ff', storm ? 0.3 : 0.45);
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  if (lamp > 0.01) {
-    // The lit lamp shows faintly in the dark glass.
-    const p = L.lamp;
-    stamp(ctx, glowSprite('#ffc070'), p.mouth[0] - 8 * L.k, p.mouth[1] - 4 * L.k, 34 * L.k, 0.16 * lamp);
-  }
-}
-
-/** Raindrops resting on the glass, painted once per look. */
-function paintGlass(c, L, M) {
-  const rand = rng(M.rain === 'streaks' ? 71 : 37);
-  const storm = M.rain === 'streaks';
-  for (const p of L.panes) {
-    const n = Math.round((p.w * p.h) / (storm ? 900 : 2200));
-    for (let i = 0; i < n; i++) {
-      const x = p.x + rand() * p.w;
-      // More drops low on the glass, where they gather.
-      const y = p.y + p.h * (1 - rand() ** 1.6);
-      const r = (0.7 + rand() ** 2 * 2.4) * L.k;
-      if (storm && rand() < 0.4) {
-        // Water running down in thin crooked lines.
-        c.strokeStyle = css('#b8cae8', 0.18);
-        c.lineWidth = 0.9;
-        c.beginPath();
-        c.moveTo(x, y);
-        let yy = y;
-        let xx = x;
-        while (yy < Math.min(p.y + p.h, y + 40 + rand() * 80)) {
-          yy += 4;
-          xx += (rand() - 0.5) * 1.6;
-          c.lineTo(xx, yy);
-        }
-        c.stroke();
-        continue;
-      }
-      // A drop is a little lens: dark rim below, the sky's light inside, one bright point.
-      c.fillStyle = css('#050a16', 0.22);
-      c.beginPath();
-      c.ellipse(x, y + r * 0.25, r, r * 1.05, 0, 0, Math.PI * 2);
-      c.fill();
-      c.fillStyle = css('#8aa0c8', 0.13);
-      c.beginPath();
-      c.ellipse(x, y, r * 0.85, r * 0.9, 0, 0, Math.PI * 2);
-      c.fill();
-      c.fillStyle = css('#e8f0ff', 0.32);
-      c.fillRect(x - r * 0.4, y - r * 0.45, Math.max(0.5, r * 0.35), Math.max(0.5, r * 0.35));
-    }
-  }
 }
 
 // Seven-segment digits for the station clock, as on a green glowing display.
