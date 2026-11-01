@@ -545,17 +545,21 @@ export class Console {
     const pick = panel.querySelector('.d-pick');
     const tip = panel.querySelector('.d-tip');
     const letters = text === 'SOS' ? ['SOS'] : [...text];
-    slots.innerHTML = letters.map((ch) => (ch === ' ' ? '<i class="gap"></i>' : '<i></i>')).join('');
-    const cells = [...slots.children];
+    // One box per letter, grouped by word, so a long message wraps between words.
+    const words = text === 'SOS' ? [['SOS']] : text.split(' ').map((w) => [...w]);
+    slots.innerHTML = words.map((w) => `<span class="d-w">${w.map(() => '<i></i>').join('')}</span>`).join('');
+    const cells = [...slots.querySelectorAll('i')];
+    this.fitPanel();
     let n = 0;
-    for (let i = 0; i < letters.length; i++) {
-      const ch = letters[i];
+    let c = 0;
+    for (const ch of letters) {
       if (ch === ' ') {
         await wait(unit * 7);
         continue;
       }
+      const cell = cells[c++];
       const pattern = ch === 'SOS' ? SOS : MORSE[ch];
-      cells[i].classList.add('is-now');
+      cell.classList.add('is-now');
       big.textContent = '';
       await this.playPattern(pattern, unit, (shown) => (big.textContent = glyphs(shown)));
       if (n < count && ch !== 'SOS') {
@@ -565,9 +569,9 @@ export class Console {
       } else {
         await wait(unit * 3);
       }
-      cells[i].textContent = ch === 'SOS' ? 'SOS' : ch;
-      cells[i].classList.remove('is-now');
-      cells[i].classList.add('is-read');
+      cell.textContent = ch === 'SOS' ? 'SOS' : ch;
+      cell.classList.remove('is-now');
+      cell.classList.add('is-read');
       n += 1;
     }
     await wait(700);
@@ -622,6 +626,7 @@ export class Console {
         });
         pick.append(b);
       }
+      this.fitPanel();
     });
   }
 
@@ -695,6 +700,15 @@ export class Console {
     this.panel.hidden = true;
     this.panel.innerHTML = '';
     this.screen.classList.remove('has-panel');
+    this.root.style.setProperty('--grow', '0px');
+  }
+
+  /** Like fit() for the decoder and the key: the console grows until the panel is all in view. */
+  fitPanel() {
+    const need = this.panel.scrollHeight + parseFloat(getComputedStyle(this.screen).paddingTop) * 2;
+    const grown = parseFloat(this.root.style.getPropertyValue('--grow')) || 0;
+    const room = this.screen.clientHeight - grown;
+    this.root.style.setProperty('--grow', `${Math.max(0, Math.ceil(need - room))}px`);
   }
 }
 

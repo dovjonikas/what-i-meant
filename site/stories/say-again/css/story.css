@@ -523,8 +523,17 @@ button {
 
 .d-word {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 16px;
+  max-width: 100%;
   min-height: 30px;
+}
+
+/* One word: its letters stay together on a line. */
+.d-w {
+  display: flex;
+  gap: 6px;
 }
 
 .d-word i {
@@ -537,11 +546,6 @@ button {
   font-style: normal;
   font-size: 20px;
   color: var(--kid);
-}
-
-.d-word i.gap {
-  min-width: 10px;
-  border: 0;
 }
 
 .d-word i.is-now {
