@@ -1,9 +1,10 @@
 // chart.js: the paper chart of the bay that slides up over the radio. The player lays each
 // bearing line from a station by dragging until the number matches what the direction
 // finder heard, then taps where the lines cross (the fix). With three lines the crossing
-// is a small triangle, the "cocked hat"; the truth is inside it. The map itself is geo.js.
+// is a small triangle, the "cocked hat"; the truth is inside it. A line can also be fixed
+// by a mark on it: the player finds the buoy the line runs through. The map is geo.js.
 
-import { STATIONS, TOWN, bearing, cross, dir, fmtBearing } from './geo.js';
+import { STATIONS, TOWN, BUOYS, buoyName, bearing, cross, dir, fmtBearing } from './geo.js';
 import { paintChart, writeWords } from './chart-paper.js';
 
 const PAPER = '#efe5cb';
@@ -53,11 +54,12 @@ export class Chart {
    * mark:  ask the player to tap the fix
    * zoom:  'town' to close in on the streets once the fix is marked
    * keep:  lines already on the chart from an earlier night, drawn at once
+   * find:  { buoy: 'g3', ask }  after the lines, tap that buoy; `ask` says what to look for
    */
-  run({ lines, mark = false, zoom = null, keep = [], intro = '' }) {
+  run({ lines = [], mark = false, zoom = null, keep = [], intro = '', find = null }) {
     this.laid = keep.map((l) => ({ ...l }));
     for (const l of this.laid) this.drawn.set(l, 1);
-    this.task = { lines: lines.map((l) => ({ ...l })), next: 0, mark, zoom, tries: 0 };
+    this.task = { lines: lines.map((l) => ({ ...l })), next: 0, mark, zoom, find, tries: 0 };
     this.fix = null;
     this.marked = false;
     this.view = { ...BAY };
@@ -89,6 +91,8 @@ export class Chart {
       this.say.innerHTML =
         (intro ? `<span class="chart-intro">${intro}</span>` : '') +
         `${st.name} heard it on <b>${fmtBearing(line.brg)}</b>. Drag a line out from the ringed mast until its number reads ${fmtBearing(line.brg)}.`;
+    } else if (t.find && !this.marked) {
+      this.say.innerHTML = (intro ? `<span class="chart-intro">${intro}</span>` : '') + t.find.ask;
     } else if (t.mark && !this.marked) {
       this.say.innerHTML =
         this.laid.length >= 3
@@ -140,6 +144,10 @@ export class Chart {
       this.move(e);
       return;
     }
+    if (t.find && !this.marked) {
+      this.tapBuoy(this.toMap(e));
+      return;
+    }
     if (t.mark && !this.marked && this.fix) {
       const p = this.toMap(e);
       const { s } = this.scale();
@@ -187,6 +195,38 @@ export class Chart {
     if (line) this.lay({ from: line.from, brg: line.brg });
   }
 
+  /** A tap while looking for a buoy: the right one ends the task, a wrong one says so. */
+  tapBuoy(p) {
+    const t = this.task;
+    const { s } = this.scale();
+    const near = BUOYS.map((b) => ({ b, d: Math.hypot(p.x - b.x, p.y - b.y) * s })).sort((a, z) => a.d - z.d)[0];
+    const want = BUOYS.find((b) => b.id === t.find.buoy);
+    if (near.b === want && near.d < 30) return this.found(want);
+    t.tries += 1;
+    if (near.d < 30) this.say.innerHTML = `That is ${buoyName(near.b)}, and the line misses it. ${t.find.ask}`;
+    // After three misses the ring shows where it is, so nobody is stuck on the chart.
+    if (t.tries >= 3) {
+      this.fix = { x: want.x, y: want.y };
+      this.say.innerHTML = `This one: ${buoyName(want)}, right on the line. Tap the ring.`;
+    }
+  }
+
+  /** For tests, and the same as tapping it: the buoy the task looks for. */
+  findForMe() {
+    const t = this.task;
+    if (t?.find && !this.marked) this.found(BUOYS.find((b) => b.id === t.find.buoy));
+  }
+
+  found(b) {
+    this.marked = true;
+    // Circled with its number (drawn to its right), so the pencil never runs through the figure.
+    this.fix = { x: b.x + 6, y: b.y, r: 17 };
+    this.sound.pin?.();
+    const name = buoyName(b);
+    this.say.innerHTML = `<b>${name[0].toUpperCase()}${name.slice(1)}</b>.`;
+    setTimeout(() => this.end(), 1600);
+  }
+
   lay(line) {
     const t = this.task;
     this.laid.push(line);
@@ -197,7 +237,7 @@ export class Chart {
     t.tries = 0;
     if (t.next >= t.lines.length) {
       if (t.mark) this.fix = this.fixPoint();
-      else setTimeout(() => this.end(), 1600);
+      else if (!t.find) setTimeout(() => this.end(), 1600);
     }
     this.prompt();
   }
@@ -334,9 +374,10 @@ export class Chart {
       ctx.strokeStyle = this.marked ? PENCIL : `rgb(184 69 47 / ${0.5 + k * 0.4})`;
       ctx.lineWidth = this.marked ? 1.8 : 2;
       ctx.beginPath();
-      ctx.arc(X(f.x), Y(f.y), this.marked ? Math.max(9, 7 * s) : 16 + k * 5, 0, Math.PI * 2);
+      ctx.arc(X(f.x), Y(f.y), this.marked ? f.r ?? Math.max(9, 7 * s) : 16 + k * 5, 0, Math.PI * 2);
       ctx.stroke();
-      if (this.marked) {
+      // A fix gets a dot at its heart; a found buoy is the mark itself.
+      if (this.marked && !f.r) {
         ctx.fillStyle = PENCIL;
         ctx.beginPath();
         ctx.arc(X(f.x), Y(f.y), 2.2, 0, Math.PI * 2);
