@@ -98,7 +98,7 @@ export class Chart {
     } else if (t.mark && !this.marked) {
       this.say.innerHTML =
         this.laid.length >= 3
-          ? 'Three lines never meet in one point. The small triangle is the <b>cocked hat</b>. Tap it.'
+          ? 'Three lines never meet in one point. The small triangle is the <b>cocked hat</b>. Tap the ring on it.'
           : 'Where the lines cross is the <b>fix</b>. Tap it.';
     }
   }
@@ -239,7 +239,11 @@ export class Chart {
     t.tries = 0;
     if (t.next >= t.lines.length) {
       if (t.mark) this.fix = this.fixPoint();
-      else if (!t.find) setTimeout(() => this.end(), 1600);
+      else if (!t.find) {
+        this.say.innerHTML = `<b>${fmtBearing(line.brg)}</b>. Laid.`;
+        setTimeout(() => this.end(), 1600);
+        return;
+      }
     }
     this.prompt();
   }

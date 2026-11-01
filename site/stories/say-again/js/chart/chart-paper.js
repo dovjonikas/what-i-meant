@@ -546,10 +546,11 @@ function grain(g, w, h) {
     g.fillStyle = `rgb(60 50 30 / ${rnd() * 0.05})`;
     g.fillRect(rnd() * w, rnd() * h, 1, 1);
   }
-  const fold = g.createLinearGradient(w / 2 - 10, 0, w / 2 + 10, 0);
+  // A soft fold down the middle, as on a chart kept in a drawer; faint, so it never reads as a seam.
+  const fold = g.createLinearGradient(w / 2 - 24, 0, w / 2 + 24, 0);
   fold.addColorStop(0, 'rgb(0 0 0 / 0)');
-  fold.addColorStop(0.5, 'rgb(0 0 0 / 0.06)');
-  fold.addColorStop(1, 'rgb(255 255 255 / 0)');
+  fold.addColorStop(0.5, 'rgb(0 0 0 / 0.03)');
+  fold.addColorStop(1, 'rgb(0 0 0 / 0)');
   g.fillStyle = fold;
-  g.fillRect(w / 2 - 10, 0, 20, h);
+  g.fillRect(w / 2 - 24, 0, 48, h);
 }
