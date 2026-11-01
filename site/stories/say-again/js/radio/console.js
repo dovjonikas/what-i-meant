@@ -457,6 +457,7 @@ export class Console {
       e?.preventDefault?.();
       p.classList.add('is-down');
       this.sound.pttDown?.();
+      navigator.vibrate?.(8);
       this.lamp('tx', true);
       if (this.keyer) {
         this.keyer.start = performance.now();
@@ -511,6 +512,7 @@ export class Console {
       if (!done) {
         a.body.textContent = a.text.slice(0, a.typed);
         a.body.parentElement.classList.add('is-cut');
+        navigator.vibrate?.([30, 40, 30]);
       }
       a.resolve({ cut: !done });
     };
