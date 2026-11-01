@@ -12,6 +12,6 @@
 
 export const STORIES = [
   { id: 'text-me', number: '01', status: 'out', title: 'Text me when you get home', image: 'stories/text-me/cover.jpg' },
-  { id: 'story-02', number: '02', status: 'soon', cover: 'pixel' },
+  { id: 'say-again', number: '02', status: 'out', title: 'Say Again', image: 'stories/say-again/cover.jpg' },
   { id: 'story-03', number: '03', status: 'soon', cover: 'ink' },
 ];
