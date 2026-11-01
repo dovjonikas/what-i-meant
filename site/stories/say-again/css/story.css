@@ -1383,6 +1383,12 @@ body:not(.is-gate) .gate {
   .glass {
     display: block;
   }
+
+  /* A phone's edge is under the thumb; a window's edge is not, so the knob and the button
+     stand clear of it. */
+  .console {
+    padding-bottom: calc(24px + var(--safe-b));
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
