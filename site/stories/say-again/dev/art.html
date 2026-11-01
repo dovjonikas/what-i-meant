@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Say Again: art work page</title>
+<!--
+  art.html: a work page for the pictures (js/art/art.js), not linked from the story.
+  ?scene=room&mood=storm&t=3&kid=1&town=0.2 shows one scene full screen at this size,
+  animated (t sets where the clock starts; add still=1 to hold it there). Other fields:
+  lamp, flash, clock, night, p, hand, deer, tow, rx=1, cat=0, and poke=deer,fawn,cat
+  (with ago=seconds) to see a tap's reaction. In the room scene the radio console's place
+  (y > 0.58 h) is a see-through dark box. hits=1 outlines the tap areas. ?check paints
+  every scene and look at several screen sizes and lists anything important outside the
+  column, under the buttons or over the console, with the time a frame takes.
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #0a0d16; overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  .console { position: fixed; left: 0; right: 0; bottom: 0; background: rgb(8 10 18 / 0.72); border-top: 1px solid rgb(255 255 255 / 0.15); }
+  .side { position: fixed; top: 0; bottom: 0; backdrop-filter: blur(16px) saturate(0.9); -webkit-backdrop-filter: blur(16px); background: rgb(10 12 20 / 0.25); }
+  .buttons { position: fixed; left: 0; right: 0; top: 0; height: 56px; border-bottom: 1px dashed rgb(255 255 255 / 0.25); }
+  pre { position: fixed; inset: 0; margin: 0; padding: 16px; overflow: auto; color: #d8e0f0; font: 12px/1.5 ui-monospace, Consolas, monospace; background: #0a0d16; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { paint, marks, clearLayers } from '../js/art/art.js';
+
+const q = new URLSearchParams(location.search);
+const num = (k, d) => (q.has(k) ? Number(q.get(k)) : d);
+
+function viewFor(w, h) {
+  const colW = Math.min(w, 430);
+  return { w, h, colW, colX: (w - colW) / 2 };
+}
+
+function stateFromQuery() {
+  const s = {};
+  for (const k of ['mood', 'clock']) if (q.has(k)) s[k] = q.get(k);
+  for (const k of ['lamp', 'flash', 'town', 'kid', 'night', 'p', 'hand', 'deer', 'tow']) if (q.has(k)) s[k] = Number(q.get(k));
+  if (q.has('rx')) s.rx = q.get('rx') !== '0';
+  if (q.get('cat') === '0') s.cat = false;
+  // poke=deer,fawn,cat taps them `ago` seconds before t (default 0.8 s), to see the reaction.
+  if (q.has('poke')) {
+    const at = num('t', 0) - num('ago', 0.8);
+    s.poked = Object.fromEntries(q.get('poke').split(',').map((name) => [name, at]));
+  }
+  return s;
+}
+
+
+function show() {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const scene = q.get('scene') ?? 'room';
+  const s = stateFromQuery();
+  const t0 = num('t', 0);
+  const start = performance.now();
+  let view = null;
+  const size = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    view = viewFor(document.documentElement.clientWidth, window.innerHeight);
+    canvas.width = Math.round(view.w * dpr);
+    canvas.height = Math.round(view.h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  size();
+  addEventListener('resize', size);
+  if (scene === 'room' && !q.has('noconsole')) {
+    const box = document.createElement('div');
+    box.className = 'console';
+    box.style.top = `${Math.round(window.innerHeight * 0.58)}px`;
+    document.body.append(box);
+  }
+  if (q.has('frame')) {
+    const top = document.createElement('div');
+    top.className = 'buttons';
+    document.body.append(top);
+  }
+  if (view.w > view.colW) {
+    for (const side of ['left', 'right']) {
+      const d = document.createElement('div');
+      d.className = 'side';
+      d.style[side] = '0';
+      d.style.width = `${view.colX}px`;
+      document.body.append(d);
+    }
+  }
+  const frame = () => {
+    const t = q.has('still') ? t0 : t0 + (performance.now() - start) / 1000;
+    ctx.clearRect(0, 0, view.w, view.h);
+    const hits = paint(ctx, view, scene, t, s);
+    if (q.has('hits')) outline(ctx, hits);
+    window.__hits = hits;
+    window.__frames = (window.__frames ?? 0) + 1;
+    requestAnimationFrame(frame);
+  };
+  frame();
+}
+
+function outline(ctx, hits) {
+  ctx.strokeStyle = '#ff0';
+  ctx.lineWidth = 1;
+  for (const a of Object.values(hits ?? {})) {
+    ctx.beginPath();
+    if (a.r) ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+    else ctx.rect(a.x, a.y, a.w, a.h);
+    ctx.stroke();
+  }
+}
+
+// Every scene and look the story uses, with the states that show the most.
+const CASES = [
+  ...['calm', 'fog', 'clear', 'storm', 'evening'].map((mood) => ['room', { mood, clock: '03:12', lamp: 1, town: 0.7, kid: 1, flash: mood === 'storm' ? 0.8 : 0 }]),
+  ...[1, 2, 3, 4].map((night) => ['drive', { night, p: 0 }]),
+  ...[1, 2, 3, 4].map((night) => ['drive', { night, p: 1 }]),
+  ...[1, 2, 3].map((night) => ['home', { night }]),
+  ['stairs', { p: 0 }], ['stairs', { p: 1 }],
+  ['kitchen', { hand: 0 }], ['kitchen', { hand: 1 }],
+  ['drawing', {}],
+  // The living things: deer in, a tap on each, the tow in the fog, the flash in the storm.
+  ['room', { mood: 'calm', lamp: 1, poked: { deer: 15.5, cat: 15.5 } }, 16],
+  ['room', { mood: 'clear', lamp: 1, deer: 2, rx: true, poked: { fawn: 15.8 } }, 16],
+  ['room', { mood: 'evening', lamp: 0.3 }, 14],
+  ['room', { mood: 'storm', flash: 1, deer: 2 }, 6],
+  ['room', { mood: 'fog', tow: 0 }, 2],
+  ['room', { mood: 'fog', tow: 1 }, 2],
+];
+const SIZES = [[390, 844], [360, 640], [375, 667], [430, 932], [1440, 900], [1280, 720], [768, 1024]];
+
+function inside(m, v) {
+  const e = 0.5;
+  const out = [];
+  if (m.x < v.colX - e) out.push(`left by ${(v.colX - m.x).toFixed(1)}`);
+  if (m.x + m.w > v.colX + v.colW + e) out.push(`right by ${(m.x + m.w - v.colX - v.colW).toFixed(1)}`);
+  if (m.y < -e) out.push(`above the frame by ${(-m.y).toFixed(1)}`);
+  if (m.y + m.h > v.h + e) out.push(`below the frame by ${(m.y + m.h - v.h).toFixed(1)}`);
+  if (m.rule === 'room') {
+    if (m.y < 60 - e) out.push(`under the buttons by ${(60 - m.y).toFixed(1)}`);
+    if (m.y + m.h > v.h * 0.56 + e) out.push(`into the console by ${(m.y + m.h - v.h * 0.56).toFixed(1)}`);
+  }
+  if (m.rule === 'high') {
+    if (m.y < 56 - e) out.push(`under the buttons by ${(56 - m.y).toFixed(1)}`);
+    if (m.y + m.h > v.h * 0.82 + e) out.push(`into the text by ${(m.y + m.h - v.h * 0.82).toFixed(1)}`);
+  }
+  return out;
+}
+
+async function runCheck() {
+  const pre = document.createElement('pre');
+  document.body.append(pre);
+  const lines = [];
+  let problems = 0;
+  let slowest = 0;
+  for (const [w, h] of SIZES) {
+    const v = viewFor(w, h);
+    const canvas = document.createElement('canvas');
+    canvas.width = w * 2;
+    canvas.height = h * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(2, 0, 0, 2, 0, 0);
+    for (const [scene, s, at = 1.3] of CASES) {
+      clearLayers();
+      marks.on = true;
+      marks.list = [];
+      paint(ctx, v, scene, at, s);
+      marks.on = false;
+      const seen = new Set();
+      for (const m of marks.list) {
+        const bad = inside(m, v);
+        const key = `${m.name}|${bad.join()}`;
+        if (bad.length && !seen.has(key)) {
+          seen.add(key);
+          problems += 1;
+          lines.push(`${w}x${h} ${scene} ${JSON.stringify(s)}: ${m.name} ${bad.join(', ')}`);
+        }
+      }
+      // Time warm frames: the cached layers are painted and the code has run a few times.
+      for (let i = 0; i < 5; i++) paint(ctx, v, scene, at - 0.2 + i * 0.05, s);
+      ctx.getImageData(0, 0, 1, 1);
+      const t0 = performance.now();
+      const n = 20;
+      for (let i = 0; i < n; i++) paint(ctx, v, scene, at + i * 0.05, s);
+      ctx.getImageData(0, 0, 1, 1);
+      const ms = (performance.now() - t0) / n;
+      if (w === 390) lines.push(`time ${scene} ${JSON.stringify(s)} ${ms.toFixed(2)} ms, ${marks.list.length} marks`);
+      slowest = Math.max(slowest, ms);
+      await new Promise((r) => setTimeout(r, 0));
+    }
+  }
+  lines.unshift(`${problems} problem(s); slowest warm frame ${slowest.toFixed(2)} ms`);
+  pre.textContent = lines.join('\n');
+  window.__check = { problems, slowest, lines };
+}
+// Start last, once every helper and list above exists.
+if (q.has('check')) runCheck();
+else show();
+</script>
+</body>
+</html>
