@@ -1010,6 +1010,12 @@ button {
   padding: 0 calc((100vw - var(--app-w)) / 2 + var(--gutter)) calc(40px + var(--safe-b));
   background: linear-gradient(to bottom, rgb(7 11 28 / 0.1), rgb(7 11 28 / 0.25) 45%, rgb(7 11 28 / 0.92));
   transition: opacity 900ms ease;
+  /* It covers the bar, so taps pass through it to the back arrow; only its buttons take them. */
+  pointer-events: none;
+}
+
+.gate .btn {
+  pointer-events: auto;
 }
 
 body:not(.is-gate) .gate {
