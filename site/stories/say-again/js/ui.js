@@ -2,6 +2,10 @@
 // the story leaves the station (the drive, the kitchen), the paper notes left on the
 // table, the old radio's button in the kitchen, and the end card.
 
+import { pace, wait } from './pace.js';
+
+export { wait };
+
 const READ_MS_PER_CHAR = 55;
 
 export class Ui {
@@ -117,11 +121,14 @@ export class Ui {
     b.hidden = false;
     b.querySelector('.hand-hint').textContent = hint;
     const ring = b.querySelector('circle');
-    const ms = Math.max(1600, text.length * 60);
+    const ms = Math.max(1600, text.length * 60) / pace.k;
     this.words.hidden = false;
     return new Promise((resolve) => {
       let start = 0;
       let raf = 0;
+      // What was held so far stays held: let go and press again, and it goes on from there,
+      // so a few taps get there too.
+      let kept = 0;
       const step = (now) => {
         const k = Math.min(1, (now - start) / ms);
         ring.style.strokeDashoffset = String(100 - k * 100);
@@ -136,7 +143,7 @@ export class Ui {
       };
       const down = (e) => {
         b.setPointerCapture(e.pointerId);
-        start = performance.now();
+        start = performance.now() - kept;
         b.classList.add('is-down');
         this.sound.pttDown?.();
         raf = requestAnimationFrame(step);
@@ -144,12 +151,10 @@ export class Ui {
       const up = () => {
         if (!start) return;
         cancelAnimationFrame(raf);
+        kept = Math.min(ms * 0.98, performance.now() - start);
         start = 0;
         b.classList.remove('is-down');
         this.sound.pttUp?.();
-        ring.style.strokeDashoffset = '100';
-        onProgress?.(0);
-        if (text) this.say.textContent = '';
       };
       const finish = () => {
         b.removeEventListener('pointerdown', down);
@@ -199,6 +204,3 @@ export class Ui {
   }
 }
 
-export function wait(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
