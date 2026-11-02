@@ -145,7 +145,7 @@ const n1 = [
   { tween: ['p', 1, 10000] },
   { scene: 'home', s: { night: 1 }, ambience: 'home' },
   { wait: 1600 },
-  { paper: 'Soup on the stove.\nYour son was up again last night.\nEat something.\n\nAna' },
+  { paper: 'Soup on the stove.\nOur boy was up again last night.\nEat something.\n\nAna' },
 ];
 
 // Night two: fog, a yacht drifting onto the stones, and a spotter above the fog.
