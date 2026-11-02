@@ -317,7 +317,7 @@ button {
   box-shadow: inset 0 2px 8px rgb(0 0 0 / 0.9), 0 1px 0 rgb(255 255 255 / 0.07);
   color: var(--lcd);
   font-variation-settings: var(--lcd-font);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.38;
   text-shadow: 0 0 5px rgb(156 243 184 / 0.35);
   overflow: hidden;
@@ -468,7 +468,7 @@ button {
   color: var(--lcd);
   text-align: left;
   font-variation-settings: var(--lcd-font);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.25;
   text-shadow: inherit;
   cursor: pointer;
@@ -621,6 +621,22 @@ button {
   animation: shake 320ms ease;
 }
 
+.d-letter.is-picked {
+  background: rgb(156 243 184 / 0.4);
+}
+
+/* A letter placed but not yet checked, and one that turned out wrong. */
+.d-word i.is-placed {
+  color: var(--kid);
+  opacity: 0.85;
+}
+
+.d-word i.is-wrong {
+  color: var(--tx);
+  border-color: var(--tx);
+  animation: shake 320ms ease;
+}
+
 .d-letter.is-hint {
   box-shadow: 0 0 0 2px var(--lcd), 0 0 14px rgb(156 243 184 / 0.5);
 }
@@ -757,7 +773,7 @@ button {
 .c-hint {
   margin: 0;
   color: var(--engrave);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.3;
   text-align: center;
   font-variation-settings: var(--told);
@@ -1356,7 +1372,8 @@ button {
 }
 
 /* Only while the start screen is up: once it fades, its buttons must not catch taps. */
-.is-gate .gate .btn {
+.is-gate .gate .btn,
+.is-gate .gate .gate-fast {
   pointer-events: auto;
 }
 
@@ -1385,6 +1402,25 @@ body:not(.is-gate) .gate {
 .gate-note {
   margin: 0;
   color: var(--dim);
+}
+
+.gate-fast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--dim);
+  font-size: 14px;
+}
+
+.gate-fast[hidden] {
+  display: none;
+}
+
+.gate-fast input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--amber);
 }
 
 .gate-actions {
