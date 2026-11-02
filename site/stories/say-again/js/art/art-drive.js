@@ -38,6 +38,9 @@ export function paintDrive(ctx, view, t, s, dpr) {
     L.mast = landscape(g, L, D);
     paper(g, view.w, view.h, 40 + night, 0.9);
   });
+  // The two framing pines stand nearer than the road, so they go on after the car: it
+  // passes behind them, seen through the gaps, never drawn over a tree.
+  const front = cachedLayer(`drive-front-${night}`, view, dpr, (g) => framingPines(g, L, D));
   put(ctx, bg, view);
   shimmer(ctx, L, D, t);
   gulls(ctx, L, t, night);
@@ -48,6 +51,7 @@ export function paintDrive(ctx, view, t, s, dpr) {
   const x = L.colX + L.colW * 0.05 + (L.colW * 0.9 - L.carLen) * p;
   const y = roadY(L, x + L.carLen / 2);
   car(ctx, x, y, L.carLen, D, t, p);
+  put(ctx, front, view);
   mark('car', x - 2, y - L.carLen * 0.45, L.carLen + 4, L.carLen * 0.5, 'high');
   return { car: { x, y: y - L.carLen * 0.42, w: L.carLen, h: L.carLen * 0.42 } };
 }
@@ -165,10 +169,6 @@ function landscape(g, L, D) {
     g.fill();
     forestBand(g, -10, w + 10, top, h * size, css(c), 21 + i);
   });
-  // Two tall pines at the far edges, framing the road.
-  const r2 = rng(6);
-  g.fillStyle = css(mix(D.forest, '#000000', 0.45));
-  for (const u of [-0.1, 1.08]) scotsPine(g, L.colX + L.colW * u, h * 0.9, h * 0.34, r2, u < 0.5 ? 0.05 : -0.05);
   if (D.fog) {
     // Fog lying on the water and over the far shore, thinning upward.
     const f = g.createLinearGradient(0, horizon - h * 0.12, 0, shore + h * 0.04);
@@ -178,6 +178,14 @@ function landscape(g, L, D) {
     g.fillStyle = f;
     g.fillRect(0, horizon - h * 0.12, w, shore - horizon + h * 0.16);
   }
+}
+
+/** Two tall pines at the far edges, framing the road; nearer than it, so painted over the car. */
+function framingPines(g, L, D) {
+  const { h } = L;
+  const r2 = rng(6);
+  g.fillStyle = css(mix(D.forest, '#000000', 0.45));
+  for (const u of [-0.1, 1.08]) scotsPine(g, L.colX + L.colW * u, h * 0.9, h * 0.34, r2, u < 0.5 ? 0.05 : -0.05);
 }
 
 /** After the storm: low heavy cloud over everything but one gap, and light falling through it. */
