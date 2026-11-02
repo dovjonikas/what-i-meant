@@ -6,6 +6,9 @@
 
 import { MORSE, SOS, choicesFor, glyphs } from './morse.js';
 import { fmtBearing } from '../chart/geo.js';
+import { pace, wait } from '../pace.js';
+
+export { wait };
 
 const TALK_CPS = 24; // characters per second while you hold the button: a brisk radio voice
 const HOLD_MAX_S = 4; // long messages go faster, so no hold runs past this: longer feels frozen
@@ -78,7 +81,9 @@ export class Console {
     // 16 is heard on any channel, so it is only wanted when you must talk on it.
     const off = want != null && want !== this.channel && !(this.waitFor == null && want === 16 && !this.armed);
     this.chBox.classList.toggle('is-off', off);
-    this.chWant.textContent = off ? `→${String(want).padStart(2, '0')}` : '';
+    // The arrow is the shorter way round: up (clockwise) or down.
+    const up = ((want - this.channel + 88) % 88) <= 44;
+    this.chWant.textContent = off ? `${up ? '→' : '←'}${String(want).padStart(2, '0')}` : '';
   }
 
   show(on) {
@@ -294,11 +299,11 @@ export class Console {
       this.sound.rx?.(true);
     }
     this.sound.duck?.(true);
-    const stopVoice = this.sound.voice?.(text.length / HEAR_CPS, voice);
+    const stopVoice = this.sound.voice?.(text.length / (HEAR_CPS * pace.k), voice);
     // Turn off the channel halfway and the rest of the message is gone.
     const on = ch ?? this.working;
     const heard = () => phone || this.hears(on);
-    return this.typeInto(body, text, HEAR_CPS, heard).then((lost) => {
+    return this.typeInto(body, text, HEAR_CPS * pace.k, heard).then((lost) => {
       stopVoice?.();
       this.sound.duck?.(false);
       if (lost) body.parentElement.classList.add('is-lost');
@@ -319,7 +324,7 @@ export class Console {
   /** Your own words on the telephone: they just appear, quickly. */
   say(who, text, { phone = false } = {}) {
     const body = this.line(who, '', phone ? 'is-phone' : '');
-    return this.typeInto(body, text, 40);
+    return this.typeInto(body, text, 40 * pace.k);
   }
 
   /** Types `text` into `el`; resolves true if `heard()` turned false before the end. */
@@ -565,6 +570,7 @@ export class Console {
     slots.innerHTML = words.map((w) => `<span class="d-w">${w.map(() => '<i></i>').join('')}</span>`).join('');
     const cells = [...slots.querySelectorAll('i')];
     this.fitPanel();
+    unit /= pace.k;
     // Nothing to read in it: it plays faster, and a tap on the screen shows the rest at once.
     if (count === 0) unit = Math.min(unit, 70);
     this.skipMorse = false;
@@ -574,6 +580,10 @@ export class Console {
     const skipTip = setTimeout(() => count === 0 && (tip.textContent = 'Tap the screen to read it all at once.'), 2500);
     let n = 0;
     let c = 0;
+    // The letters the player reads are placed first and checked together at the end, as a
+    // word: a wrong letter is not marked the moment it is tapped, so the choice is a reading,
+    // not a guess that the screen corrects one tap at a time.
+    const placed = [];
     // His fist: uneven dots and dashes and a long breath before each word. Everyone else
     // on the air sends like a machine; he is the one you learn to hear.
     const fist = who === 'kid';
@@ -595,18 +605,24 @@ export class Console {
       if (!this.skipMorse) await this.playPattern(pattern, unit, (shown) => (big.textContent = glyphs(shown)), fist);
       if (n < count && ch !== 'SOS') {
         tip.textContent = n === 0 ? 'Short beep: dot. Long: dash. Which letter?' : 'And this one?';
-        await this.pickLetter(pick, ch, tip, distinct);
+        const choices = choicesFor(ch, Math.random, { distinct });
+        const chosen = await this.pickLetter(pick, choices);
         tip.textContent = '';
-      } else if (!this.skipMorse) {
-        await wait(unit * 3);
+        cell.textContent = chosen;
+        cell.classList.remove('is-now');
+        cell.classList.add('is-placed');
+        placed.push({ cell, letter: ch, pattern, choices, chosen, tried: new Set([chosen]) });
+      } else {
+        if (!this.skipMorse) await wait(unit * 3);
+        cell.textContent = ch === 'SOS' ? 'SOS' : ch;
+        cell.classList.remove('is-now');
+        cell.classList.add('is-read');
       }
-      cell.textContent = ch === 'SOS' ? 'SOS' : ch;
-      cell.classList.remove('is-now');
-      cell.classList.add('is-read');
       n += 1;
     }
     clearTimeout(skipTip);
     this.skip = null;
+    if (placed.length) await this.checkWord(placed, pick, tip, big, unit, fist);
     await wait(this.skipMorse ? 1200 : 700);
     this.closePanel();
     const shown = text === 'SOS' ? 'SOS' : text;
@@ -633,36 +649,76 @@ export class Console {
     this.lamp('rx', false);
   }
 
-  pickLetter(pick, letter, tip, distinct = false) {
+  /**
+   * Four letters to tap; resolves with the one tapped, right or wrong. Letters already
+   * tried for this slot are greyed, and with `hint` the right one is lit.
+   */
+  pickLetter(pick, choices, { tried = new Set(), hint = null } = {}) {
     pick.innerHTML = '';
-    let wrong = 0;
     return new Promise((resolve) => {
-      for (const ch of choicesFor(letter, Math.random, { distinct })) {
+      for (const ch of choices) {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'd-letter';
         b.innerHTML = `<b>${ch}</b><small>${glyphs(MORSE[ch])}</small>`;
+        if (tried.has(ch)) {
+          b.classList.add('is-wrong');
+          b.disabled = true;
+        }
+        if (hint === ch) b.classList.add('is-hint');
         b.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (ch === letter) {
-            this.sound.dialTick?.();
-            b.classList.add('is-right');
-            setTimeout(() => {
-              pick.innerHTML = '';
-              resolve();
-            }, 380);
-          } else {
-            wrong += 1;
-            b.classList.add('is-wrong');
-            b.disabled = true;
-            tip.textContent = `Not ${ch}. Find the dots and dashes you heard.`;
-            if (wrong >= 2) [...pick.children].forEach((c) => c.textContent.startsWith(letter) && c.classList.add('is-hint'));
-          }
+          this.sound.dialTick?.();
+          b.classList.add('is-picked');
+          setTimeout(() => {
+            pick.innerHTML = '';
+            resolve(ch);
+          }, 260);
         });
         pick.append(b);
       }
       this.fitPanel();
     });
+  }
+
+  /**
+   * The placed letters against the word. Wrong ones clear and play again, one at a time,
+   * with what was tried greyed out; the third try lights the right one. The word is read
+   * when every letter stands.
+   */
+  async checkWord(placed, pick, tip, big, unit, fist) {
+    for (;;) {
+      const wrong = placed.filter((p) => p.chosen !== p.letter);
+      if (!wrong.length) {
+        for (const p of placed) {
+          p.cell.classList.remove('is-placed');
+          p.cell.classList.add('is-read');
+        }
+        this.sound.dialTick?.();
+        if (placed.length > 1) tip.textContent = 'Read.';
+        await wait(600);
+        tip.textContent = '';
+        return;
+      }
+      for (const p of wrong) p.cell.classList.add('is-wrong');
+      const right = placed.length - wrong.length;
+      tip.textContent = placed.length === 1 ? `Not ${wrong[0].chosen}. Listen again.` : `${right} of ${placed.length} right. The ones that cleared play again.`;
+      await wait(1100);
+      for (const p of wrong) {
+        p.cell.classList.remove('is-wrong');
+        p.cell.textContent = '';
+        p.cell.classList.add('is-now');
+        big.textContent = '';
+        await this.playPattern(p.pattern, unit, (shown) => (big.textContent = glyphs(shown)), fist);
+        tip.textContent = 'Which letter?';
+        p.chosen = await this.pickLetter(pick, p.choices, { tried: p.tried, hint: p.tried.size >= 2 ? p.letter : null });
+        p.tried.add(p.chosen);
+        tip.textContent = '';
+        p.cell.textContent = p.chosen;
+        p.cell.classList.remove('is-now');
+        p.cell.classList.add('is-placed');
+      }
+    }
   }
 
   /** Has the player send letters with the button: a tap is a dot, a hold a dash. */
@@ -747,6 +803,3 @@ export class Console {
   }
 }
 
-export function wait(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}

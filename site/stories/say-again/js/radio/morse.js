@@ -41,7 +41,11 @@ export function choicesFor(letter, rng = Math.random, { distinct = false } = {})
   const score = (ch) => {
     const p = MORSE[ch];
     let s = Math.abs(p.length - want.length) * 2;
-    for (let i = 0; i < Math.max(p.length, want.length); i++) if (p[i] !== want[i]) s += 1;
+    let diff = 0;
+    for (let i = 0; i < Math.max(p.length, want.length); i++) if (p[i] !== want[i]) diff += 1;
+    s += diff;
+    // The same length with one sign different (D and B, S and H) is a guess, not a reading.
+    if (p.length === want.length && diff === 1) s += 4;
     if (distinct) s = (p.length === want.length ? 6 : 0) + (p[0] === want[0] ? 3 : 0) - Math.abs(p.length - want.length);
     return s + rng() * 1.5;
   };
