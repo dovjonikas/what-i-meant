@@ -9,6 +9,7 @@ import { Notes } from './radio/notes.js';
 import { Ui } from './ui.js';
 import { Player } from './player.js';
 import { SCRIPT } from './script.js';
+import { pace } from './pace.js';
 import { registerWorker, offerInstall, closeInstall } from '../../../js/install.js';
 
 const SOUND_KEY = 'wim.sound'; // shared with the menu, so the choice carries over
@@ -52,6 +53,9 @@ if (saved) {
   startButton.textContent = 'Continue';
   overButton.hidden = false;
 }
+// A second time through may run fast: the words at once, the waits short.
+const fastBox = document.querySelector('.gate-fast');
+if (Player.finished()) fastBox.hidden = false;
 startButton.addEventListener('click', () => begin(saved));
 overButton.addEventListener('click', () => {
   Player.forget();
@@ -75,6 +79,7 @@ async function begin(from) {
   if (begun) return;
   begun = true;
   document.activeElement?.blur();
+  pace.k = fastBox.querySelector('input').checked ? 2.2 : 1;
   closeInstall();
   document.body.classList.remove('is-gate');
   audio = await startAudio();

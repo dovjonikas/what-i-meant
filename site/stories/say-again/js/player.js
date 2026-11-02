@@ -6,6 +6,7 @@
 import { wait } from './ui.js';
 
 const SAVE_KEY = 'wim.say-again';
+const DONE_KEY = 'wim.say-again.done';
 const NAMES = { cape: 'CAPE', skipper: 'SEAGULL', tern: 'TERN', rescue: 'RESCUE 1', pilot: 'PILOT', you: 'YOU', log: 'LOG' };
 
 export class Player {
@@ -24,6 +25,23 @@ export class Player {
       return s && s.label ? s : null;
     } catch {
       return null;
+    }
+  }
+
+  /** Whether the story has been played to its end on this phone (for the fast mode). */
+  static finished() {
+    try {
+      return localStorage.getItem(DONE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  static markDone() {
+    try {
+      localStorage.setItem(DONE_KEY, '1');
+    } catch {
+      // Then the fast mode is just not offered.
     }
   }
 
@@ -203,6 +221,7 @@ export class Player {
     if (b.tap) return ui.tapToGo();
     if (b.end) {
       Player.forget();
+      Player.markDone();
       // The radio and its notes go down for the end card, so nothing opens under the title.
       this.notes.close();
       radio.show(false);

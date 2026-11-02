@@ -29,6 +29,7 @@ and `?check&at=n3` starts at a label (a night, or one inside it such as `n4-sos`
 | `js/main.js` | Starts everything; starts the sound on the first tap |
 | `js/script.js` | The story, beat by beat (DRAFT text). The list of beat types is at its top |
 | `js/player.js` | Plays the script: lines, choices, holds, questions, Morse, charts, saving the place |
+| `js/pace.js` | The story's clock: every wait and typing speed goes through it, so a second play can run fast |
 | `js/stage.js` | The picture: one canvas, scene changes, eased values, lightning, touchable animals |
 | `js/ui.js` | Night cards, words away from the radio, the note on the table, the kitchen button, the end |
 | `js/radio/console.js` | The radio on the desk: channel knob, lamps, finder readout, screen, push-to-talk, Morse decoder and key |
