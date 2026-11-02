@@ -145,7 +145,7 @@ const n1 = [
   { tween: ['p', 1, 10000] },
   { scene: 'home', s: { night: 1 }, ambience: 'home' },
   { wait: 1600 },
-  { paper: 'Soup on the stove.\nHe was up in the night again.\nEat something.\n\nMom' },
+  { paper: 'Soup on the stove.\nYour son was up again last night.\nEat something.\n\nAna' },
 ];
 
 // Night two: fog, a yacht drifting onto the stones, and a spotter above the fog.
@@ -274,7 +274,7 @@ const n2 = [
   { tween: ['p', 1, 10000] },
   { scene: 'home', s: { night: 2 }, ambience: 'home' },
   { wait: 1600 },
-  { paper: "He has had your father's box from the hall all week.\nI told him to ask you first.\nYou are never awake when he asks.\n\nMom" },
+  { paper: "He has had your father's box from the hall all week.\nI told him to ask you first.\nYou are never awake when he asks.\n\nAna" },
 ];
 
 // Night three: the kid asks the questions now.
@@ -372,7 +372,7 @@ const n3 = [
   { tween: ['p', 1, 10000] },
   { scene: 'home', s: { night: 3 }, ambience: 'home' },
   { wait: 1600 },
-  { paper: 'Storm tonight, they say. The lights might go.\nI am at the hospital until seven. He knows the neighbour has a key.\nThe batteries from the drawer are gone again.\nAnd he says "over" at the table now. Your fault.\n\nMom' },
+  { paper: 'Storm tonight, they say. The lights might go.\nI am at the hospital until seven. He knows the neighbour has a key.\nThe batteries from the drawer are gone again.\nAnd he says "over" at the table now. Your fault.\n\nAna' },
 ];
 
 // Night four: the storm, and an SOS from somebody alone.
